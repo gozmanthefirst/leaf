@@ -1,0 +1,85 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  },
+  "files": {
+    "includes": [
+      "**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!**/dist/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!**/build/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!**/.output/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!**/*.gen.{ts,tsx,js,jsx,json,jsonc,md}"
+    ],
+    "ignoreUnknown": true
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": true,
+    "indentStyle": "space"
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": "warn",
+      "nursery": {
+        "useSortedClasses": {
+          "level": "info",
+          "fix": "safe",
+          "options": {
+            "functions": ["cn", "clsx", "twMerge", "cva"]
+          }
+        }
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "useSortedAttributes": "on",
+        "organizeImports": {
+          "level": "on",
+          "options": {
+            "groups": [
+              [":URL:"],
+              ":BLANK_LINE:",
+              [":BUN:", ":NODE:", ":PACKAGE_WITH_PROTOCOL:", ":PACKAGE:"],
+              ":BLANK_LINE:",
+              [":ALIAS:", ":PATH:"]
+            ]
+          }
+        }
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space"
+    },
+    "linter": {
+      "enabled": true
+    }
+  },
+  "json": {
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
+    },
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space"
+    }
+  },
+  "css": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space"
+    }
+  }
+}
