@@ -6,10 +6,14 @@
     "dev": "turbo run dev",
     "lint": "biome lint --write",
     "format": "biome format --write",
-    "check-types": "turbo run check-types"
+    "check": "biome check --write --unsafe --files-ignore-unknown=true",
+    "check-types": "turbo run check-types",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "2.1.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "turbo": "^2.5.4",
     "typescript": "5.8.3"
   },
