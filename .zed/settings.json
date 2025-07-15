@@ -5,12 +5,16 @@
 {
   "lsp": {
     "biome": {
-      "settings": {}
+      "settings": {
+        "require_config_file": true
+      }
     }
   },
+  "formatter": "language_server",
   "code_actions_on_format": {
     "source.fixAll.biome": true,
     "source.organizeImports.biome": true,
+    "source.organizeImports": true,
     "source.action.useSortedAttributes.biome": true
   },
   "languages": {
