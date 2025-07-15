@@ -1,7 +1,7 @@
 import type { NotFoundHandler } from "hono";
 import { StatusCodes } from "http-status-codes";
 
-export const notFoundRoute: NotFoundHandler = (c) => {
+const notFoundRoute: NotFoundHandler = (c) => {
   return c.json(
     {
       message: `Route not found - '${c.req.path}'`,
@@ -9,3 +9,5 @@ export const notFoundRoute: NotFoundHandler = (c) => {
     StatusCodes.NOT_FOUND,
   );
 };
+
+export default notFoundRoute;
