@@ -1,6 +1,7 @@
 import app from "./app";
+import env from "./env";
 
-const port = process.env.PORT || 8000;
+const port = env.PORT;
 
 export default {
   port,
