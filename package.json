@@ -1,15 +1,5 @@
 {
   "name": "notes",
-  "private": true,
-  "scripts": {
-    "build": "turbo run build",
-    "dev": "turbo run dev",
-    "lint": "biome lint --write",
-    "format": "biome format --write",
-    "check": "biome check --write --unsafe --files-ignore-unknown=true",
-    "check-types": "turbo run check-types",
-    "prepare": "husky"
-  },
   "devDependencies": {
     "@biomejs/biome": "2.1.1",
     "husky": "^9.1.7",
@@ -21,6 +11,16 @@
     "node": ">=18"
   },
   "packageManager": "bun@1.2.18",
+  "private": true,
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "biome lint --write",
+    "format": "biome format --write",
+    "check": "biome check --write --unsafe --files-ignore-unknown=true",
+    "check-types": "turbo run check-types",
+    "prepare": "husky"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
