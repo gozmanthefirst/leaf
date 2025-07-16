@@ -1,5 +1,6 @@
 {
   "name": "notes",
+  "version": "0.0.1",
   "devDependencies": {
     "@biomejs/biome": "2.1.1",
     "husky": "^9.1.7",

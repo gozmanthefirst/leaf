@@ -6,6 +6,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^0.19.9",
+    "@scalar/hono-api-reference": "^0.9.10",
     "hono": "^4.8.4",
     "http-status-codes": "^2.3.0",
     "zod": "^4.0.4"
