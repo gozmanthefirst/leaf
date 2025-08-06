@@ -5,9 +5,7 @@
 {
   "lsp": {
     "biome": {
-      "settings": {
-        "require_config_file": true
-      }
+      "settings": {}
     }
   },
   "formatter": "language_server",
@@ -24,7 +22,12 @@
           "name": "biome"
         }
       },
-      "language_servers": ["biome", "..."]
+      "language_servers": [
+        "!typescript-language-server",
+        "biome",
+        "vtsls",
+        "..."
+      ]
     },
     "TypeScript": {
       "formatter": {
@@ -32,7 +35,12 @@
           "name": "biome"
         }
       },
-      "language_servers": ["biome", "..."]
+      "language_servers": [
+        "!typescript-language-server",
+        "biome",
+        "vtsls",
+        "..."
+      ]
     },
     "TSX": {
       "formatter": {
@@ -40,7 +48,12 @@
           "name": "biome"
         }
       },
-      "language_servers": ["biome", "..."]
+      "language_servers": [
+        "!typescript-language-server",
+        "biome",
+        "vtsls",
+        "..."
+      ]
     },
     "JSON": {
       "formatter": {

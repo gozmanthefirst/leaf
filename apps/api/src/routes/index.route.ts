@@ -28,7 +28,7 @@ const indexRouter = createRouter().openapi(
   }),
   (c) => {
     return c.json({
-      note: "Welcome to the Notes API! Use the /notes endpoint to manage your notes.",
+      note: "123",
     });
   },
 );

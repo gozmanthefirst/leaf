@@ -1,9 +1,15 @@
-import app from "./app";
-import env from "./env";
+import createApp from "@/lib/create-app";
+import configureOpenAPI from "@/lib/openapi";
+import indexRouter from "@/routes/index.route";
 
-const port = env.PORT;
+const app = createApp();
 
-export default {
-  port,
-  fetch: app.fetch,
-};
+const routes = [indexRouter];
+
+configureOpenAPI(app);
+
+routes.forEach((route) => {
+  app.route("/", route);
+});
+
+export default app;
