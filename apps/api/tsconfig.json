@@ -1,9 +1,6 @@
 {
+  "extends": "@repo/typescript-config/bun.json",
   "compilerOptions": {
-    "strict": true,
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-
     // These are for importing the package.json to the openapi config file.
     "resolveJsonModule": true,
     "esModuleInterop": true,

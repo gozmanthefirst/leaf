@@ -13,6 +13,7 @@
     "zod": "^4.0.4"
   },
   "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
     "@types/bun": "latest"
   }
 }
