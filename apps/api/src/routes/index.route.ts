@@ -13,11 +13,11 @@ const IndexSchema = z
     example: { message: "Welcome to the Notes API" },
   });
 
-const router = createRouter().openapi(
+const indexRouter = createRouter().openapi(
   createRoute({
-    tags: ["Index"],
-    method: "get",
     path: "/",
+    method: "get",
+    tags: ["Index"],
     responses: {
       [HttpStatusCodes.OK]: jsonContent(IndexSchema, "Notes API Index"),
     },
@@ -27,4 +27,4 @@ const router = createRouter().openapi(
   },
 );
 
-export default router;
+export default indexRouter;
