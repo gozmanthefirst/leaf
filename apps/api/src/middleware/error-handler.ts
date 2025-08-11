@@ -1,7 +1,7 @@
 import type { ErrorHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-import env from "@/env";
+import env from "@/lib/env";
 import HttpStatusCodes from "@/utils/http-status-codes";
 
 const errorHandler: ErrorHandler = (err, c) => {
