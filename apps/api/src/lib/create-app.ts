@@ -1,12 +1,12 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { logger } from "hono/logger";
-import { StatusCodes } from "http-status-codes";
 
 import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";
 import notFoundRoute from "@/middleware/not-found-route";
 import { errorResponse } from "@/utils/api-response";
+import HttpStatusCodes from "@/utils/http-status-codes";
 
 // This is a function for creating API routes.
 export const createRouter = () => {
@@ -19,7 +19,7 @@ export const createRouter = () => {
 
         return c.json(
           errorResponse("INVALID_DATA", errorDetails),
-          StatusCodes.UNPROCESSABLE_ENTITY,
+          HttpStatusCodes.UNPROCESSABLE_ENTITY,
         );
       }
     },

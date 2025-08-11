@@ -1,17 +1,17 @@
 import type { ErrorHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { StatusCodes } from "http-status-codes";
 
 import env from "@/env";
+import HttpStatusCodes from "@/utils/http-status-codes";
 
 const errorHandler: ErrorHandler = (err, c) => {
   const currentStatus =
     "status" in err ? err.status : c.newResponse(null).status;
 
   const statusCode =
-    currentStatus !== StatusCodes.OK
+    currentStatus !== HttpStatusCodes.OK
       ? (currentStatus as ContentfulStatusCode)
-      : StatusCodes.INTERNAL_SERVER_ERROR;
+      : HttpStatusCodes.INTERNAL_SERVER_ERROR;
 
   const nodeEnv = c.env.NODE_ENV || env.NODE_ENV;
 

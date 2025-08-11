@@ -1,0 +1,62 @@
+.git
+node_modules
+.next
+.turbo
+.cache
+.env*
+coverage
+.vscode
+npm-debug.log*
+.DS_Store
+dist
+build
+README.md
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+
+# Turborepo
+.turbo
+
+# Next.js
+.next
+out
+
+# Vite
+dist
+.vite
+
+# Build outputs
+build
+lib
+esm
+cjs
+
+# Dev dependencies
+*.tsbuildinfo
+.swc
+
+# Testing
+coverage
+.nyc_output
+junit.xml
+
+# Logs
+*.log
+logs
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.cache
+.temp
+.tmp
