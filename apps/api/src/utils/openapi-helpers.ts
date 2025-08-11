@@ -1,6 +1,6 @@
-import type { z } from "zod";
+import type { z } from "@hono/zod-openapi";
 
-export const jsonContent = <T extends z.ZodSchema>(
+export const jsonContent = <T extends z.ZodType>(
   schema: T,
   description: string,
 ) => {

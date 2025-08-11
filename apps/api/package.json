@@ -1,14 +1,15 @@
 {
   "name": "api",
+  "version": "0.0.1",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "dev:port": "PORT=4000 bun run --hot src/index.ts"
+    "build": "bun build src/index.ts --outdir ./dist --target bun --minify",
+    "start": "bun run ./dist/index.js"
   },
   "dependencies": {
     "@hono/zod-openapi": "^0.19.9",
     "@scalar/hono-api-reference": "^0.9.10",
     "hono": "^4.8.4",
-    "http-status-codes": "^2.3.0",
     "zod": "^4.0.4"
   },
   "devDependencies": {

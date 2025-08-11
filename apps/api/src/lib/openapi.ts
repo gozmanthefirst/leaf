@@ -1,9 +1,9 @@
-import type { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
 
-import packageJSON from "../../../../package.json";
+import type { AppOpenAPI } from "@/lib/types";
+import packageJSON from "../../package.json";
 
-const configureOpenAPI = (app: OpenAPIHono) => {
+const configureOpenAPI = (app: AppOpenAPI) => {
   app.doc("/doc", {
     openapi: "3.0.0",
     info: {
@@ -18,7 +18,8 @@ const configureOpenAPI = (app: OpenAPIHono) => {
     Scalar({
       url: "/doc",
       pageTitle: "Notes API",
-      theme: "deepSpace",
+      theme: "saturn",
+      // layout: "classic",
       defaultHttpClient: {
         targetKey: "js",
         clientKey: "axios",
