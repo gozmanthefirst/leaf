@@ -1,0 +1,1 @@
+ALTER TABLE "notes" ALTER COLUMN "title" SET DEFAULT 'untitled';

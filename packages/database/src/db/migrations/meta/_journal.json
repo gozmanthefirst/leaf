@@ -8,6 +8,27 @@
       "when": 1754934849053,
       "tag": "0000_closed_dragon_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754936646484,
+      "tag": "0001_odd_nitro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754951905641,
+      "tag": "0002_ancient_bromley",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1754953649937,
+      "tag": "0003_bored_diamondback",
+      "breakpoints": true
     }
   ]
 }
