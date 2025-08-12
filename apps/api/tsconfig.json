@@ -1,9 +1,8 @@
 {
   "extends": "@repo/typescript-config/bun.json",
   "compilerOptions": {
-    // These are for importing the package.json to the openapi config file.
+    // This is for importing the package.json to the openapi config file.
     "resolveJsonModule": true,
-    "esModuleInterop": true,
 
     // This is for import aliases.
     "paths": {

@@ -8,7 +8,7 @@ const app = createApp();
 const routes = [index, notes];
 
 routes.forEach((route) => {
-  app.route("/", route);
+  app.route("/api", route);
 });
 configureOpenAPI(app);
 

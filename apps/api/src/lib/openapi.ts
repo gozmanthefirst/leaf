@@ -19,7 +19,6 @@ const configureOpenAPI = (app: AppOpenAPI) => {
       url: "/doc",
       pageTitle: "Notes API",
       theme: "saturn",
-      // layout: "classic",
       defaultHttpClient: {
         targetKey: "js",
         clientKey: "axios",

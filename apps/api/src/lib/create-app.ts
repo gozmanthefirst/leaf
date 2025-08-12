@@ -5,24 +5,13 @@ import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";
 import notFoundRoute from "@/middleware/not-found-route";
-import { errorResponse } from "@/utils/api-response";
-import HttpStatusCodes from "@/utils/http-status-codes";
+import { validationErrorHandler } from "@/utils/openapi-helpers";
 
 // This is a function for creating API routes.
 export const createRouter = () => {
   return new OpenAPIHono<AppBindings>({
     strict: false,
-    defaultHook: (result, c) => {
-      if (!result.success) {
-        const errorDetails =
-          result.error.issues[0]?.message ?? "Invalid request data.";
-
-        return c.json(
-          errorResponse("INVALID_DATA", errorDetails),
-          HttpStatusCodes.UNPROCESSABLE_ENTITY,
-        );
-      }
-    },
+    defaultHook: validationErrorHandler,
   });
 };
 

@@ -1,28 +1,35 @@
-export const successResponse = (details: string, data: unknown): object => {
+/**
+ * Helper function to create a success response for API routes.
+ * @param data - The data to include in the response.
+ * @param details - Additional details about the response.
+ * @returns An object representing the success response.
+ */
+export const successResponse = (data: unknown, details: string): object => {
   return {
     status: "success",
-    data,
     details,
+    data,
   };
 };
 
+/**
+ * Helper function to create an error response for API routes.
+ * @param code - The error code.
+ * @param details - Additional details about the error.
+ * @param fields - Validation error fields, if any.
+ * @returns An object representing the error response.
+ */
 export const errorResponse = (
-  errorCode: string,
+  code: string,
   details: string,
-  data?: unknown,
+  fields?: Record<string, string>,
 ): object => {
-  if (data) {
-    return {
-      status: "error",
-      errorCode,
+  return {
+    status: "error",
+    error: {
+      code,
       details,
-      data,
-    };
-  } else {
-    return {
-      status: "error",
-      errorCode,
-      details,
-    };
-  }
+      fields: fields || {},
+    },
+  };
 };
