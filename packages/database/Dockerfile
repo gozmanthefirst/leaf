@@ -1,4 +1,4 @@
-FROM oven/bun:1.2.20 AS base
+FROM oven/bun:latest-alpine AS base
 
 FROM base AS builder
 WORKDIR /app
@@ -23,9 +23,8 @@ COPY --from=builder /app/out/full/ .
 # Install dependencies with bun
 RUN bun install --frozen-lockfile
 
-# Migrate the database
-RUN cd packages/database && \
-  bun db:migrate
+# Set working directory to database package
+WORKDIR /app/packages/database
 
-# Production stage with only essential files
-FROM ghcr.io/drizzle-team/gateway:latest
+# Run database migration
+CMD ["bun", "run", "db:migrate"]
