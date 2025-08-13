@@ -68,12 +68,19 @@ export const getSingleNote = createRoute({
           fields: {},
         },
       }),
-
       "Note not found",
     ),
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-      create422ErrorSchema(IdUUIDParamsSchema),
-      "Invalid ID",
+      create422ErrorSchema(IdUUIDParamsSchema, [
+        {
+          code: "INVALID_DATA",
+          details: "id: Invalid UUID",
+          fields: {
+            id: "Invalid UUID",
+          },
+        },
+      ]),
+      "Invalid request data",
     ),
   },
 });

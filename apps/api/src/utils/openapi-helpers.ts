@@ -45,7 +45,7 @@ export const jsonContentRequired = <T extends z.ZodType>(
  * @param c - The context of the request.
  * @returns A JSON response with error details if validation fails.
  */
-// biome-ignore lint/suspicious/noExplicitAny: needed
+// biome-ignore lint/suspicious/noExplicitAny: Hook type requires generic any parameters for flexibility across different route configurations
 export const validationErrorHandler: Hook<any, any, any, any> = (result, c) => {
   if (!result.success) {
     const fields: Record<string, string> = {};
@@ -97,37 +97,66 @@ export const createErrorSchema = (example: object) => {
 };
 
 /**
- * Helper function to create an error schema for OpenAPI responses.
+ * Helper function to create an error schema for OpenAPI responses with multiple examples.
  * @param schema - The Zod schema for the response data.
+ * @param examples - Optional object with multiple named examples.
  * @returns A Zod object schema representing an error response.
  */
-export const create422ErrorSchema = <T extends z.ZodType>(schema: T) => {
-  const fields: Record<string, string> = {};
-  let details = "";
+export const create422ErrorSchema = <T extends z.ZodType>(
+  schema: T,
+  examples?: {
+    code: string;
+    details: string;
+    fields: Record<string, string>;
+  }[],
+) => {
+  let exampleData:
+    | {
+        example: {
+          code: string;
+          details: string;
+          fields: Record<string, string>;
+        };
+      }
+    | {
+        examples: {
+          code: string;
+          details: string;
+          fields: Record<string, string>;
+        }[];
+      };
 
-  // Build some invalid test data based on whether it's an array
-  let testData: unknown;
-  if (schema instanceof z.ZodArray) {
-    const elem = schema.element;
-    testData = elem instanceof z.ZodString ? [123] : ["invalid"];
+  if (examples) {
+    exampleData = { examples: examples };
   } else {
-    testData = {};
+    // Generate default single example
+    const fields: Record<string, string> = {};
+    let details = "";
+
+    let testData: unknown;
+    if (schema instanceof z.ZodArray) {
+      const elem = schema.element;
+      testData = elem instanceof z.ZodString ? [123] : ["invalid"];
+    } else {
+      testData = {};
+    }
+
+    const { error } = schema.safeParse(testData);
+
+    error?.issues.forEach((issue, index) => {
+      const path = issue.path.join(".");
+      fields[path] = issue.message;
+      if (index === 0) details = `${path}: ${issue.message}`;
+    });
+
+    const defaultExample = {
+      code: "INVALID_DATA",
+      details: details ? details : "Error details",
+      fields,
+    };
+
+    exampleData = { example: defaultExample };
   }
-
-  // Safely parse the test data to get the validation errors
-  const { error } = schema.safeParse(testData);
-
-  error?.issues.forEach((issue, index) => {
-    const path = issue.path.join(".");
-    fields[path] = issue.message;
-    if (index === 0) details = `${path}: ${issue.message}`;
-  });
-
-  const exampleError = {
-    code: "INVALID_DATA",
-    details: details ? details : "Error details",
-    fields,
-  };
 
   return z.object({
     status: z.enum(["error"]).default("error").openapi({ example: "error" }),
@@ -137,7 +166,7 @@ export const create422ErrorSchema = <T extends z.ZodType>(schema: T) => {
         details: z.string(),
         fields: z.record(z.string(), z.string()),
       })
-      .openapi({ example: exampleError }),
+      .openapi(exampleData),
   });
 };
 
