@@ -19,3 +19,4 @@ export const NotesInsertSchema = createInsertSchema(notes, {
   createdAt: true,
   updatedAt: true,
 });
+export const NotesUpdateSchema = NotesInsertSchema.partial();
