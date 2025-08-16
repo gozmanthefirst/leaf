@@ -5,6 +5,7 @@ import * as notesRoutes from "./notes.routes";
 const notesRouter = createRouter()
   .openapi(notesRoutes.getAllNotes, notesHandlers.getAllNotes)
   .openapi(notesRoutes.createNote, notesHandlers.createNote)
-  .openapi(notesRoutes.getSingleNote, notesHandlers.getSingleNote);
+  .openapi(notesRoutes.getSingleNote, notesHandlers.getSingleNote)
+  .openapi(notesRoutes.updateNote, notesHandlers.updateNote);
 
 export default notesRouter;
