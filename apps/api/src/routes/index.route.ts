@@ -2,7 +2,6 @@ import { createRoute, z } from "@hono/zod-openapi";
 
 import { createRouter } from "@/lib/create-app";
 import HttpStatusCodes from "@/utils/http-status-codes";
-import { jsonContent } from "@/utils/openapi-helpers";
 
 const IndexSchema = z
   .object({
@@ -19,7 +18,14 @@ const indexRouter = createRouter().openapi(
     method: "get",
     tags: ["Index"],
     responses: {
-      [HttpStatusCodes.OK]: jsonContent(IndexSchema, "Notes API Index"),
+      [HttpStatusCodes.OK]: {
+        content: {
+          "application/json": {
+            schema: IndexSchema,
+          },
+        },
+        description: "Notes API Index",
+      },
     },
   }),
   (c) => {

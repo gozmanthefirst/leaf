@@ -7,10 +7,12 @@ import {
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import {
-  createErrorSchema,
   createIdUUIDParamsSchema,
-  createSuccessSchema,
-  jsonContentRequired,
+  errorContent,
+  examples,
+  serverErrorContent,
+  successContent,
+  syntaxErrorContent,
 } from "@/utils/openapi-helpers";
 
 const tags = ["Notes"];
@@ -20,53 +22,15 @@ export const getAllNotes = createRoute({
   method: "get",
   tags,
   responses: {
-    [HttpStatusCodes.OK]: {
+    [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
-      content: {
-        "application/json": {
-          schema: createSuccessSchema(z.array(NotesSelectSchema)),
-          examples: {
-            success: {
-              summary: "Notes retrieval successful",
-              value: {
-                status: "success",
-                details: "All notes retrieved successfully",
-                data: [
-                  {
-                    id: "123e4567-e89b-12d3-a456-426614174000",
-                    title: "An untitled note",
-                    content: "This is the content of the note with no title.",
-                    createdAt: "2025-08-11T18:26:20.296Z",
-                    updatedAt: "2025-08-11T18:26:20.296Z",
-                  },
-                ],
-              },
-            },
-          },
-        },
+      schema: z.array(NotesSelectSchema),
+      resObj: {
+        details: "All notes retrieved successfully",
+        data: [examples.note],
       },
-    },
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: {
-      description: "Server error",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Server error",
-              value: {
-                status: "error",
-                error: {
-                  code: "SERVER_ERROR",
-                  details: "Error retrieving all notes",
-                  fields: {},
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    }),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
 
@@ -74,81 +38,39 @@ export const createNote = createRoute({
   path: "/notes",
   method: "post",
   request: {
-    body: jsonContentRequired(NotesInsertSchema, "Create new note"),
+    body: {
+      content: {
+        "application/json": {
+          schema: NotesInsertSchema,
+        },
+      },
+      description: "Create a new note",
+      required: true,
+    },
   },
   tags,
   responses: {
-    [HttpStatusCodes.OK]: {
+    [HttpStatusCodes.CREATED]: successContent({
       description: "Note created",
-      content: {
-        "application/json": {
-          schema: createSuccessSchema(NotesSelectSchema),
-          examples: {
-            success: {
-              summary: "Notes creation successful",
-              value: {
-                status: "success",
-                details: "Note created successfully",
-                data: {
-                  id: "123e4567-e89b-12d3-a456-426614174000",
-                  title: "New note",
-                  content: "This is the content of the new note.",
-                  createdAt: "2025-08-11T18:26:20.296Z",
-                  updatedAt: "2025-08-11T18:26:20.296Z",
-                },
-              },
-            },
-          },
-        },
+      schema: NotesSelectSchema,
+      resObj: {
+        details: "Note created successfully",
+        data: { ...examples.note, title: "New note" },
       },
-    },
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: {
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
       description: "Invalid request data",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Invalid request data",
-              value: {
-                status: "error",
-                error: {
-                  code: "INVALID_DATA",
-                  details:
-                    "title: Too small: expected string to have >=1 characters",
-                  fields: {
-                    title: "Too small: expected string to have >=1 characters",
-                    content:
-                      "Too small: expected string to have >=1 characters",
-                  },
-                },
-              },
-            },
-          },
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: "title: Too small",
+          fields: examples.validationErrors,
         },
       },
-    },
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: {
-      description: "Server error",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Server error",
-              value: {
-                status: "error",
-                error: {
-                  code: "SERVER_ERROR",
-                  details: "Error creating note",
-                  fields: {},
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: syntaxErrorContent(),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
 
@@ -156,99 +78,40 @@ export const getSingleNote = createRoute({
   path: "/notes/{id}",
   method: "get",
   request: {
-    params: createIdUUIDParamsSchema("The unique ID of the note"),
+    params: createIdUUIDParamsSchema("Note UUID"),
   },
   tags,
   responses: {
-    [HttpStatusCodes.OK]: {
+    [HttpStatusCodes.OK]: successContent({
       description: "Note retrieved",
-      content: {
-        "application/json": {
-          schema: createSuccessSchema(NotesSelectSchema),
-          examples: {
-            success: {
-              summary: "Note retrieval successful",
-              value: {
-                status: "success",
-                details: "Note retrieved successfully",
-                data: {
-                  id: "123e4567-e89b-12d3-a456-426614174000",
-                  title: "An untitled note",
-                  content: "This is the content of the note with no title.",
-                  createdAt: "2025-08-11T18:26:20.296Z",
-                  updatedAt: "2025-08-11T18:26:20.296Z",
-                },
-              },
-            },
-          },
-        },
+      schema: NotesSelectSchema,
+      resObj: {
+        details: "Note retrieved successfully",
+        data: examples.note,
       },
-    },
-    [HttpStatusCodes.NOT_FOUND]: {
+    }),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
       description: "Note not found",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Note not found",
-              value: {
-                status: "error",
-                error: {
-                  code: "NOT_FOUND",
-                  details: "Note not found",
-                  fields: {},
-                },
-              },
-            },
-          },
+      examples: {
+        notFound: {
+          summary: "Note not found",
+          code: "NOT_FOUND",
+          details: "Note not found",
         },
       },
-    },
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: {
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
       description: "Invalid request data",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Invalid ID",
-              value: {
-                status: "error",
-                error: {
-                  code: "INVALID_DATA",
-                  details: "id: Invalid UUID",
-                  fields: {
-                    id: "Invalid UUID",
-                  },
-                },
-              },
-            },
-          },
+      examples: {
+        invalidId: {
+          summary: "Invalid ID",
+          code: "INVALID_DATA",
+          details: "id: Invalid UUID",
+          fields: { id: "Invalid UUID" },
         },
       },
-    },
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: {
-      description: "Server error",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Server error",
-              value: {
-                status: "error",
-                error: {
-                  code: "SERVER_ERROR",
-                  details: "Error retrieving note",
-                  fields: {},
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    }),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
 
@@ -256,116 +119,92 @@ export const updateNote = createRoute({
   path: "/notes/{id}",
   method: "patch",
   request: {
-    params: createIdUUIDParamsSchema("The unique ID of the note"),
-    body: jsonContentRequired(NotesUpdateSchema, "Update note"),
+    params: createIdUUIDParamsSchema("Note UUID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: NotesUpdateSchema,
+        },
+      },
+      description: "Update an existing note",
+      required: true,
+    },
   },
   tags,
   responses: {
-    [HttpStatusCodes.OK]: {
+    [HttpStatusCodes.OK]: successContent({
       description: "Note updated",
-      content: {
-        "application/json": {
-          schema: createSuccessSchema(NotesSelectSchema),
-          examples: {
-            success: {
-              summary: "Note update successful",
-              value: {
-                status: "success",
-                details: "Note updated successfully",
-                data: {
-                  id: "123e4567-e89b-12d3-a456-426614174000",
-                  title: "An updated note",
-                  content: "This is the content of the updated note.",
-                  createdAt: "2025-08-11T18:26:20.296Z",
-                  updatedAt: "2025-08-11T18:26:20.296Z",
-                },
-              },
-            },
-          },
-        },
+      schema: NotesSelectSchema,
+      resObj: {
+        details: "Note updated successfully",
+        data: { ...examples.note, title: "Updated note" },
       },
-    },
-    [HttpStatusCodes.NOT_FOUND]: {
+    }),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
       description: "Note not found",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Note not found",
-              value: {
-                status: "error",
-                error: {
-                  code: "NOT_FOUND",
-                  details: "Note not found",
-                  fields: {},
-                },
-              },
-            },
-          },
+      examples: {
+        notFound: {
+          summary: "Note not found",
+          code: "NOT_FOUND",
+          details: "Note not found",
         },
       },
-    },
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: {
-      description: "Unprocessable Entity",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            invalidId: {
-              summary: "Invalid ID",
-              value: {
-                status: "error",
-                error: {
-                  code: "INVALID_DATA",
-                  details: "id: Invalid UUID",
-                  fields: {
-                    id: "Invalid UUID",
-                  },
-                },
-              },
-            },
-            invalidData: {
-              summary: "Invalid request data",
-              value: {
-                status: "error",
-                error: {
-                  code: "INVALID_DATA",
-                  details:
-                    "title: Too small: expected string to have >=1 characters",
-                  fields: {
-                    title: "Too small: expected string to have >=1 characters",
-                    content:
-                      "Too small: expected string to have >=1 characters",
-                  },
-                },
-              },
-            },
-          },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: "title: Too small: expected string to have >=1 characters",
+          fields: examples.validationErrors,
+        },
+        invalidId: {
+          summary: "Invalid ID",
+          code: "INVALID_DATA",
+          details: "id: Invalid UUID",
+          fields: { id: "Invalid UUID" },
         },
       },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: syntaxErrorContent(),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const deleteNote = createRoute({
+  path: "/notes/{id}",
+  method: "delete",
+  request: {
+    params: createIdUUIDParamsSchema("Note UUID"),
+  },
+  tags,
+  responses: {
+    [HttpStatusCodes.NO_CONTENT]: {
+      description: "Note deleted successfully",
     },
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: {
-      description: "Server error",
-      content: {
-        "application/json": {
-          schema: createErrorSchema(),
-          examples: {
-            error: {
-              summary: "Server error",
-              value: {
-                status: "error",
-                error: {
-                  code: "SERVER_ERROR",
-                  details: "Error updating note",
-                  fields: {},
-                },
-              },
-            },
-          },
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Note not found",
+      examples: {
+        notFound: {
+          summary: "Note not found",
+          code: "NOT_FOUND",
+          details: "Note not found",
         },
       },
-    },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidId: {
+          summary: "Invalid ID",
+          code: "INVALID_DATA",
+          details: "id: Invalid UUID",
+          fields: { id: "Invalid UUID" },
+        },
+      },
+    }),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
 
@@ -373,3 +212,4 @@ export type ListNotesRoute = typeof getAllNotes;
 export type CreateNoteRoute = typeof createNote;
 export type GetSingleNoteRoute = typeof getSingleNote;
 export type UpdateNoteRoute = typeof updateNote;
+export type DeleteNoteRoute = typeof deleteNote;
