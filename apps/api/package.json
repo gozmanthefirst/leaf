@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun --minify",
-    "start": "bun run dist/index.js"
+    "start": "bun run dist/index.js",
+    "test": "vitest"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.1.0",
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@repo/database": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "vitest": "^3.2.4"
   }
 }

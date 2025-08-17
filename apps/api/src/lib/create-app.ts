@@ -1,7 +1,7 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { logger } from "hono/logger";
 
-import type { AppBindings } from "@/lib/types";
+import type { AppBindings, AppOpenAPI } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";
 import notFoundRoute from "@/middleware/not-found-route";
@@ -29,6 +29,10 @@ const createApp = () => {
   app.onError(errorHandler);
 
   return app;
+};
+
+export const createTestApp = (router: AppOpenAPI) => {
+  return createApp().route("/", router);
 };
 
 export default createApp;
