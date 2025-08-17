@@ -4,7 +4,8 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
-    "./schema/*": "./src/db/schema/*.ts"
+    "./schemas/*": "./src/db/schemas/*.ts",
+    "./validators/*": "./src/db/validators/*.ts"
   },
   "scripts": {
     "dev": "bun run --hot src/index.ts",
@@ -19,7 +20,8 @@
     "drizzle-orm": "^0.44.4",
     "drizzle-seed": "^0.3.1",
     "drizzle-zod": "^0.8.3",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

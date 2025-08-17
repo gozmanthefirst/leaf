@@ -1,6 +1,6 @@
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-import { notes } from "../schema/notes-schema";
+import { notes } from "../schemas/notes-schema";
 
 export const NotesSelectSchema = createSelectSchema(notes);
 

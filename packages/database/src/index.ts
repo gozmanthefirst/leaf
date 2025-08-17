@@ -1,7 +1,8 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-import * as notesSchema from "./db/schema/notes-schema";
+import * as authSchema from "./db/schemas/auth-schema";
+import * as notesSchema from "./db/schemas/notes-schema";
 import env from "./lib/env";
 
 export const pool = new Pool({
@@ -12,6 +13,7 @@ export const pool = new Pool({
 const db = drizzle(pool, {
   schema: {
     ...notesSchema,
+    ...authSchema,
   },
   casing: "snake_case",
 });
