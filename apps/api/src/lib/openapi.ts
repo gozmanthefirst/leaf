@@ -4,7 +4,7 @@ import type { AppOpenAPI } from "@/lib/types";
 import packageJSON from "../../package.json";
 
 const configureOpenAPI = (app: AppOpenAPI) => {
-  app.doc("/doc", {
+  app.doc("/api/doc", {
     openapi: "3.0.0",
     info: {
       title: "Notes API",
@@ -14,9 +14,9 @@ const configureOpenAPI = (app: AppOpenAPI) => {
   });
 
   app.get(
-    "/reference",
+    "/api/reference",
     Scalar({
-      url: "/doc",
+      url: "/api/doc",
       pageTitle: "Notes API",
       theme: "saturn",
       hideModels: true,

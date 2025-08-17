@@ -1,14 +1,15 @@
 import createApp from "@/lib/create-app";
 import configureOpenAPI from "@/lib/openapi";
-import index from "@/routes/index.route";
-import notes from "@/routes/notes/notes.index";
+import authRouter from "./routes/auth/auth.index";
+import indexRouter from "./routes/index.route";
+import notesRouter from "./routes/notes/notes.index";
 
 const app = createApp();
 
-const routes = [index, notes];
+const routers = [indexRouter, notesRouter, authRouter];
 
-routes.forEach((route) => {
-  app.route("/api", route);
+routers.forEach((router) => {
+  app.route("/api", router);
 });
 configureOpenAPI(app);
 

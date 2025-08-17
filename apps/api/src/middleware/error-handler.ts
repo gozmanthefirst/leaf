@@ -36,7 +36,7 @@ const errorHandler: ErrorHandler = (err, c) => {
 
   return c.json(
     errorResponse(
-      "SERVER_ERROR",
+      "INTERNAL_SERVER_ERROR",
       nodeEnv === "production" ? "An unexpected error occurred" : err.message,
     ),
     HttpStatusCodes.INTERNAL_SERVER_ERROR,

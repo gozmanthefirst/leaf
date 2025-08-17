@@ -23,7 +23,7 @@ export const validationErrorHandler: Hook<any, any, any, any> = (result, c) => {
 
     return c.json(
       errorResponse("INVALID_DATA", details, fields),
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
+      HttpStatusCodes.BAD_REQUEST,
     );
   }
 };
@@ -69,21 +69,6 @@ export const createErrorSchema = () => {
       fields: z.record(z.string(), z.string()),
     }),
   });
-};
-
-// Common examples - just the data, not the whole response structure
-export const examples = {
-  note: {
-    id: "123e4567-e89b-12d3-a456-426614174000",
-    title: "Sample note",
-    content: "This is sample note content.",
-    createdAt: "2025-08-11T18:26:20.296Z",
-    updatedAt: "2025-08-11T18:26:20.296Z",
-  },
-  validationErrors: {
-    title: "Too small: expected string to have >=1 characters",
-    content: "Too small: expected string to have >=1 characters",
-  },
 };
 
 // Helper function for creating success response content
@@ -150,20 +135,24 @@ export const errorContent = (p: {
   },
 });
 
-// Helper function for creating syntax error response content
-export const syntaxErrorContent = () => ({
-  description: "Syntax error",
+// Helper function for creating generic error response content
+export const genericErrorContent = (
+  code: string,
+  desc: string,
+  details?: string,
+) => ({
+  description: desc,
   content: {
     "application/json": {
       schema: createErrorSchema(),
       examples: {
         error: {
-          summary: "Syntax error",
+          summary: desc,
           value: {
             status: "error",
             error: {
-              code: "BAD_REQUEST",
-              details: "Malformed JSON in request body",
+              code,
+              details: details || "string",
               fields: {},
             },
           },
@@ -185,7 +174,7 @@ export const serverErrorContent = () => ({
           value: {
             status: "error",
             error: {
-              code: "SERVER_ERROR",
+              code: "INTERNAL_SERVER_ERROR",
               details: "An unexpected error occurred",
               fields: {},
             },
@@ -195,3 +184,8 @@ export const serverErrorContent = () => ({
     },
   },
 });
+
+// Helper function for getting error details from error fields
+export const getErrDetailsFromErrFields = (fields: Record<string, string>) => {
+  return `${Object.keys(fields)[0]}: ${Object.values(fields)[0]}`;
+};
