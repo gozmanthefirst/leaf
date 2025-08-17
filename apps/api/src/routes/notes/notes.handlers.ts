@@ -1,5 +1,5 @@
 import db, { eq } from "@repo/database";
-import { notes } from "@repo/database/schema/notes-schema";
+import { notes } from "@repo/database/schemas/notes-schema";
 
 import type { AppRouteHandler } from "@/lib/types";
 import type { DeleteNoteRoute } from "@/routes/notes/notes.routes";
