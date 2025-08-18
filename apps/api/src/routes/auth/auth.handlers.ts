@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
 import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
-import type { SignUpUserRoute } from "./auth.routes";
+import type { SignUpUserRoute, VerifyEmailRoute } from "./auth.routes";
 
 export const signUpUser: AppRouteHandler<SignUpUserRoute> = async (c) => {
   try {
@@ -16,7 +16,7 @@ export const signUpUser: AppRouteHandler<SignUpUserRoute> = async (c) => {
 
     return c.json(
       successResponse(response, "User signed up successfully"),
-      HttpStatusCodes.CREATED as 201,
+      HttpStatusCodes.CREATED,
     );
   } catch (error) {
     if (error instanceof APIError) {
@@ -26,6 +26,33 @@ export const signUpUser: AppRouteHandler<SignUpUserRoute> = async (c) => {
           error.body?.message ?? error.message,
         ),
         error.statusCode as ErrorStatusCodes<typeof signUpUser>,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const verifyEmail: AppRouteHandler<VerifyEmailRoute> = async (c) => {
+  try {
+    const data = c.req.valid("query");
+
+    await auth.api.verifyEmail({
+      query: data,
+    });
+
+    return c.json(
+      successResponse({ status: true }, "Email verified successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    if (error instanceof APIError) {
+      return c.json(
+        errorResponse(
+          error.body?.code ?? "AUTH_ERROR",
+          error.body?.message ?? error.message,
+        ),
+        error.statusCode as ErrorStatusCodes<typeof verifyEmail>,
       );
     }
 

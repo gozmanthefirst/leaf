@@ -20,7 +20,4 @@ export const SignUpSchema = createInsertSchema(user, {
     emailVerified: true,
   });
 
-export const UserSelectSchema = z.object({
-  user: createSelectSchema(user),
-  token: z.string().nullable(),
-});
+export const UserSelectSchema = createSelectSchema(user);
