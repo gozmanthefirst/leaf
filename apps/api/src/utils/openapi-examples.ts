@@ -21,6 +21,10 @@ export const authExamples = {
     callbackUrl: "Invalid URL",
     rememberMe: "Invalid input: expected boolean, received string",
   },
+  signInValErrs: {
+    email: "Invalid email address",
+    password: "Too small: expected string to have >=8 characters",
+  },
   user: {
     id: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
     email: "newuser@example.com",

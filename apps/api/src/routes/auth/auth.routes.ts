@@ -13,6 +13,7 @@ import {
   serverErrorContent,
   successContent,
 } from "@/utils/openapi-helpers";
+import { SignInSchema } from "../../../../../packages/database/src/db/validators/auth-validator";
 
 const tags = ["Auth"];
 
@@ -136,5 +137,71 @@ export const verifyEmail = createRoute({
   },
 });
 
+export const signInUser = createRoute({
+  path: "/auth/sign-in",
+  method: "post",
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: SignInSchema,
+        },
+      },
+      description: "Sign in with email and password",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "User signed in",
+      schema: z.object({
+        token: z.string(),
+        user: UserSelectSchema,
+        url: z.url().nullable(),
+      }),
+      resObj: {
+        details: "User signed in successfully",
+        data: {
+          token: authExamples.token,
+          user: authExamples.user,
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.signInValErrs),
+          fields: authExamples.signInValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: errorContent({
+      description: "Invalid credentials",
+      examples: {
+        validationError: {
+          summary: "Invalid credentials",
+          code: "INVALID_EMAIL_OR_PASSWORD",
+          details: "Invalid email or password",
+          fields: {},
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
+      "UNPROCESSABLE_ENTITY",
+      "Unprocessable entity",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type SignUpUserRoute = typeof signUpUser;
 export type VerifyEmailRoute = typeof verifyEmail;
+export type SignInUserRoute = typeof signInUser;

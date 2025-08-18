@@ -20,4 +20,21 @@ export const SignUpSchema = createInsertSchema(user, {
     emailVerified: true,
   });
 
+export const SignInSchema = createInsertSchema(user, {
+  email: z.email(),
+})
+  .extend({
+    password: z.string().min(8).max(100),
+    callbackUrl: z.url().optional(),
+    rememberMe: z.boolean().optional(),
+  })
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+    emailVerified: true,
+    name: true,
+    image: true,
+  });
+
 export const UserSelectSchema = createSelectSchema(user);

@@ -4,6 +4,7 @@ import * as authRoutes from "@/routes/auth/auth.routes";
 
 const authRouter = createRouter()
   .openapi(authRoutes.signUpUser, authHandlers.signUpUser)
-  .openapi(authRoutes.verifyEmail, authHandlers.verifyEmail);
+  .openapi(authRoutes.verifyEmail, authHandlers.verifyEmail)
+  .openapi(authRoutes.signInUser, authHandlers.signInUser);
 
 export default authRouter;
