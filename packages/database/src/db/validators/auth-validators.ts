@@ -41,4 +41,15 @@ export const SendVerificationEmailSchema = createInsertSchema(user, {
   email: true,
 });
 
+export const ReqPwdResetSchema = createInsertSchema(user, {
+  email: z.email(),
+}).pick({
+  email: true,
+});
+
+export const ResetPasswordSchema = z.object({
+  newPassword: z.string().min(8).max(100),
+  token: z.string().min(1),
+});
+
 export const UserSelectSchema = createSelectSchema(user);
