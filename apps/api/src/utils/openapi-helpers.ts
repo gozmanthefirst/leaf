@@ -164,13 +164,13 @@ export const genericErrorContent = (
 
 // Helper function for creating server error response content
 export const serverErrorContent = () => ({
-  description: "Server error",
+  description: "Internal server error",
   content: {
     "application/json": {
       schema: createErrorSchema(),
       examples: {
         error: {
-          summary: "Server error",
+          summary: "Internal server error",
           value: {
             status: "error",
             error: {

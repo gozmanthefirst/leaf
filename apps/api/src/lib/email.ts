@@ -4,22 +4,24 @@ import env from "./env";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
+type SendEmail = {
+  to: string;
+  token: string;
+  name?: string;
+  url?: string;
+};
+
 export const sendVerificationEmail = async ({
   to,
   name,
   token,
   url,
-}: {
-  to: string;
-  token: string;
-  name?: string;
-  url?: string;
-}) => {
+}: SendEmail) => {
   const verificationUrl =
     url ?? `${env.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
   await resend.emails.send({
-    from: "Notes <notes@gozman.dev>",
+    from: `Notes <notes@${env.RESEND_DOMAIN}>`,
     to,
     subject: "Verify your email address",
     html: `

@@ -18,12 +18,21 @@ export const authExamples = {
     email: "Invalid email address",
     image: "Invalid URL",
     password: "Too small: expected string to have >=8 characters",
-    callbackUrl: "Invalid URL",
+    callbackUrl: "Must be a path starting with '/'",
     rememberMe: "Invalid input: expected boolean, received string",
   },
   signInValErrs: {
     email: "Invalid email address",
     password: "Too small: expected string to have >=8 characters",
+    callbackUrl: "Must be a path starting with '/'",
+    rememberMe: "Invalid input: expected boolean, received string",
+  },
+  sendVerificationEmailValErrs: {
+    email: "Invalid email address",
+    callbackUrl: "Must be a path starting with '/'",
+  },
+  invalidJwtTokenErr: {
+    token: "Invalid JWT",
   },
   user: {
     id: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
@@ -35,4 +44,5 @@ export const authExamples = {
     updatedAt: "2025-08-11T18:26:20.296Z",
   },
   token: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
+  jwt: "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Imdvem1hbnN1bmRheUBnbWFpbC5jb20iLCJpYXQiOjE3NTU1NjU2NjYsImV4cCI6MTc1NTU2OTI2Nn0.SHriShYEjHKz5aQYTfBUSJPvbzWd9aYBY_T2RI-tWyQ",
 };

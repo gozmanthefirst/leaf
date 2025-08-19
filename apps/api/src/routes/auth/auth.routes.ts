@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
+  SendVerificationEmailSchema,
   SignUpSchema,
   UserSelectSchema,
 } from "@repo/database/validators/auth-validator";
@@ -76,31 +77,16 @@ export const verifyEmail = createRoute({
   tags,
   request: {
     query: z.object({
-      token: z
-        .string()
-        .min(1)
-        .openapi({
-          param: {
-            name: "token",
-            in: "query",
-            required: true,
-          },
-          required: ["token"],
-          example: authExamples.token,
-          description: "The token to verify the email",
-        }),
-      callBackUrl: z
-        .url()
-        .optional()
-        .openapi({
-          param: {
-            name: "callBackUrl",
-            in: "query",
-            required: false,
-          },
-          example: "https://example.com/auth/callback",
-          description: "The URL to redirect to after email verification",
-        }),
+      token: z.jwt().openapi({
+        param: {
+          name: "token",
+          in: "query",
+          required: true,
+        },
+        required: ["token"],
+        example: authExamples.jwt,
+        description: "The token to verify the email",
+      }),
     }),
   },
   responses: {
@@ -108,7 +94,6 @@ export const verifyEmail = createRoute({
       description: "Email verified",
       schema: z.object({
         status: z.boolean(),
-        user: UserSelectSchema,
       }),
       resObj: {
         details: "Email verified successfully",
@@ -117,17 +102,35 @@ export const verifyEmail = createRoute({
         },
       },
     }),
-    [HttpStatusCodes.BAD_REQUEST]: genericErrorContent(
-      "VALIDATION_ERROR",
-      "Invalid query parameters",
-    ),
-    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
-      "INVALID_TOKEN",
-      "Invalid token",
-    ),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        expiredToken: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.invalidJwtTokenErr),
+          fields: authExamples.invalidJwtTokenErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: errorContent({
+      description: "Unauthorized",
+      examples: {
+        expiredToken: {
+          summary: "Expired token",
+          code: "TOKEN_EXPIRED",
+          details: "token_expired",
+          fields: {},
+        },
+      },
+    }),
     [HttpStatusCodes.FORBIDDEN]: genericErrorContent(
       "FORBIDDEN",
       "Access denied",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Resource not found",
     ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
@@ -202,6 +205,60 @@ export const signInUser = createRoute({
   },
 });
 
+export const sendVerificationEmail = createRoute({
+  path: "/auth/send-verification-email",
+  method: "post",
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: SendVerificationEmailSchema,
+        },
+      },
+      description: "Send a verification email to a user",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Verification email sent",
+      schema: z.object({
+        status: z.boolean(),
+      }),
+      resObj: {
+        details: "Verification email sent successfully",
+        data: {
+          status: true,
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(
+            authExamples.sendVerificationEmailValErrs,
+          ),
+          fields: authExamples.sendVerificationEmailValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
+      "UNPROCESSABLE_ENTITY",
+      "Unprocessable entity",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type SignUpUserRoute = typeof signUpUser;
 export type VerifyEmailRoute = typeof verifyEmail;
 export type SignInUserRoute = typeof signInUser;
+export type SendVerificationEmailRoute = typeof sendVerificationEmail;

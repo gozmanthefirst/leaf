@@ -10,7 +10,6 @@ export const SignUpSchema = createInsertSchema(user, {
 })
   .extend({
     password: z.string().min(8).max(100),
-    callbackUrl: z.url().optional(),
     rememberMe: z.boolean().optional(),
   })
   .omit({
@@ -25,7 +24,6 @@ export const SignInSchema = createInsertSchema(user, {
 })
   .extend({
     password: z.string().min(8).max(100),
-    callbackUrl: z.url().optional(),
     rememberMe: z.boolean().optional(),
   })
   .omit({
@@ -36,5 +34,11 @@ export const SignInSchema = createInsertSchema(user, {
     name: true,
     image: true,
   });
+
+export const SendVerificationEmailSchema = createInsertSchema(user, {
+  email: z.email(),
+}).pick({
+  email: true,
+});
 
 export const UserSelectSchema = createSelectSchema(user);

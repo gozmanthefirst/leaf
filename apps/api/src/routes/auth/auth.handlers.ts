@@ -2,6 +2,7 @@ import { APIError } from "better-auth/api";
 
 import { auth } from "@/lib/auth";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
+import type { SendVerificationEmailRoute } from "@/routes/auth/auth.routes";
 import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type {
@@ -85,6 +86,35 @@ export const signInUser: AppRouteHandler<SignInUserRoute> = async (c) => {
           error.body?.message ?? error.message,
         ),
         error.statusCode as ErrorStatusCodes<typeof signUpUser>,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const sendVerificationEmail: AppRouteHandler<
+  SendVerificationEmailRoute
+> = async (c) => {
+  try {
+    const data = c.req.valid("json");
+
+    const response = await auth.api.sendVerificationEmail({
+      body: data,
+    });
+
+    return c.json(
+      successResponse(response, "Verification email sent successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    if (error instanceof APIError) {
+      return c.json(
+        errorResponse(
+          error.body?.code ?? "AUTH_ERROR",
+          error.body?.message ?? error.message,
+        ),
+        error.statusCode as ErrorStatusCodes<typeof sendVerificationEmail>,
       );
     }
 
