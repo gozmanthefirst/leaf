@@ -18,20 +18,21 @@ export const authExamples = {
     email: "Invalid email address",
     image: "Invalid URL",
     password: "Too small: expected string to have >=8 characters",
-    callbackUrl: "Must be a path starting with '/'",
     rememberMe: "Invalid input: expected boolean, received string",
   },
   signInValErrs: {
     email: "Invalid email address",
     password: "Too small: expected string to have >=8 characters",
-    callbackUrl: "Must be a path starting with '/'",
     rememberMe: "Invalid input: expected boolean, received string",
   },
-  sendVerificationEmailValErrs: {
-    email: "Invalid email address",
-    callbackUrl: "Must be a path starting with '/'",
+  resetPwdValErrs: {
+    newPassword: "Too small: expected string to have >=8 characters",
+    token: "Too small: expected string to have >=1 characters",
   },
-  invalidJwtTokenErr: {
+  emailValErr: {
+    email: "Invalid email address",
+  },
+  jwtValErr: {
     token: "Invalid JWT",
   },
   user: {

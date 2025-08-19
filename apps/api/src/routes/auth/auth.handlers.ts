@@ -2,7 +2,11 @@ import { APIError } from "better-auth/api";
 
 import { auth } from "@/lib/auth";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
-import type { SendVerificationEmailRoute } from "@/routes/auth/auth.routes";
+import type {
+  ReqPwdResetEmailRoute,
+  ResetPwdRoute,
+  SendVerificationEmailRoute,
+} from "@/routes/auth/auth.routes";
 import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type {
@@ -115,6 +119,62 @@ export const sendVerificationEmail: AppRouteHandler<
           error.body?.message ?? error.message,
         ),
         error.statusCode as ErrorStatusCodes<typeof sendVerificationEmail>,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const reqPwdResetEmail: AppRouteHandler<ReqPwdResetEmailRoute> = async (
+  c,
+) => {
+  try {
+    const data = c.req.valid("json");
+
+    const response = await auth.api.requestPasswordReset({
+      body: data,
+    });
+
+    return c.json(
+      successResponse(response, "Password reset email sent successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    if (error instanceof APIError) {
+      return c.json(
+        errorResponse(
+          error.body?.code ?? "AUTH_ERROR",
+          error.body?.message ?? error.message,
+        ),
+        error.statusCode as ErrorStatusCodes<typeof reqPwdResetEmail>,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const resetPwd: AppRouteHandler<ResetPwdRoute> = async (c) => {
+  try {
+    const data = c.req.valid("json");
+
+    const response = await auth.api.resetPassword({
+      body: data,
+    });
+
+    return c.json(
+      successResponse(response, "Password reset successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    if (error instanceof APIError) {
+      return c.json(
+        errorResponse(
+          error.body?.code ?? "AUTH_ERROR",
+          error.body?.message ?? error.message,
+        ),
+        error.statusCode as ErrorStatusCodes<typeof resetPwd>,
       );
     }
 

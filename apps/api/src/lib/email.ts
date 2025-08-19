@@ -32,3 +32,25 @@ export const sendVerificationEmail = async ({
     `,
   });
 };
+
+export const sendResetPasswordEmail = async ({
+  to,
+  name,
+  token,
+  url,
+}: SendEmail) => {
+  const resetPasswordUrl =
+    url ?? `${env.FRONTEND_URL}/auth/reset-password?token=${token}`;
+
+  await resend.emails.send({
+    from: `Notes <notes@${env.RESEND_DOMAIN}>`,
+    to,
+    subject: "Reset your password",
+    html: `
+      <h1>Hello ${name || "there"}!</h1>
+      <p>Please reset your password by clicking the link below:</p>
+      <a href="${resetPasswordUrl}">Reset Password</a>
+      <p>If you didn't create an account, you can safely ignore this email.</p>
+    `,
+  });
+};

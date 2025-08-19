@@ -1,9 +1,12 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
+  ReqPwdResetSchema,
+  ResetPasswordSchema,
   SendVerificationEmailSchema,
+  SignInSchema,
   SignUpSchema,
   UserSelectSchema,
-} from "@repo/database/validators/auth-validator";
+} from "@repo/database/validators/auth-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples } from "@/utils/openapi-examples";
@@ -14,7 +17,6 @@ import {
   serverErrorContent,
   successContent,
 } from "@/utils/openapi-helpers";
-import { SignInSchema } from "../../../../../packages/database/src/db/validators/auth-validator";
 
 const tags = ["Auth"];
 
@@ -108,8 +110,8 @@ export const verifyEmail = createRoute({
         expiredToken: {
           summary: "Validation error",
           code: "INVALID_DATA",
-          details: getErrDetailsFromErrFields(authExamples.invalidJwtTokenErr),
-          fields: authExamples.invalidJwtTokenErr,
+          details: getErrDetailsFromErrFields(authExamples.jwtValErr),
+          fields: authExamples.jwtValErr,
         },
       },
     }),
@@ -239,17 +241,114 @@ export const sendVerificationEmail = createRoute({
         validationError: {
           summary: "Validation error",
           code: "INVALID_DATA",
-          details: getErrDetailsFromErrFields(
-            authExamples.sendVerificationEmailValErrs,
-          ),
-          fields: authExamples.sendVerificationEmailValErrs,
+          details: getErrDetailsFromErrFields(authExamples.emailValErr),
+          fields: authExamples.emailValErr,
         },
       },
     }),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
-      "UNPROCESSABLE_ENTITY",
-      "Unprocessable entity",
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
     ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const reqPwdResetEmail = createRoute({
+  path: "/auth/request-password-reset",
+  method: "post",
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: ReqPwdResetSchema,
+        },
+      },
+      description: "Send a password reset email to a user",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Password reset email sent",
+      schema: z.object({
+        status: z.boolean(),
+        message: z.string().optional(),
+      }),
+      resObj: {
+        details: "Password reset email sent successfully",
+        data: {
+          status: true,
+          message:
+            "If this email exists in our system, check your email for the reset link",
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.emailValErr),
+          fields: authExamples.emailValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const resetPwd = createRoute({
+  path: "/auth/reset-password",
+  method: "post",
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: ResetPasswordSchema,
+        },
+      },
+      description: "Reset the password for a user",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Password reset successfully",
+      schema: z.object({
+        status: z.boolean(),
+      }),
+      resObj: {
+        details: "Password reset successfully",
+        data: {
+          status: true,
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.resetPwdValErrs),
+          fields: authExamples.resetPwdValErrs,
+        },
+        invalidToken: {
+          summary: "Invalid token",
+          code: "INVALID_TOKEN",
+          details: "invalid token",
+          fields: {},
+        },
+      },
+    }),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
@@ -262,3 +361,5 @@ export type SignUpUserRoute = typeof signUpUser;
 export type VerifyEmailRoute = typeof verifyEmail;
 export type SignInUserRoute = typeof signInUser;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
+export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
+export type ResetPwdRoute = typeof resetPwd;

@@ -3,7 +3,7 @@ import {
   NotesInsertSchema,
   NotesSelectSchema,
   NotesUpdateSchema,
-} from "@repo/database/validators/notes-validator";
+} from "@repo/database/validators/notes-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { notesExamples } from "@/utils/openapi-examples";
