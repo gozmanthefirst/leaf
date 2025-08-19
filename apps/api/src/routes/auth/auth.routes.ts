@@ -161,6 +161,7 @@ export const signInUser = createRoute({
     [HttpStatusCodes.OK]: successContent({
       description: "User signed in",
       schema: z.object({
+        redirect: z.boolean(),
         token: z.string(),
         user: UserSelectSchema,
         url: z.url().nullable(),
@@ -168,6 +169,7 @@ export const signInUser = createRoute({
       resObj: {
         details: "User signed in successfully",
         data: {
+          redirect: false,
           token: authExamples.token,
           user: authExamples.user,
         },
@@ -357,9 +359,46 @@ export const resetPwd = createRoute({
   },
 });
 
+export const signOut = createRoute({
+  path: "/auth/sign-out",
+  method: "get",
+  tags,
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "User signed out successfully",
+      schema: z.object({
+        success: z.boolean(),
+      }),
+      resObj: {
+        details: "User signed out successfully",
+        data: {
+          success: true,
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "No session",
+      examples: {
+        validationError: {
+          summary: "No session",
+          code: "FAILED_TO_GET_SESSION",
+          details: "Failed to get session",
+          fields: {},
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type SignUpUserRoute = typeof signUpUser;
 export type VerifyEmailRoute = typeof verifyEmail;
 export type SignInUserRoute = typeof signInUser;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
 export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
 export type ResetPwdRoute = typeof resetPwd;
+export type SignOutRoute = typeof signOut;

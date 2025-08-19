@@ -1,7 +1,7 @@
 import db from "@repo/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { openAPI } from "better-auth/plugins";
+import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
 
@@ -33,5 +33,5 @@ export const auth = betterAuth({
     },
   },
 
-  plugins: [openAPI()],
+  plugins: [openAPI(), bearer()],
 });

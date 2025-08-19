@@ -8,6 +8,7 @@ const authRouter = createRouter()
   .openapi(authRoutes.signInUser, authHandlers.signInUser)
   .openapi(authRoutes.sendVerificationEmail, authHandlers.sendVerificationEmail)
   .openapi(authRoutes.reqPwdResetEmail, authHandlers.reqPwdResetEmail)
-  .openapi(authRoutes.resetPwd, authHandlers.resetPwd);
+  .openapi(authRoutes.resetPwd, authHandlers.resetPwd)
+  .openapi(authRoutes.signOut, authHandlers.signOut);
 
 export default authRouter;
