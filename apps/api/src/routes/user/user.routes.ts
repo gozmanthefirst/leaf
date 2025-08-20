@@ -4,7 +4,6 @@ import { UserSelectSchema } from "@repo/database/validators/user-validators";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { userExamples } from "@/utils/openapi-examples";
 import {
-  createAuthHeaderSchema,
   genericErrorContent,
   serverErrorContent,
   successContent,
@@ -15,10 +14,12 @@ const tags = ["User"];
 export const getUser = createRoute({
   path: "/user/me",
   method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   tags,
-  request: {
-    headers: createAuthHeaderSchema(),
-  },
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "User retrieved",

@@ -76,16 +76,14 @@ export const signInUser: AppRouteHandler<SignInUserRoute> = async (c) => {
   try {
     const data = c.req.valid("json");
 
-    const response = await auth.api.signInEmail({
+    const { response, headers } = await auth.api.signInEmail({
       body: data,
       headers: c.req.raw.headers,
-      asResponse: true, // This will be removed. The token needed is already included in the response data
+      returnHeaders: true,
     });
 
-    // This too will be removed.
-    const authToken = (response.headers.get("set-auth-token") || "").split(
-      ".",
-    )[0];
+    // For setting the auth token in cookies and sending it in the response
+    const authToken = (headers.get("set-auth-token") || "").split(".")[0];
     c.res.headers.append("Set-Auth-Token", authToken);
     setCookie(c, "notes_api_auth_token", authToken, {
       path: "/",
@@ -94,10 +92,9 @@ export const signInUser: AppRouteHandler<SignInUserRoute> = async (c) => {
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 7,
     });
-    const resData = await response.json();
 
     return c.json(
-      successResponse(resData, "User signed in successfully"),
+      successResponse(response, "User signed in successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {

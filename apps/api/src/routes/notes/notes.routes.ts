@@ -8,7 +8,6 @@ import {
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { notesExamples } from "@/utils/openapi-examples";
 import {
-  createAuthHeaderSchema,
   createIdUUIDParamsSchema,
   errorContent,
   getErrDetailsFromErrFields,
@@ -21,10 +20,12 @@ const tags = ["Notes"];
 export const getAllNotes = createRoute({
   path: "/notes",
   method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   tags,
-  request: {
-    headers: createAuthHeaderSchema(),
-  },
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
@@ -41,9 +42,13 @@ export const getAllNotes = createRoute({
 export const createNote = createRoute({
   path: "/notes",
   method: "post",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   tags,
   request: {
-    headers: createAuthHeaderSchema(),
     body: {
       content: {
         "application/json": {
@@ -81,8 +86,12 @@ export const createNote = createRoute({
 export const getSingleNote = createRoute({
   path: "/notes/{id}",
   method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   request: {
-    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
   },
   tags,
@@ -123,8 +132,12 @@ export const getSingleNote = createRoute({
 export const updateNote = createRoute({
   path: "/notes/{id}",
   method: "patch",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   request: {
-    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
     body: {
       content: {
@@ -180,8 +193,12 @@ export const updateNote = createRoute({
 export const deleteNote = createRoute({
   path: "/notes/{id}",
   method: "delete",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
   request: {
-    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
   },
   tags,

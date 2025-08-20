@@ -13,10 +13,24 @@ const configureOpenAPI = (app: AppOpenAPI) => {
     },
   });
 
+  app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
+    type: "http",
+    scheme: "bearer",
+  });
+
   app.get(
     "/api/reference",
     Scalar({
       url: "/api/doc",
+      authentication: {
+        preferredSecurityScheme: "Bearer",
+        securitySchemes: {
+          Bearer: {
+            token: "",
+          },
+        },
+      },
+      persistAuth: true,
       pageTitle: "Notes API",
       theme: "saturn",
       hideModels: true,
