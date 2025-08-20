@@ -35,6 +35,11 @@ export const authExamples = {
   jwtValErr: {
     token: "Invalid JWT",
   },
+  token: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
+  jwt: "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Imdvem1hbnN1bmRheUBnbWFpbC5jb20iLCJpYXQiOjE3NTU1NjU2NjYsImV4cCI6MTc1NTU2OTI2Nn0.SHriShYEjHKz5aQYTfBUSJPvbzWd9aYBY_T2RI-tWyQ",
+};
+
+export const userExamples = {
   user: {
     id: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
     email: "newuser@example.com",
@@ -44,6 +49,4 @@ export const authExamples = {
     createdAt: "2025-08-11T18:26:20.296Z",
     updatedAt: "2025-08-11T18:26:20.296Z",
   },
-  token: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",
-  jwt: "eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6Imdvem1hbnN1bmRheUBnbWFpbC5jb20iLCJpYXQiOjE3NTU1NjU2NjYsImV4cCI6MTc1NTU2OTI2Nn0.SHriShYEjHKz5aQYTfBUSJPvbzWd9aYBY_T2RI-tWyQ",
 };

@@ -1,4 +1,4 @@
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 import { user } from "../schemas/auth-schema";
@@ -51,5 +51,3 @@ export const ResetPasswordSchema = z.object({
   newPassword: z.string().min(8).max(100),
   token: z.string().min(1),
 });
-
-export const UserSelectSchema = createSelectSchema(user);

@@ -5,11 +5,11 @@ import {
   SendVerificationEmailSchema,
   SignInSchema,
   SignUpSchema,
-  UserSelectSchema,
 } from "@repo/database/validators/auth-validators";
+import { UserSelectSchema } from "@repo/database/validators/user-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
-import { authExamples } from "@/utils/openapi-examples";
+import { authExamples, userExamples } from "@/utils/openapi-examples";
 import {
   errorContent,
   genericErrorContent,
@@ -46,7 +46,7 @@ export const signUpUser = createRoute({
         details: "User created successfully",
         data: {
           token: authExamples.token,
-          user: authExamples.user,
+          user: userExamples.user,
         },
       },
     }),
@@ -143,7 +143,7 @@ export const verifyEmail = createRoute({
 });
 
 export const signInUser = createRoute({
-  path: "/auth/sign-in",
+  path: "/auth/sign-in/email",
   method: "post",
   tags,
   request: {
@@ -171,7 +171,7 @@ export const signInUser = createRoute({
         data: {
           redirect: false,
           token: authExamples.token,
-          user: authExamples.user,
+          user: userExamples.user,
         },
       },
     }),
