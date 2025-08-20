@@ -8,6 +8,7 @@ import {
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { notesExamples } from "@/utils/openapi-examples";
 import {
+  createAuthHeaderSchema,
   createIdUUIDParamsSchema,
   errorContent,
   getErrDetailsFromErrFields,
@@ -21,6 +22,9 @@ export const getAllNotes = createRoute({
   path: "/notes",
   method: "get",
   tags,
+  request: {
+    headers: createAuthHeaderSchema(),
+  },
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
@@ -39,6 +43,7 @@ export const createNote = createRoute({
   method: "post",
   tags,
   request: {
+    headers: createAuthHeaderSchema(),
     body: {
       content: {
         "application/json": {
@@ -77,6 +82,7 @@ export const getSingleNote = createRoute({
   path: "/notes/{id}",
   method: "get",
   request: {
+    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
   },
   tags,
@@ -118,6 +124,7 @@ export const updateNote = createRoute({
   path: "/notes/{id}",
   method: "patch",
   request: {
+    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
     body: {
       content: {
@@ -174,6 +181,7 @@ export const deleteNote = createRoute({
   path: "/notes/{id}",
   method: "delete",
   request: {
+    headers: createAuthHeaderSchema(),
     params: createIdUUIDParamsSchema("Note UUID"),
   },
   tags,

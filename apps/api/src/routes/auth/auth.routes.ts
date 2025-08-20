@@ -11,6 +11,7 @@ import { UserSelectSchema } from "@repo/database/validators/user-validators";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, userExamples } from "@/utils/openapi-examples";
 import {
+  createAuthHeaderSchema,
   errorContent,
   genericErrorContent,
   getErrDetailsFromErrFields,
@@ -363,6 +364,9 @@ export const signOut = createRoute({
   path: "/auth/sign-out",
   method: "get",
   tags,
+  request: {
+    headers: createAuthHeaderSchema(),
+  },
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "User signed out successfully",

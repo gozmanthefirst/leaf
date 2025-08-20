@@ -71,7 +71,9 @@ export const createErrorSchema = () => {
   });
 };
 
-// Helper function for creating success response content
+/**
+ * Helper function for creating success response content
+ */
 export const successContent = (p: {
   description: string;
   schema: z.ZodType;
@@ -98,7 +100,9 @@ export const successContent = (p: {
   },
 });
 
-// Helper function for creating error response content
+/**
+ * Helper function for creating error response content
+ */
 export const errorContent = (p: {
   description: string;
   examples: Record<
@@ -135,7 +139,9 @@ export const errorContent = (p: {
   },
 });
 
-// Helper function for creating generic error response content
+/**
+ * Helper function for creating generic error response content
+ */
 export const genericErrorContent = (
   code: string,
   desc: string,
@@ -162,7 +168,9 @@ export const genericErrorContent = (
   },
 });
 
-// Helper function for creating server error response content
+/**
+ * Helper function for creating server error response content
+ */
 export const serverErrorContent = () => ({
   description: "Internal server error",
   content: {
@@ -185,7 +193,24 @@ export const serverErrorContent = () => ({
   },
 });
 
-// Helper function for getting error details from error fields
+/**
+ * Helper function for getting error details from error fields
+ */
 export const getErrDetailsFromErrFields = (fields: Record<string, string>) => {
   return `${Object.keys(fields)[0]}: ${Object.values(fields)[0]}`;
 };
+
+/**
+ * Helper function to create an authentication header schema for OpenAPI.
+ */
+export const createAuthHeaderSchema = () =>
+  z.object({
+    Authorization: z.string().openapi({
+      param: {
+        name: "Authorization",
+        in: "header",
+        required: true,
+        description: "Bearer token for authentication",
+      },
+    }),
+  });
