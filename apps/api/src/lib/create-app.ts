@@ -1,14 +1,14 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { logger } from "hono/logger";
 
-import type { AppBindings, AppOpenAPI } from "@/lib/types";
+import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";
 import notFoundRoute from "@/middleware/not-found-route";
 import { validationErrorHandler } from "@/utils/openapi-helpers";
 import { auth } from "./auth";
 
-// This is a function for creating API routes.
+// For creating API routers.
 export const createRouter = () => {
   return new OpenAPIHono<AppBindings>({
     strict: false,
@@ -16,7 +16,12 @@ export const createRouter = () => {
   });
 };
 
-// This is a function for creating the main app.
+// For creating auth protected API routers.
+// export const createProtectedRouter = () => {
+//   return createRouter().use(authMiddleware) as AppOpenAPI;
+// };
+
+// For creating the main app.
 // All the necessary middleware will be added to this function.
 const createApp = () => {
   const app = createRouter();
@@ -35,10 +40,6 @@ const createApp = () => {
   app.onError(errorHandler);
 
   return app;
-};
-
-export const createTestApp = (router: AppOpenAPI) => {
-  return createApp().route("/", router);
 };
 
 export default createApp;

@@ -1,10 +1,13 @@
 import type { OpenAPIHono, RouteConfig, RouteHandler } from "@hono/zod-openapi";
 
 import type { errorResponse } from "@/utils/api-response";
+import type { auth } from "./auth";
 
 export interface AppBindings {
-  // biome-ignore lint/complexity/noBannedTypes: temporary fix
-  Variables: {};
+  Variables: {
+    user: typeof auth.$Infer.Session.user | null;
+    session: typeof auth.$Infer.Session.session | null;
+  };
 }
 
 export type AppOpenAPI = OpenAPIHono<AppBindings>;
