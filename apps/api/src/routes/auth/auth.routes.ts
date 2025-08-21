@@ -402,7 +402,7 @@ export const signOut = createRoute({
 
 export type SignUpUserRoute = typeof signUp;
 export type VerifyEmailRoute = typeof verifyEmail;
-export type SignInEmailRoute = typeof signIn;
+export type SignInRoute = typeof signIn;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
 export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
 export type ResetPwdRoute = typeof resetPwd;

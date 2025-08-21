@@ -13,7 +13,7 @@ import type {
 import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type {
-  SignInEmailRoute,
+  SignInRoute,
   SignUpUserRoute,
   VerifyEmailRoute,
 } from "./auth.routes";
@@ -72,7 +72,7 @@ export const verifyEmail: AppRouteHandler<VerifyEmailRoute> = async (c) => {
   }
 };
 
-export const signIn: AppRouteHandler<SignInEmailRoute> = async (c) => {
+export const signIn: AppRouteHandler<SignInRoute> = async (c) => {
   try {
     const data = c.req.valid("json");
 
