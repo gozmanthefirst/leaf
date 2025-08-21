@@ -1,1 +1,0 @@
-ALTER TABLE "notes" ALTER COLUMN "updated_at" SET DEFAULT now();
