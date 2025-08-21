@@ -83,7 +83,7 @@ export const signIn: AppRouteHandler<SignInRoute> = async (c) => {
     });
 
     // For setting the auth token in cookies and sending it in the response
-    const authToken = (headers.get("set-auth-token") || "").split(".")[0];
+    const authToken = headers.get("set-auth-token") || "";
     c.res.headers.append("Set-Auth-Token", authToken);
     setCookie(c, "notes_api_auth_token", authToken, {
       path: "/",

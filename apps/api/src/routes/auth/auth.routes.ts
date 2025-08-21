@@ -68,6 +68,7 @@ export const signUp = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -137,6 +138,7 @@ export const verifyEmail = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -204,6 +206,7 @@ export const signIn = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -251,6 +254,7 @@ export const sendVerificationEmail = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -301,6 +305,7 @@ export const reqPwdResetEmail = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -354,6 +359,7 @@ export const resetPwd = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -382,19 +388,25 @@ export const signOut = createRoute({
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
-      description: "No session",
+      description: "Failed to get session",
       examples: {
         validationError: {
-          summary: "No session",
+          summary: "Failed to get session",
           code: "FAILED_TO_GET_SESSION",
           details: "Failed to get session",
           fields: {},
         },
       },
     }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },

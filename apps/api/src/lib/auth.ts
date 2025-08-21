@@ -4,7 +4,6 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
-import env from "@/lib/env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -35,19 +34,4 @@ export const auth = betterAuth({
   },
 
   plugins: [openAPI(), bearer()],
-
-  advanced: {
-    cookies: {
-      session_token: {
-        name: "notes_api_auth_token",
-        attributes: {
-          path: "/",
-          secure: env.NODE_ENV === "production",
-          httpOnly: true,
-          sameSite: "lax",
-          maxAge: 60 * 60 * 24 * 7,
-        },
-      },
-    },
-  },
 });

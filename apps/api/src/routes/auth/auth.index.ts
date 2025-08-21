@@ -3,7 +3,9 @@ import { authMiddleware } from "@/middleware/auth-middleware";
 import * as authHandlers from "@/routes/auth/auth.handlers";
 import * as authRoutes from "@/routes/auth/auth.routes";
 
-const publicAuthRouter = createRouter()
+const authRouter = createRouter();
+
+authRouter
   .openapi(authRoutes.signUp, authHandlers.signUp)
   .openapi(authRoutes.verifyEmail, authHandlers.verifyEmail)
   .openapi(authRoutes.signIn, authHandlers.signIn)
@@ -11,12 +13,9 @@ const publicAuthRouter = createRouter()
   .openapi(authRoutes.reqPwdResetEmail, authHandlers.reqPwdResetEmail)
   .openapi(authRoutes.resetPwd, authHandlers.resetPwd);
 
-const protectedAuthRouter = createRouter();
-protectedAuthRouter.use(authMiddleware);
-protectedAuthRouter.openapi(authRoutes.signOut, authHandlers.signOut);
+authRouter.use("/auth/sign-out", authMiddleware);
 
-// Combine the public and protected auth routes
-const authRouter = createRouter();
-authRouter.route("/", publicAuthRouter).route("/", protectedAuthRouter);
+// Protect the sign-out route
+authRouter.openapi(authRoutes.signOut, authHandlers.signOut);
 
 export default authRouter;
