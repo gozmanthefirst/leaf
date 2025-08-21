@@ -16,11 +16,6 @@ export const createRouter = () => {
   });
 };
 
-// For creating auth protected API routers.
-// export const createProtectedRouter = () => {
-//   return createRouter().use(authMiddleware) as AppOpenAPI;
-// };
-
 // For creating the main app.
 // All the necessary middleware will be added to this function.
 const createApp = () => {

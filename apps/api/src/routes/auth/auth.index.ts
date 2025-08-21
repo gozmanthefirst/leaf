@@ -6,7 +6,7 @@ import * as authRoutes from "@/routes/auth/auth.routes";
 const publicAuthRouter = createRouter()
   .openapi(authRoutes.signUpUser, authHandlers.signUpUser)
   .openapi(authRoutes.verifyEmail, authHandlers.verifyEmail)
-  .openapi(authRoutes.signInUser, authHandlers.signInUser)
+  .openapi(authRoutes.signInEmail, authHandlers.signInEmail)
   .openapi(authRoutes.sendVerificationEmail, authHandlers.sendVerificationEmail)
   .openapi(authRoutes.reqPwdResetEmail, authHandlers.reqPwdResetEmail)
   .openapi(authRoutes.resetPwd, authHandlers.resetPwd);

@@ -142,7 +142,7 @@ export const verifyEmail = createRoute({
   },
 });
 
-export const signInUser = createRoute({
+export const signInEmail = createRoute({
   path: "/auth/sign-in/email",
   method: "post",
   tags,
@@ -402,7 +402,7 @@ export const signOut = createRoute({
 
 export type SignUpUserRoute = typeof signUpUser;
 export type VerifyEmailRoute = typeof verifyEmail;
-export type SignInUserRoute = typeof signInUser;
+export type SignInEmailRoute = typeof signInEmail;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
 export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
 export type ResetPwdRoute = typeof resetPwd;
