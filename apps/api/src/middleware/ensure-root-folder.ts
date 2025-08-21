@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
+
 import db from "@repo/database";
-import { folders } from "@repo/database/schemas/notes-schema";
+import { folders } from "@repo/database/schemas/folders-schema";
 import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 
@@ -18,24 +20,18 @@ export const ensureRootFolder = createMiddleware<AppBindings>(
 
     // If no root folder exists, create a self-referencing root folder
     if (existingRoot.length === 0) {
-      await db.transaction(async (tx) => {
-        const [newRootFolder] = await tx
-          .insert(folders)
-          .values({
-            name: `${user.name}'s Root Folder`,
-            // Temporary placeholder
-            parentFolderId: "00000000-0000-0000-0000-000000000000",
-            isRoot: true,
-            userId: user.id,
-          })
-          .returning();
+      const newRootId = randomUUID();
 
-        // Then update to self-reference
-        await tx
-          .update(folders)
-          .set({ parentFolderId: newRootFolder.id })
-          .where(eq(folders.id, newRootFolder.id));
-      });
+      await db
+        .insert(folders)
+        .values({
+          id: newRootId,
+          name: `${user.name}'s Root Folder`,
+          parentFolderId: newRootId,
+          isRoot: true,
+          userId: user.id,
+        })
+        .returning();
     }
 
     return next();

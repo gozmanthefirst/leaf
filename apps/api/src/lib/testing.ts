@@ -1,5 +1,6 @@
 import db, { and, eq, sql } from "@repo/database";
-import { folders, notes } from "@repo/database/schemas/notes-schema";
+import { folders } from "@repo/database/schemas/folders-schema";
+import { notes } from "@repo/database/schemas/notes-schema";
 
 const _getAllUserItems = async (userId: string) => {
   const result = await db.execute(sql`
