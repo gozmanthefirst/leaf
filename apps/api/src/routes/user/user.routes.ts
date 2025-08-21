@@ -29,9 +29,15 @@ export const getUser = createRoute({
         data: userExamples.user,
       },
     }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
