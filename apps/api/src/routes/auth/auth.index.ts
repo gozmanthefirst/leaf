@@ -4,9 +4,9 @@ import * as authHandlers from "@/routes/auth/auth.handlers";
 import * as authRoutes from "@/routes/auth/auth.routes";
 
 const publicAuthRouter = createRouter()
-  .openapi(authRoutes.signUpUser, authHandlers.signUpUser)
+  .openapi(authRoutes.signUp, authHandlers.signUp)
   .openapi(authRoutes.verifyEmail, authHandlers.verifyEmail)
-  .openapi(authRoutes.signInEmail, authHandlers.signInEmail)
+  .openapi(authRoutes.signIn, authHandlers.signIn)
   .openapi(authRoutes.sendVerificationEmail, authHandlers.sendVerificationEmail)
   .openapi(authRoutes.reqPwdResetEmail, authHandlers.reqPwdResetEmail)
   .openapi(authRoutes.resetPwd, authHandlers.resetPwd);

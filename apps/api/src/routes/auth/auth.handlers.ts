@@ -18,7 +18,7 @@ import type {
   VerifyEmailRoute,
 } from "./auth.routes";
 
-export const signUpUser: AppRouteHandler<SignUpUserRoute> = async (c) => {
+export const signUp: AppRouteHandler<SignUpUserRoute> = async (c) => {
   try {
     const data = c.req.valid("json");
 
@@ -37,7 +37,7 @@ export const signUpUser: AppRouteHandler<SignUpUserRoute> = async (c) => {
           error.body?.code ?? "AUTH_ERROR",
           error.body?.message ?? error.message,
         ),
-        error.statusCode as ErrorStatusCodes<typeof signUpUser>,
+        error.statusCode as ErrorStatusCodes<typeof signUp>,
       );
     }
 
@@ -72,7 +72,7 @@ export const verifyEmail: AppRouteHandler<VerifyEmailRoute> = async (c) => {
   }
 };
 
-export const signInEmail: AppRouteHandler<SignInEmailRoute> = async (c) => {
+export const signIn: AppRouteHandler<SignInEmailRoute> = async (c) => {
   try {
     const data = c.req.valid("json");
 
@@ -104,7 +104,7 @@ export const signInEmail: AppRouteHandler<SignInEmailRoute> = async (c) => {
           error.body?.code ?? "AUTH_ERROR",
           error.body?.message ?? error.message,
         ),
-        error.statusCode as ErrorStatusCodes<typeof signUpUser>,
+        error.statusCode as ErrorStatusCodes<typeof signIn>,
       );
     }
 

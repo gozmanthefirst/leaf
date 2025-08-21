@@ -20,7 +20,7 @@ import {
 
 const tags = ["Auth"];
 
-export const signUpUser = createRoute({
+export const signUp = createRoute({
   path: "/auth/sign-up",
   method: "post",
   tags,
@@ -142,8 +142,8 @@ export const verifyEmail = createRoute({
   },
 });
 
-export const signInEmail = createRoute({
-  path: "/auth/sign-in/email",
+export const signIn = createRoute({
+  path: "/auth/sign-in",
   method: "post",
   tags,
   request: {
@@ -400,9 +400,9 @@ export const signOut = createRoute({
   },
 });
 
-export type SignUpUserRoute = typeof signUpUser;
+export type SignUpUserRoute = typeof signUp;
 export type VerifyEmailRoute = typeof verifyEmail;
-export type SignInEmailRoute = typeof signInEmail;
+export type SignInEmailRoute = typeof signIn;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
 export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
 export type ResetPwdRoute = typeof resetPwd;
