@@ -1,15 +1,14 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
-  NotesInsertSchema,
-  NotesSelectSchema,
-  NotesUpdateSchema,
+  NoteInsertSchema,
+  NoteSelectSchema,
 } from "@repo/database/validators/notes-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { notesExamples } from "@/utils/openapi-examples";
 import {
-  createIdUUIDParamsSchema,
   errorContent,
+  genericErrorContent,
   getErrDetailsFromErrFields,
   serverErrorContent,
   successContent,
@@ -29,12 +28,21 @@ export const getAllNotes = createRoute({
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
-      schema: z.array(NotesSelectSchema),
+      schema: z.array(NoteSelectSchema),
       resObj: {
         details: "All notes retrieved successfully",
         data: [notesExamples.note],
       },
     }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+    ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
@@ -52,7 +60,7 @@ export const createNote = createRoute({
     body: {
       content: {
         "application/json": {
-          schema: NotesInsertSchema,
+          schema: NoteInsertSchema,
         },
       },
       description: "Create a new note",
@@ -62,7 +70,7 @@ export const createNote = createRoute({
   responses: {
     [HttpStatusCodes.CREATED]: successContent({
       description: "Note created",
-      schema: NotesSelectSchema,
+      schema: NoteSelectSchema,
       resObj: {
         details: "Note created successfully",
         data: { ...notesExamples.note, title: "New note" },
@@ -74,165 +82,29 @@ export const createNote = createRoute({
         validationError: {
           summary: "Validation error",
           code: "INVALID_DATA",
-          details: "title: Too small",
-          fields: notesExamples.notesValErrs,
+          details: getErrDetailsFromErrFields(notesExamples.createNoteValErrs),
+          fields: notesExamples.createNoteValErrs,
         },
       },
     }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Folder not found",
+      "Folder not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
 });
 
-export const getSingleNote = createRoute({
-  path: "/notes/{id}",
-  method: "get",
-  security: [
-    {
-      Bearer: [],
-    },
-  ],
-  request: {
-    params: createIdUUIDParamsSchema("Note UUID"),
-  },
-  tags,
-  responses: {
-    [HttpStatusCodes.OK]: successContent({
-      description: "Note retrieved",
-      schema: NotesSelectSchema,
-      resObj: {
-        details: "Note retrieved successfully",
-        data: notesExamples.note,
-      },
-    }),
-    [HttpStatusCodes.BAD_REQUEST]: errorContent({
-      description: "Invalid request data",
-      examples: {
-        invalidId: {
-          summary: "Invalid ID",
-          code: "INVALID_DATA",
-          details: "id: Invalid UUID",
-          fields: { id: "Invalid UUID" },
-        },
-      },
-    }),
-    [HttpStatusCodes.NOT_FOUND]: errorContent({
-      description: "Note not found",
-      examples: {
-        notFound: {
-          summary: "Note not found",
-          code: "NOT_FOUND",
-          details: "Note not found",
-        },
-      },
-    }),
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
-  },
-});
-
-export const updateNote = createRoute({
-  path: "/notes/{id}",
-  method: "patch",
-  security: [
-    {
-      Bearer: [],
-    },
-  ],
-  request: {
-    params: createIdUUIDParamsSchema("Note UUID"),
-    body: {
-      content: {
-        "application/json": {
-          schema: NotesUpdateSchema,
-        },
-      },
-      description: "Update an existing note",
-      required: true,
-    },
-  },
-  tags,
-  responses: {
-    [HttpStatusCodes.OK]: successContent({
-      description: "Note updated",
-      schema: NotesSelectSchema,
-      resObj: {
-        details: "Note updated successfully",
-        data: { ...notesExamples.note, title: "Updated note" },
-      },
-    }),
-    [HttpStatusCodes.BAD_REQUEST]: errorContent({
-      description: "Invalid request data",
-      examples: {
-        validationError: {
-          summary: "Validation error",
-          code: "INVALID_DATA",
-          details: getErrDetailsFromErrFields(notesExamples.notesValErrs),
-          fields: notesExamples.notesValErrs,
-        },
-        invalidId: {
-          summary: "Invalid ID",
-          code: "INVALID_DATA",
-          details: "id: Invalid UUID",
-          fields: { id: "Invalid UUID" },
-        },
-      },
-    }),
-    [HttpStatusCodes.NOT_FOUND]: errorContent({
-      description: "Note not found",
-      examples: {
-        notFound: {
-          summary: "Note not found",
-          code: "NOT_FOUND",
-          details: "Note not found",
-        },
-      },
-    }),
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
-  },
-});
-
-export const deleteNote = createRoute({
-  path: "/notes/{id}",
-  method: "delete",
-  security: [
-    {
-      Bearer: [],
-    },
-  ],
-  request: {
-    params: createIdUUIDParamsSchema("Note UUID"),
-  },
-  tags,
-  responses: {
-    [HttpStatusCodes.NO_CONTENT]: {
-      description: "Note deleted successfully",
-    },
-    [HttpStatusCodes.BAD_REQUEST]: errorContent({
-      description: "Invalid request data",
-      examples: {
-        invalidId: {
-          summary: "Invalid ID",
-          code: "INVALID_DATA",
-          details: "id: Invalid UUID",
-          fields: { id: "Invalid UUID" },
-        },
-      },
-    }),
-    [HttpStatusCodes.NOT_FOUND]: errorContent({
-      description: "Note not found",
-      examples: {
-        notFound: {
-          summary: "Note not found",
-          code: "NOT_FOUND",
-          details: "Note not found",
-        },
-      },
-    }),
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
-  },
-});
-
-export type ListNotesRoute = typeof getAllNotes;
+export type GetAllNotesRoute = typeof getAllNotes;
 export type CreateNoteRoute = typeof createNote;
-export type GetSingleNoteRoute = typeof getSingleNote;
-export type UpdateNoteRoute = typeof updateNote;
-export type DeleteNoteRoute = typeof deleteNote;
