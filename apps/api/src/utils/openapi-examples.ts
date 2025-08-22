@@ -18,6 +18,9 @@ export const authExamples = {
   emailValErr: {
     email: "Invalid email address",
   },
+  uuidValErr: {
+    id: "Invalid UUID",
+  },
   jwtValErr: {
     token: "Invalid JWT",
   },
