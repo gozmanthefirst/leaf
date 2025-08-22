@@ -5,8 +5,9 @@ import {
 } from "@repo/database/validators/notes-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
-import { notesExamples } from "@/utils/openapi-examples";
+import { authExamples, notesExamples } from "@/utils/openapi-examples";
 import {
+  createIdUUIDParamsSchema,
   errorContent,
   genericErrorContent,
   getErrDetailsFromErrFields,
@@ -42,6 +43,7 @@ export const getAllNotes = createRoute({
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
+      "Too many requests have been made. Please try again later.",
     ),
     [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
   },
@@ -106,5 +108,114 @@ export const createNote = createRoute({
   },
 });
 
+export const getSingleNote = createRoute({
+  path: "/notes/{id}",
+  method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note retrieved",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note retrieved successfully",
+        data: notesExamples.note,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Note not found",
+      "Note not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const copyNote = createRoute({
+  path: "/notes/{id}/copy",
+  method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+  },
+  responses: {
+    [HttpStatusCodes.CREATED]: successContent({
+      description: "Note copied",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note copied successfully",
+        data: notesExamples.note,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Note not found",
+      "Note not found",
+    ),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
+      "ARCHIVED_NOTE",
+      "Archived note",
+      "Cannot modify archived notes",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type GetAllNotesRoute = typeof getAllNotes;
 export type CreateNoteRoute = typeof createNote;
+export type GetSingleNoteRoute = typeof getSingleNote;
+export type CopyNoteRoute = typeof copyNote;

@@ -2,7 +2,12 @@ import db from "@repo/database";
 import { notes } from "@repo/database/schemas/notes-schema";
 
 import type { AppRouteHandler } from "@/lib/types";
-import { getFolderForUser } from "@/queries/folders";
+import { getFolderForUser } from "@/queries/folders-queries";
+import { getNoteForUser } from "@/queries/notes-queries";
+import type {
+  CopyNoteRoute,
+  GetSingleNoteRoute,
+} from "@/routes/notes/notes.routes";
 import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type { CreateNoteRoute, GetAllNotesRoute } from "./notes.routes";
@@ -35,6 +40,65 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
 
   return c.json(
     successResponse(newNote, "Note created successfully"),
+    HttpStatusCodes.CREATED,
+  );
+};
+
+export const getSingleNote: AppRouteHandler<GetSingleNoteRoute> = async (c) => {
+  const user = c.get("user");
+  const { id } = c.req.valid("param");
+
+  const note = await getNoteForUser(id, user.id);
+
+  if (!note) {
+    return c.json(
+      errorResponse("NOT_FOUND", "Note not found"),
+      HttpStatusCodes.NOT_FOUND,
+    );
+  }
+
+  return c.json(
+    successResponse(note, "Note retrieved successfully"),
+    HttpStatusCodes.OK,
+  );
+};
+
+export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
+  const user = c.get("user");
+  const { id } = c.req.valid("param");
+
+  const noteToBeCopied = await getNoteForUser(id, user.id);
+
+  // Check if the note exists
+  if (!noteToBeCopied) {
+    return c.json(
+      errorResponse("NOTE_NOT_FOUND", "Note not found"),
+      HttpStatusCodes.NOT_FOUND,
+    );
+  }
+
+  // Check if the note is archived
+  if (noteToBeCopied.isArchived) {
+    return c.json(
+      errorResponse("ARCHIVED_NOTE", "Cannot copy archived notes"),
+      HttpStatusCodes.UNPROCESSABLE_ENTITY,
+    );
+  }
+
+  const payload = {
+    title: `${noteToBeCopied.title} 1`,
+    content: noteToBeCopied.content,
+    userId: user.id,
+    folderId: noteToBeCopied.folderId,
+    isArchived: false,
+    isFavorite: false,
+    tags: noteToBeCopied.tags,
+  };
+
+  const [copiedNote] = await db.insert(notes).values(payload).returning();
+
+  return c.json(
+    successResponse(copiedNote, "Note copied successfully"),
     HttpStatusCodes.CREATED,
   );
 };

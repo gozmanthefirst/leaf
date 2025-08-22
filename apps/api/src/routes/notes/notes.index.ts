@@ -9,6 +9,8 @@ notesRouter.use("/notes/*", authMiddleware).use("/notes/*", ensureRootFolder);
 
 notesRouter
   .openapi(notesRoutes.getAllNotes, notesHandlers.getAllNotes)
-  .openapi(notesRoutes.createNote, notesHandlers.createNote);
+  .openapi(notesRoutes.createNote, notesHandlers.createNote)
+  .openapi(notesRoutes.getSingleNote, notesHandlers.getSingleNote)
+  .openapi(notesRoutes.copyNote, notesHandlers.copyNote);
 
 export default notesRouter;
