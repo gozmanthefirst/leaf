@@ -32,5 +32,5 @@ export const getFolderForUser = async (
     .where(and(eq(folders.id, folderId), eq(folders.userId, userId)))
     .limit(1);
 
-  return foundFolder;
+  return foundFolder || null;
 };
