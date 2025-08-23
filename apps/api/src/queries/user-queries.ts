@@ -1,6 +1,5 @@
-import db from "@repo/database";
+import db, { eq } from "@repo/database";
 import { user } from "@repo/database/schemas/user-schema";
-import { eq } from "drizzle-orm";
 
 /**
  * Returns true if a user with the given ID exists.

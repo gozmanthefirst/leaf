@@ -1,7 +1,6 @@
-import db from "@repo/database";
+import db, { and, eq } from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
 import type { Folder } from "@repo/database/validators/folders-validators";
-import { and, eq } from "drizzle-orm";
 
 /**
  * Returns true if a folder with the given ID exists and belongs to the specified user.
