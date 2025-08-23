@@ -8,6 +8,41 @@
       "when": 1755805317643,
       "tag": "0000_clear_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1755983356847,
+      "tag": "0001_aspiring_invaders",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1755983956802,
+      "tag": "0002_brown_chronomancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755987357961,
+      "tag": "0003_quiet_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755987716626,
+      "tag": "0004_dry_rafael_vega",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755988296196,
+      "tag": "0005_special_karen_page",
+      "breakpoints": true
     }
   ]
 }
