@@ -204,7 +204,7 @@ export const copyNote = createRoute({
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
       "ARCHIVED_NOTE",
       "Archived note",
-      "Cannot modify archived notes",
+      "Archived notes cannot be copied",
     ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",

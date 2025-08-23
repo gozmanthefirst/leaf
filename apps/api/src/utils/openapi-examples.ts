@@ -43,7 +43,6 @@ export const notesExamples = {
   },
   createNoteValErrs: {
     title: "Too small: expected string to have >=1 characters",
-    content: "Too small: expected string to have >=1 characters",
     folderId: "Invalid UUID",
     isArchived: "Invalid input: expected boolean, received string",
     isFavorite: "Invalid input: expected boolean, received string",

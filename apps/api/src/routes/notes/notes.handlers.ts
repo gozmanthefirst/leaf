@@ -3,7 +3,7 @@ import { notes } from "@repo/database/schemas/notes-schema";
 
 import type { AppRouteHandler } from "@/lib/types";
 import { getFolderForUser } from "@/queries/folders-queries";
-import { getNoteForUser } from "@/queries/notes-queries";
+import { generateUniqueTitle, getNoteForUser } from "@/queries/notes-queries";
 import type {
   CopyNoteRoute,
   GetSingleNoteRoute,
@@ -34,7 +34,12 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
     );
   }
 
-  const payload = { ...noteData, userId: user.id };
+  const uniqueTitle = await generateUniqueTitle(
+    noteData.title || "untitled",
+    user.id,
+  );
+
+  const payload = { ...noteData, userId: user.id, title: uniqueTitle };
 
   const [newNote] = await db.insert(notes).values(payload).returning();
 
@@ -80,13 +85,18 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
   // Check if the note is archived
   if (noteToBeCopied.isArchived) {
     return c.json(
-      errorResponse("ARCHIVED_NOTE", "Cannot copy archived notes"),
+      errorResponse("ARCHIVED_NOTE", "Archived notes cannot be copied"),
       HttpStatusCodes.UNPROCESSABLE_ENTITY,
     );
   }
 
+  const uniqueTitle = await generateUniqueTitle(
+    noteToBeCopied.title || "untitled",
+    user.id,
+  );
+
   const payload = {
-    title: `${noteToBeCopied.title} 1`,
+    title: uniqueTitle,
     content: noteToBeCopied.content,
     userId: user.id,
     folderId: noteToBeCopied.folderId,
