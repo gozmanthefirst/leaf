@@ -18,5 +18,6 @@ export const getUserById = async (userId: string) => {
     .from(user)
     .where(eq(user.id, userId))
     .limit(1);
+
   return foundUser || null;
 };

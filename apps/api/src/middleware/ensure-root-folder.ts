@@ -1,8 +1,7 @@
 import { randomUUID } from "node:crypto";
 
-import db from "@repo/database";
+import db, { and, eq } from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
-import { and, eq } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 
 import type { AppBindings } from "@/lib/types";

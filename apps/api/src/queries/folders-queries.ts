@@ -1,5 +1,7 @@
 /** biome-ignore-all lint/suspicious/noExplicitAny: needed for accessing the DB using raw SQL */
 
+import { randomUUID } from "node:crypto";
+
 import db, { and, eq } from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
 import { notes } from "@repo/database/schemas/notes-schema";
@@ -7,6 +9,40 @@ import type {
   Folder,
   FolderWithItems,
 } from "@repo/database/validators/folders-validators";
+import type { Note } from "@repo/database/validators/notes-validators";
+
+import { getUserById } from "./user-queries";
+
+export const createRootFolder = async (userId: string) => {
+  const user = await getUserById(userId);
+
+  // Check if root folder exists
+  const [existingRoot] = await db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.userId, user.id), eq(folders.isRoot, true)))
+    .limit(1);
+
+  if (existingRoot) {
+    return existingRoot;
+  }
+
+  // Create a new root folder
+  const newRootId = randomUUID();
+
+  const [newRoot] = await db
+    .insert(folders)
+    .values({
+      id: newRootId,
+      name: `${user.name}'s Root Folder`,
+      parentFolderId: newRootId,
+      isRoot: true,
+      userId: user.id,
+    })
+    .returning();
+
+  return newRoot;
+};
 
 /**
  * Returns true if a folder with the given ID exists and belongs to the specified user.
@@ -45,7 +81,7 @@ export const getFolderForUser = async (
  */
 const buildFolderHierarchy = (
   allFolders: Folder[],
-  allNotes: any[],
+  allNotes: Note[],
   rootFolderId: string,
 ): FolderWithItems | null => {
   // Create a map of folders by ID
@@ -70,7 +106,11 @@ const buildFolderHierarchy = (
 
   // Build the hierarchy by linking child folders to parents
   for (const folder of folderMap.values()) {
-    if (folder.parentFolderId && folderMap.has(folder.parentFolderId)) {
+    if (
+      folder.parentFolderId &&
+      folderMap.has(folder.parentFolderId) &&
+      folder.parentFolderId !== folder.id
+    ) {
       const parent = folderMap.get(folder.parentFolderId);
       if (parent) {
         parent.folders.push(folder);
