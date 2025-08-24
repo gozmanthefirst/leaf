@@ -43,6 +43,13 @@
       "when": 1755988296196,
       "tag": "0005_special_karen_page",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1756058493085,
+      "tag": "0006_thick_magus",
+      "breakpoints": true
     }
   ]
 }
