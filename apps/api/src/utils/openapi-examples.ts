@@ -50,6 +50,49 @@ export const notesExamples = {
   },
 };
 
+export const foldersExamples = {
+  folder: {
+    id: "123e4567-e89b-12d3-a456-426614174000",
+    name: "Sample folder",
+    parentFolderId: "123e4567-e89b-12d3-a456-426614174000",
+    isRoot: true,
+    userId: authExamples.token,
+    isArchived: false,
+    createdAt: "2025-08-11T18:26:20.296Z",
+    updatedAt: "2025-08-11T18:26:20.296Z",
+  },
+  createFolderValErrs: {
+    name: "Too small: expected string to have >=1 characters",
+    parentFolderId: "Invalid UUID",
+    isRoot: "Invalid input: expected boolean, received string",
+  },
+  folderWithItems: {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    name: "My Folder",
+    parentFolderId: "550e8400-e29b-41d4-a716-446655440001",
+    isRoot: true,
+    userId: "550e8400-e29b-41d4-a716-446655440002",
+    isArchived: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    notes: [notesExamples.note],
+    folders: [
+      {
+        id: "550e8400-e29b-41d4-a716-446655440000",
+        name: "My Folder",
+        parentFolderId: "550e8400-e29b-41d4-a716-446655440001",
+        isRoot: false,
+        userId: "550e8400-e29b-41d4-a716-446655440002",
+        isArchived: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        notes: [notesExamples.note],
+        folders: [],
+      },
+    ],
+  },
+};
+
 export const userExamples = {
   user: {
     id: "aBCDEF0gHijkLM1NO2PqrsTuVwXyzaBc",

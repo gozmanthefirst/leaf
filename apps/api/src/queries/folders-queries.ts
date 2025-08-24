@@ -1,6 +1,12 @@
+/** biome-ignore-all lint/suspicious/noExplicitAny: needed for accessing the DB using raw SQL */
+
 import db, { and, eq } from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
-import type { Folder } from "@repo/database/validators/folders-validators";
+import { notes } from "@repo/database/schemas/notes-schema";
+import type {
+  Folder,
+  FolderWithItems,
+} from "@repo/database/validators/folders-validators";
 
 /**
  * Returns true if a folder with the given ID exists and belongs to the specified user.
@@ -32,4 +38,74 @@ export const getFolderForUser = async (
     .limit(1);
 
   return foundFolder || null;
+};
+
+/**
+ * Builds a nested folder structure from folders and notes
+ */
+const buildFolderHierarchy = (
+  allFolders: Folder[],
+  allNotes: any[],
+  rootFolderId: string,
+): FolderWithItems | null => {
+  // Create a map of folders by ID
+  const folderMap = new Map<string, FolderWithItems>();
+
+  // Initialize all folders with empty notes and folders arrays
+  for (const folder of allFolders) {
+    folderMap.set(folder.id, {
+      ...folder,
+      notes: [],
+      folders: [],
+    });
+  }
+
+  // Group notes by folderId and assign to folders
+  for (const note of allNotes) {
+    const folder = folderMap.get(note.folderId);
+    if (folder) {
+      folder.notes.push(note);
+    }
+  }
+
+  // Build the hierarchy by linking child folders to parents
+  for (const folder of folderMap.values()) {
+    if (folder.parentFolderId && folderMap.has(folder.parentFolderId)) {
+      const parent = folderMap.get(folder.parentFolderId);
+      if (parent) {
+        parent.folders.push(folder);
+      }
+    }
+  }
+
+  return folderMap.get(rootFolderId) || null;
+};
+
+/**
+ * Gets a folder with all its nested folders and notes in a hierarchical structure
+ * Simple approach: gets ALL user folders and notes, then builds hierarchy
+ */
+export const getFolderWithNestedItems = async (
+  folderId: string,
+  userId: string,
+): Promise<FolderWithItems | null> => {
+  // 1. Get ALL folders for the user
+  const allFolders = await db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.userId, userId), eq(folders.isArchived, false)));
+
+  // Check if the requested folder exists
+  if (!allFolders.some((folder) => folder.id === folderId)) {
+    return null;
+  }
+
+  // 2. Get ALL notes for the user
+  const allNotes = await db
+    .select()
+    .from(notes)
+    .where(and(eq(notes.userId, userId), eq(notes.isArchived, false)));
+
+  // 3. Build the hierarchy starting from the requested folder
+  return buildFolderHierarchy(allFolders, allNotes, folderId);
 };
