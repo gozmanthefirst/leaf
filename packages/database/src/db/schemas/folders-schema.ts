@@ -14,6 +14,5 @@ export const folders = pgTable("folders", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  isArchived: boolean("is_archived").default(false).notNull(),
   ...timestamps,
 });

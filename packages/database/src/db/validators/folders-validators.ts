@@ -9,7 +9,6 @@ export const FolderSelectSchema = createSelectSchema(folders);
 
 export const FolderInsertSchema = createInsertSchema(folders, {
   name: (t) => t.min(1).default("untitled"),
-  isArchived: z.boolean().default(false),
 }).omit({
   id: true,
   isRoot: true,
@@ -32,7 +31,6 @@ export type FolderWithItems = {
   parentFolderId: string;
   isRoot: boolean;
   userId: string;
-  isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
   notes: Note[];

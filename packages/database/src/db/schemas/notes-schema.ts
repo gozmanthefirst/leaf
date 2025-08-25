@@ -14,7 +14,6 @@ export const notes = pgTable("notes", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  isArchived: boolean("is_archived").default(false).notNull(),
   isFavorite: boolean("is_favorite").default(false).notNull(),
   tags: text("tags").array().default([]).notNull(),
   ...timestamps,
