@@ -48,6 +48,12 @@ export const notesExamples = {
     isFavorite: "Invalid input: expected boolean, received string",
     tags: "Invalid input: expected array, received string",
   },
+  archiveNoteValErrs: {
+    archived: "Invalid input: expected boolean, received string",
+  },
+  favoriteNoteValErrs: {
+    favorite: "Invalid input: expected boolean, received string",
+  },
 };
 
 export const foldersExamples = {

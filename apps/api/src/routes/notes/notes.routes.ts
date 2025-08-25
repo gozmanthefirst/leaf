@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import {
   NoteInsertSchema,
   NoteSelectSchema,
+  NoteUpdateSchema,
 } from "@repo/database/validators/notes-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
@@ -215,7 +216,380 @@ export const copyNote = createRoute({
   },
 });
 
+export const toggleNoteArchive = createRoute({
+  path: "/notes/{id}/archive",
+  method: "patch",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            archived: z.boolean().openapi({
+              description: "Set to true to archive, false to unarchive",
+              example: true,
+            }),
+          }),
+        },
+      },
+      description: "Archive or unarchive the note",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note archive state updated",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note archive state updated successfully",
+        data: { ...notesExamples.note, isArchived: true },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidUUID: {
+          summary: "Invalid note ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+        invalidInput: {
+          summary: "Invalid request data",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(notesExamples.archiveNoteValErrs),
+          fields: notesExamples.archiveNoteValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Note not found",
+      "Note not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const toggleNoteFavorite = createRoute({
+  path: "/notes/{id}/favorite",
+  method: "patch",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            favorite: z.boolean().openapi({
+              description: "Set to true to favorite, false to unfavorite",
+              example: true,
+            }),
+          }),
+        },
+      },
+      description: "Favorite or unfavorite the note",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note favorite state updated",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note favorite state updated successfully",
+        data: { ...notesExamples.note, isFavorite: true },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidUUID: {
+          summary: "Invalid note ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+        invalidInput: {
+          summary: "Invalid request data",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(
+            notesExamples.favoriteNoteValErrs,
+          ),
+          fields: notesExamples.favoriteNoteValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Note not found",
+      "Note not found",
+    ),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
+      "ARCHIVED_NOTE",
+      "Archived note",
+      "Archived notes cannot be favorited",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const moveNote = createRoute({
+  path: "/notes/{id}/move",
+  method: "patch",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            folderId: z.string().uuid().openapi({
+              description: "Destination folder ID",
+              example: "123e4567-e89b-12d3-a456-426614174000",
+            }),
+          }),
+        },
+      },
+      description: "Move note to another folder",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note moved",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note moved successfully",
+        data: notesExamples.note,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidNoteUUID: {
+          summary: "Invalid note ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+        invalidFolderUUID: {
+          summary: "Invalid folder ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields({
+            folderId: authExamples.uuidValErr.id,
+          }),
+          fields: { folderId: authExamples.uuidValErr.id },
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Note or folder not found",
+      examples: {
+        noteNotFound: {
+          summary: "Note not found",
+          code: "NOTE_NOT_FOUND",
+          details: "Note not found",
+        },
+        folderNotFound: {
+          summary: "Folder not found",
+          code: "FOLDER_NOT_FOUND",
+          details: "Folder not found",
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
+      "ARCHIVED_NOTE",
+      "Archived note",
+      "Archived notes cannot be moved",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const updateNote = createRoute({
+  path: "/notes/{id}",
+  method: "put",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: NoteUpdateSchema,
+        },
+      },
+      description: "Update all editable fields of a note",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note updated",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note updated successfully",
+        data: { ...notesExamples.note, title: "Updated note" },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(notesExamples.createNoteValErrs),
+          fields: notesExamples.createNoteValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Note or folder not found",
+      examples: {
+        noteNotFound: {
+          summary: "Note not found",
+          code: "NOTE_NOT_FOUND",
+          details: "Note not found",
+        },
+        folderNotFound: {
+          summary: "Folder not found",
+          code: "FOLDER_NOT_FOUND",
+          details: "Folder not found",
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Archived notes cannot be moved or favorited",
+      examples: {
+        archivedMove: {
+          summary: "Archived note move/favorite error",
+          code: "ARCHIVED_NOTE",
+          details: "Archived notes cannot be moved or favorited",
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const deleteNote = createRoute({
+  path: "/notes/{id}",
+  method: "delete",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Note ID"),
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Note deleted",
+      schema: NoteSelectSchema,
+      resObj: {
+        details: "Note deleted successfully",
+        data: notesExamples.note,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidUUID: {
+          summary: "Invalid note ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Note not found",
+      "Note not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type GetAllNotesRoute = typeof getAllNotes;
 export type CreateNoteRoute = typeof createNote;
 export type GetSingleNoteRoute = typeof getSingleNote;
 export type CopyNoteRoute = typeof copyNote;
+export type ToggleNoteArchiveRoute = typeof toggleNoteArchive;
+export type ToggleNoteFavoriteRoute = typeof toggleNoteFavorite;
+export type MoveNoteRoute = typeof moveNote;
+export type DeleteNoteRoute = typeof deleteNote;
+export type UpdateNoteRoute = typeof updateNote;

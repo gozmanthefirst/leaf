@@ -34,7 +34,7 @@ export const generateUniqueNoteTitle = async (
     .where(
       and(
         eq(notes.userId, userId),
-        eq(notes.folderId, folderId), // Filter by folder
+        eq(notes.folderId, folderId),
         sql`${notes.title} LIKE ${`${intendedTitle}%`}`,
       ),
     );

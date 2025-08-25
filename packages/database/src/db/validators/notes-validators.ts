@@ -18,6 +18,11 @@ export const NoteInsertSchema = createInsertSchema(notes, {
   updatedAt: true,
 });
 
-export const NoteUpdateSchema = NoteInsertSchema.partial();
+export const NoteUpdateSchema = NoteInsertSchema.extend({
+  title: z.string().min(1),
+  tags: z.array(z.string().min(1)),
+  isArchived: z.boolean(),
+  isFavorite: z.boolean(),
+}).partial();
 
 export type Note = InferSelectModel<typeof notes>;
