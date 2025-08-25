@@ -19,19 +19,22 @@ export const getNoteForUser = async (
 };
 
 /**
- * Generates a unique title using incrementing numbers.
+ * Generates a unique note title using incrementing numbers within the same folder.
  */
-export const generateUniqueTitle = async (
+export const generateUniqueNoteTitle = async (
   intendedTitle: string,
   userId: string,
+  folderId: string,
 ): Promise<string> => {
   // Get all existing notes with titles that start with the intended title
+  // BUT only within the same folder
   const existingNotes = await db
     .select({ title: notes.title })
     .from(notes)
     .where(
       and(
         eq(notes.userId, userId),
+        eq(notes.folderId, folderId), // Filter by folder
         sql`${notes.title} LIKE ${`${intendedTitle}%`}`,
       ),
     );

@@ -3,7 +3,10 @@ import { notes } from "@repo/database/schemas/notes-schema";
 
 import type { AppRouteHandler } from "@/lib/types";
 import { getFolderForUser } from "@/queries/folders-queries";
-import { generateUniqueTitle, getNoteForUser } from "@/queries/notes-queries";
+import {
+  generateUniqueNoteTitle,
+  getNoteForUser,
+} from "@/queries/notes-queries";
 import type {
   CopyNoteRoute,
   GetSingleNoteRoute,
@@ -34,9 +37,10 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
     );
   }
 
-  const uniqueTitle = await generateUniqueTitle(
+  const uniqueTitle = await generateUniqueNoteTitle(
     noteData.title || "untitled",
     user.id,
+    noteData.folderId,
   );
 
   const payload = { ...noteData, userId: user.id, title: uniqueTitle };
@@ -90,9 +94,10 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
     );
   }
 
-  const uniqueTitle = await generateUniqueTitle(
+  const uniqueTitle = await generateUniqueNoteTitle(
     noteToBeCopied.title || "untitled",
     user.id,
+    noteToBeCopied.folderId,
   );
 
   const payload = {
