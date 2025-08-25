@@ -17,6 +17,10 @@ export const FolderInsertSchema = createInsertSchema(folders, {
   updatedAt: true,
 });
 
+export const FolderUpdateSchema = FolderInsertSchema.extend({
+  name: z.string().min(1),
+}).partial();
+
 export const FolderWithItemsSchema = z.object({
   ...FolderSelectSchema.shape,
   notes: z.array(NoteSelectSchema),

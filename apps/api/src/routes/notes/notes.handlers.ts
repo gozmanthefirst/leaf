@@ -19,6 +19,12 @@ import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type { CreateNoteRoute, GetAllNotesRoute } from "./notes.routes";
 
+const normalizeTags = (tags: string[] | undefined): string[] => {
+  if (!tags) return [];
+  // Remove empty strings and duplicates
+  return Array.from(new Set(tags.filter((tag) => tag.trim().length > 0)));
+};
+
 export const getAllNotes: AppRouteHandler<GetAllNotesRoute> = async (c) => {
   const notes = await db.query.notes.findMany();
 
@@ -47,7 +53,12 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
     noteData.folderId,
   );
 
-  const payload = { ...noteData, userId: user.id, title: uniqueTitle };
+  const payload = {
+    ...noteData,
+    userId: user.id,
+    title: uniqueTitle,
+    tags: normalizeTags(noteData.tags),
+  };
 
   const [newNote] = await db.insert(notes).values(payload).returning();
 
@@ -102,7 +113,7 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
     userId: user.id,
     folderId: noteToBeCopied.folderId,
     isFavorite: false,
-    tags: noteToBeCopied.tags,
+    tags: normalizeTags(noteToBeCopied.tags),
   };
 
   const [copiedNote] = await db.insert(notes).values(payload).returning();
@@ -157,7 +168,13 @@ export const moveNote: AppRouteHandler<MoveNoteRoute> = async (c) => {
     );
   }
 
-  // Check if destination folder exists for user
+  if (folderId === note.folderId) {
+    return c.json(
+      successResponse(note, "Note moved successfully"),
+      HttpStatusCodes.OK,
+    );
+  }
+
   const folder = await getFolderForUser(folderId, user.id);
   if (!folder) {
     return c.json(
@@ -166,7 +183,6 @@ export const moveNote: AppRouteHandler<MoveNoteRoute> = async (c) => {
     );
   }
 
-  // Ensure unique title in destination folder
   const uniqueTitle = await generateUniqueNoteTitle(
     note.title,
     user.id,
@@ -202,8 +218,26 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     );
   }
 
-  // If folderId is being updated, check folder existence
   const folderId = noteData.folderId ?? note.folderId;
+  const title = noteData.title ?? note.title;
+  const content = noteData.content ?? note.content;
+  const isFavorite = noteData.isFavorite ?? note.isFavorite;
+  const tags = normalizeTags(noteData.tags ?? note.tags);
+
+  // Check for no changes
+  if (
+    folderId === note.folderId &&
+    title === note.title &&
+    content === note.content &&
+    isFavorite === note.isFavorite &&
+    JSON.stringify(tags) === JSON.stringify(note.tags)
+  ) {
+    return c.json(
+      successResponse(note, "No changes to update"),
+      HttpStatusCodes.OK,
+    );
+  }
+
   if (folderId !== note.folderId) {
     const folder = await getFolderForUser(folderId, user.id);
     if (!folder) {
@@ -214,10 +248,9 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     }
   }
 
-  // If moving to a new folder, ensure unique title in that folder
-  let title = noteData.title ?? note.title;
+  let newTitle = title;
   if (folderId !== note.folderId || title !== note.title) {
-    title = await generateUniqueNoteTitle(title, user.id, folderId);
+    newTitle = await generateUniqueNoteTitle(title, user.id, folderId);
   }
 
   const [updatedNote] = await db
@@ -225,7 +258,10 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     .set({
       ...noteData,
       folderId,
-      title,
+      title: newTitle,
+      content,
+      isFavorite,
+      tags,
     })
     .where(eq(notes.id, id))
     .returning();

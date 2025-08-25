@@ -8,12 +8,14 @@ import {
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, foldersExamples } from "@/utils/openapi-examples";
 import {
+  createIdUUIDParamsSchema,
   errorContent,
   genericErrorContent,
   getErrDetailsFromErrFields,
   serverErrorContent,
   successContent,
 } from "@/utils/openapi-helpers";
+import { FolderUpdateSchema } from "../../../../../packages/database/src/db/validators/folders-validators";
 
 const tags = ["Folders"];
 
@@ -142,5 +144,265 @@ export const createFolder = createRoute({
   },
 });
 
+export const moveFolder = createRoute({
+  path: "/folders/{id}/move",
+  method: "patch",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Folder ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            parentFolderId: z.uuid().openapi({
+              description: "Destination parent folder ID",
+              example: "123e4567-e89b-12d3-a456-426614174001",
+            }),
+          }),
+        },
+      },
+      description: "Move folder to another parent folder",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Folder moved",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Folder moved successfully",
+        data: foldersExamples.folder,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidFolderUUID: {
+          summary: "Invalid folder ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+        invalidParentUUID: {
+          summary: "Invalid parent folder ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields({
+            parentFolderId: "Invalid UUID",
+          }),
+          fields: { parentFolderId: "Invalid UUID" },
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Folder or parent folder not found",
+      examples: {
+        folderNotFound: {
+          summary: "Folder not found",
+          code: "FOLDER_NOT_FOUND",
+          details: "Folder not found",
+        },
+        parentNotFound: {
+          summary: "Parent folder not found",
+          code: "PARENT_FOLDER_NOT_FOUND",
+          details: "Parent folder not found",
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Cannot move root folder or create cycles",
+      examples: {
+        rootFolder: {
+          summary: "Root folder cannot be moved",
+          code: "ROOT_FOLDER",
+          details: "Root folder cannot be moved",
+        },
+        folderCycle: {
+          summary: "Folder cycle detected",
+          code: "FOLDER_CYCLE",
+          details: "Cannot move a folder into its own descendant or itself",
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const updateFolder = createRoute({
+  path: "/folders/{id}",
+  method: "put",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Folder ID"),
+    body: {
+      content: {
+        "application/json": {
+          schema: FolderUpdateSchema,
+        },
+      },
+      description: "Update an existing folder",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Folder updated successfully",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Folder updated successfully",
+        data: { ...foldersExamples.folder, isRoot: false },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidFolderUUID: {
+          summary: "Invalid folder ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(
+            foldersExamples.createFolderValErrs,
+          ),
+          fields: foldersExamples.createFolderValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Folder or parent folder not found",
+      examples: {
+        folderNotFound: {
+          summary: "Folder not found",
+          code: "FOLDER_NOT_FOUND",
+          details: "Folder not found",
+        },
+        parentNotFound: {
+          summary: "Parent folder not found",
+          code: "PARENT_FOLDER_NOT_FOUND",
+          details: "Parent folder not found",
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Cannot update root folder or create cycles",
+      examples: {
+        rootFolder: {
+          summary: "Root folder cannot be updated",
+          code: "ROOT_FOLDER",
+          details: "Root folder cannot be updated",
+        },
+        folderCycle: {
+          summary: "Folder cycle detected",
+          code: "FOLDER_CYCLE",
+          details: "Cannot move a folder into its own descendant or itself",
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+export const deleteFolder = createRoute({
+  path: "/folders/{id}",
+  method: "delete",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    params: createIdUUIDParamsSchema("Folder ID"),
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Folder deleted",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Folder deleted successfully",
+        data: foldersExamples.folder,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        invalidFolderUUID: {
+          summary: "Invalid folder ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: errorContent({
+      description: "Folder not found",
+      examples: {
+        folderNotFound: {
+          summary: "Folder not found",
+          code: "NOT_FOUND",
+          details: "Folder not found",
+        },
+      },
+    }),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
+      description: "Cannot delete root folder",
+      examples: {
+        rootFolder: {
+          summary: "Root folder cannot be deleted",
+          code: "ROOT_FOLDER",
+          details: "Root folder cannot be deleted",
+        },
+      },
+    }),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type GetFolderWithItemsRoute = typeof getFolderWithItems;
 export type CreateFolderRoute = typeof createFolder;
+export type MoveFolderRoute = typeof moveFolder;
+export type UpdateFolderRoute = typeof updateFolder;
+export type DeleteFolderRoute = typeof deleteFolder;

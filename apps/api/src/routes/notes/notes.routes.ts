@@ -400,6 +400,12 @@ export const updateNote = createRoute({
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
       description: "Invalid request data",
       examples: {
+        invalidNoteUUID: {
+          summary: "Invalid note ID",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
         validationError: {
           summary: "Validation error",
           code: "INVALID_DATA",

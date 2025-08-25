@@ -220,3 +220,27 @@ export const getRootFolderWithNestedItems = async (
   // Use the existing function to get nested items
   return getFolderWithNestedItems(rootFolder.id, userId);
 };
+
+/**
+ * Checks if a folder is a descendant of another folder or itself
+ */
+export const isDescendant = async (
+  folderId: string,
+  targetParentId: string,
+  userId: string,
+): Promise<boolean> => {
+  if (folderId === targetParentId) return true;
+
+  let currentId = targetParentId;
+  while (true) {
+    const folder = await getFolderForUser(currentId, userId);
+
+    if (!folder || folder.isRoot) break;
+    if (folder.parentFolderId === folderId) return true;
+    if (folder.parentFolderId === currentId) break;
+
+    currentId = folder.parentFolderId;
+  }
+
+  return false;
+};

@@ -11,6 +11,9 @@ foldersRouter
 
 foldersRouter
   .openapi(foldersRoutes.getFolderWithItems, foldersHandlers.getFolderWithItems)
-  .openapi(foldersRoutes.createFolder, foldersHandlers.createFolder);
+  .openapi(foldersRoutes.createFolder, foldersHandlers.createFolder)
+  .openapi(foldersRoutes.moveFolder, foldersHandlers.moveFolder)
+  .openapi(foldersRoutes.updateFolder, foldersHandlers.updateFolder)
+  .openapi(foldersRoutes.deleteFolder, foldersHandlers.deleteFolder);
 
 export default foldersRouter;
