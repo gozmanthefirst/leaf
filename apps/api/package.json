@@ -4,8 +4,7 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun --minify",
-    "start": "bun run dist/index.js",
-    "test": "vitest"
+    "start": "bun run dist/index.js"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.0",
