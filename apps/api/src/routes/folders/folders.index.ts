@@ -9,9 +9,8 @@ foldersRouter
   .use("/folders/*", authMiddleware)
   .use("/folders/*", ensureRootFolder);
 
-foldersRouter.openapi(
-  foldersRoutes.getFolderWithItems,
-  foldersHandlers.getFolderWithItems,
-);
+foldersRouter
+  .openapi(foldersRoutes.getFolderWithItems, foldersHandlers.getFolderWithItems)
+  .openapi(foldersRoutes.createFolder, foldersHandlers.createFolder);
 
 export default foldersRouter;

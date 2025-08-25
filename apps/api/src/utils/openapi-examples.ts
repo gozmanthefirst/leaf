@@ -61,10 +61,15 @@ export const foldersExamples = {
     createdAt: "2025-08-11T18:26:20.296Z",
     updatedAt: "2025-08-11T18:26:20.296Z",
   },
-  createFolderValErrs: {
+  createRootFolderValErrs: {
     name: "Too small: expected string to have >=1 characters",
     parentFolderId: "Invalid UUID",
     isRoot: "Invalid input: expected boolean, received string",
+  },
+  createFolderValErrs: {
+    name: "Too small: expected string to have >=1 characters",
+    parentFolderId: "Invalid UUID",
+    isArchived: "Invalid input: expected boolean, received string",
   },
   folderWithItems: {
     id: "550e8400-e29b-41d4-a716-446655440000",

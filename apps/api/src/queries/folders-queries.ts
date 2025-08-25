@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import db, { and, eq } from "@repo/database";
+import db, { and, eq, sql } from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
 import { notes } from "@repo/database/schemas/notes-schema";
 import type {
@@ -78,6 +78,52 @@ export const getFolderForUser = async (
     .limit(1);
 
   return foundFolder || null;
+};
+
+/**
+ * Generates a unique folder name using incrementing numbers within the same parent folder.
+ */
+export const generateUniqueFolderName = async (
+  intendedName: string,
+  userId: string,
+  parentFolderId: string,
+): Promise<string> => {
+  // Get all existing folders with names that start with the intended name
+  // BUT only within the same parent folder
+  const existingFolders = await db
+    .select({ name: folders.name })
+    .from(folders)
+    .where(
+      and(
+        eq(folders.userId, userId),
+        eq(folders.parentFolderId, parentFolderId), // Filter by parent folder
+        sql`${folders.name} LIKE ${`${intendedName}%`}`,
+      ),
+    );
+
+  const existingNames = new Set(existingFolders.map((folder) => folder.name));
+
+  // If the original name doesn't exist, use it
+  if (!existingNames.has(intendedName)) {
+    return intendedName;
+  }
+
+  // Find the highest number suffix and increment
+  let maxSuffix = 0;
+
+  for (const name of existingNames) {
+    if (name === intendedName) {
+      maxSuffix = Math.max(maxSuffix, 0);
+    } else if (name.startsWith(`${intendedName} `)) {
+      const suffix = name.substring(intendedName.length + 1);
+      const num = parseInt(suffix, 10);
+      if (!Number.isNaN(num)) {
+        maxSuffix = Math.max(maxSuffix, num);
+      }
+    }
+  }
+
+  return `${intendedName} ${maxSuffix + 1}`;
 };
 
 /**

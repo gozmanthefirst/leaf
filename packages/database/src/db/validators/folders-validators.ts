@@ -1,11 +1,22 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { createSelectSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import z from "zod";
 
 import { folders } from "../schemas/folders-schema";
 import { type Note, NoteSelectSchema } from "./notes-validators";
 
 export const FolderSelectSchema = createSelectSchema(folders);
+
+export const FolderInsertSchema = createInsertSchema(folders, {
+  name: (t) => t.min(1).default("untitled"),
+  isArchived: z.boolean().default(false),
+}).omit({
+  id: true,
+  isRoot: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const FolderWithItemsSchema = z.object({
   ...FolderSelectSchema.shape,

@@ -1,5 +1,9 @@
 import { createRoute, z } from "@hono/zod-openapi";
-import { FolderWithItemsSchema } from "@repo/database/validators/folders-validators";
+import {
+  FolderInsertSchema,
+  FolderSelectSchema,
+  FolderWithItemsSchema,
+} from "@repo/database/validators/folders-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, foldersExamples } from "@/utils/openapi-examples";
@@ -77,4 +81,66 @@ export const getFolderWithItems = createRoute({
   },
 });
 
+export const createFolder = createRoute({
+  path: "/folders",
+  method: "post",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: FolderInsertSchema,
+        },
+      },
+      description: "Create a new folder",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.CREATED]: successContent({
+      description: "Folder created successfully",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Folder created successfully",
+        data: { ...foldersExamples.folder, isRoot: false },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(
+            foldersExamples.createFolderValErrs,
+          ),
+          fields: foldersExamples.createFolderValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Parent folder not found",
+      "Parent folder not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type GetFolderWithItemsRoute = typeof getFolderWithItems;
+export type CreateFolderRoute = typeof createFolder;
