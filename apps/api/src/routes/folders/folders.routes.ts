@@ -1,11 +1,12 @@
-import { createRoute } from "@hono/zod-openapi";
+import { createRoute, z } from "@hono/zod-openapi";
 import { FolderWithItemsSchema } from "@repo/database/validators/folders-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
-import { foldersExamples } from "@/utils/openapi-examples";
+import { authExamples, foldersExamples } from "@/utils/openapi-examples";
 import {
-  createIdUUIDParamsSchema,
+  errorContent,
   genericErrorContent,
+  getErrDetailsFromErrFields,
   serverErrorContent,
   successContent,
 } from "@/utils/openapi-helpers";
@@ -13,7 +14,7 @@ import {
 const tags = ["Folders"];
 
 export const getFolderWithItems = createRoute({
-  path: "/folders/{id}",
+  path: "/folders",
   method: "get",
   security: [
     {
@@ -22,7 +23,20 @@ export const getFolderWithItems = createRoute({
   ],
   tags,
   request: {
-    params: createIdUUIDParamsSchema("Folder ID"),
+    query: z.object({
+      folderId: z
+        .uuid()
+        .optional()
+        .openapi({
+          param: {
+            name: "folderId",
+            in: "query",
+            required: false,
+            description: "Folder ID. If not provided, returns the root folder.",
+          },
+          example: "123e4567-e89b-12d3-a456-426614174000",
+        }),
+    }),
   },
   responses: {
     [HttpStatusCodes.OK]: successContent({
@@ -31,6 +45,17 @@ export const getFolderWithItems = createRoute({
       resObj: {
         details: "Folder with items retrieved successfully",
         data: foldersExamples.folderWithItems,
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
       },
     }),
     [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(

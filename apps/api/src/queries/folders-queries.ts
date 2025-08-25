@@ -13,7 +13,11 @@ import type { Note } from "@repo/database/validators/notes-validators";
 
 import { getUserById } from "./user-queries";
 
-export const createRootFolder = async (userId: string) => {
+/**
+ * Ensures that a root folder exists for the given user, creating one if necessary.
+ * Returns the root folder.
+ */
+export const createRootFolder = async (userId: string): Promise<Folder> => {
   const user = await getUserById(userId);
 
   // Check if root folder exists
@@ -148,4 +152,25 @@ export const getFolderWithNestedItems = async (
 
   // 3. Build the hierarchy starting from the requested folder
   return buildFolderHierarchy(allFolders, allNotes, folderId);
+};
+
+/**
+ * Gets the root folder (isRoot: true) for a user, with all its nested folders and notes.
+ */
+export const getRootFolderWithNestedItems = async (
+  userId: string,
+): Promise<FolderWithItems | null> => {
+  // Find the root folder for the user
+  const [rootFolder] = await db
+    .select()
+    .from(folders)
+    .where(and(eq(folders.userId, userId), eq(folders.isRoot, true)))
+    .limit(1);
+
+  if (!rootFolder) {
+    return null;
+  }
+
+  // Use the existing function to get nested items
+  return getFolderWithNestedItems(rootFolder.id, userId);
 };
