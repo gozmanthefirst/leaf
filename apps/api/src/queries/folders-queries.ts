@@ -183,7 +183,7 @@ export const getFolderWithNestedItems = async (
   const allFolders = await db
     .select()
     .from(folders)
-    .where(and(eq(folders.userId, userId), eq(folders.isArchived, false)));
+    .where(and(eq(folders.userId, userId)));
 
   // Check if the requested folder exists
   if (!allFolders.some((folder) => folder.id === folderId)) {
@@ -194,7 +194,7 @@ export const getFolderWithNestedItems = async (
   const allNotes = await db
     .select()
     .from(notes)
-    .where(and(eq(notes.userId, userId), eq(notes.isArchived, false)));
+    .where(and(eq(notes.userId, userId)));
 
   // 3. Build the hierarchy starting from the requested folder
   return buildFolderHierarchy(allFolders, allNotes, folderId);

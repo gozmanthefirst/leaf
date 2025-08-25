@@ -12,7 +12,6 @@ notesRouter
   .openapi(notesRoutes.createNote, notesHandlers.createNote)
   .openapi(notesRoutes.getSingleNote, notesHandlers.getSingleNote)
   .openapi(notesRoutes.copyNote, notesHandlers.copyNote)
-  .openapi(notesRoutes.toggleNoteArchive, notesHandlers.toggleNoteArchive)
   .openapi(notesRoutes.toggleNoteFavorite, notesHandlers.toggleNoteFavorite)
   .openapi(notesRoutes.moveNote, notesHandlers.moveNote)
   .openapi(notesRoutes.updateNote, notesHandlers.updateNote)

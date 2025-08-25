@@ -12,7 +12,6 @@ import type {
   DeleteNoteRoute,
   GetSingleNoteRoute,
   MoveNoteRoute,
-  ToggleNoteArchiveRoute,
   ToggleNoteFavoriteRoute,
   UpdateNoteRoute,
 } from "@/routes/notes/notes.routes";
@@ -91,14 +90,6 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
     );
   }
 
-  // Check if the note is archived
-  if (noteToBeCopied.isArchived) {
-    return c.json(
-      errorResponse("ARCHIVED_NOTE", "Archived notes cannot be copied"),
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
-    );
-  }
-
   const uniqueTitle = await generateUniqueNoteTitle(
     noteToBeCopied.title || "untitled",
     user.id,
@@ -110,7 +101,6 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
     content: noteToBeCopied.content,
     userId: user.id,
     folderId: noteToBeCopied.folderId,
-    isArchived: false,
     isFavorite: false,
     tags: noteToBeCopied.tags,
   };
@@ -120,42 +110,6 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
   return c.json(
     successResponse(copiedNote, "Note copied successfully"),
     HttpStatusCodes.CREATED,
-  );
-};
-
-export const toggleNoteArchive: AppRouteHandler<
-  ToggleNoteArchiveRoute
-> = async (c) => {
-  const user = c.get("user");
-  const { id } = c.req.valid("param");
-  const { archived } = c.req.valid("json");
-
-  const note = await getNoteForUser(id, user.id);
-
-  if (!note) {
-    return c.json(
-      errorResponse("NOT_FOUND", "Note not found"),
-      HttpStatusCodes.NOT_FOUND,
-    );
-  }
-
-  const updateData: Partial<typeof notes.$inferInsert> = {
-    isArchived: archived,
-  };
-
-  if (archived) {
-    updateData.isFavorite = false;
-  }
-
-  const [updatedNote] = await db
-    .update(notes)
-    .set(updateData)
-    .where(eq(notes.id, id))
-    .returning();
-
-  return c.json(
-    successResponse(updatedNote, "Note archive state updated successfully"),
-    HttpStatusCodes.OK,
   );
 };
 
@@ -172,13 +126,6 @@ export const toggleNoteFavorite: AppRouteHandler<
     return c.json(
       errorResponse("NOT_FOUND", "Note not found"),
       HttpStatusCodes.NOT_FOUND,
-    );
-  }
-
-  if (note.isArchived) {
-    return c.json(
-      errorResponse("ARCHIVED_NOTE", "Archived notes cannot be favorited"),
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
     );
   }
 
@@ -207,13 +154,6 @@ export const moveNote: AppRouteHandler<MoveNoteRoute> = async (c) => {
     return c.json(
       errorResponse("NOTE_NOT_FOUND", "Note not found"),
       HttpStatusCodes.NOT_FOUND,
-    );
-  }
-
-  if (note.isArchived) {
-    return c.json(
-      errorResponse("ARCHIVED_NOTE", "Archived notes cannot be moved"),
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
     );
   }
 
@@ -280,33 +220,12 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     title = await generateUniqueNoteTitle(title, user.id, folderId);
   }
 
-  // If trying to favorite or move an archived note, block
-  if (
-    note.isArchived &&
-    (noteData.isFavorite === true || folderId !== note.folderId)
-  ) {
-    return c.json(
-      errorResponse(
-        "ARCHIVED_NOTE",
-        "Archived notes cannot be moved or favorited",
-      ),
-      HttpStatusCodes.UNPROCESSABLE_ENTITY,
-    );
-  }
-
-  // If archiving, set isFavorite to false
-  let isFavorite = noteData.isFavorite ?? note.isFavorite;
-  if (noteData.isArchived === true) {
-    isFavorite = false;
-  }
-
   const [updatedNote] = await db
     .update(notes)
     .set({
       ...noteData,
       folderId,
       title,
-      isFavorite,
     })
     .where(eq(notes.id, id))
     .returning();

@@ -202,82 +202,6 @@ export const copyNote = createRoute({
       "Note not found",
       "Note not found",
     ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
-      "ARCHIVED_NOTE",
-      "Archived note",
-      "Archived notes cannot be copied",
-    ),
-    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
-      "TOO_MANY_REQUESTS",
-      "Too many requests",
-      "Too many requests have been made. Please try again later.",
-    ),
-    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
-  },
-});
-
-export const toggleNoteArchive = createRoute({
-  path: "/notes/{id}/archive",
-  method: "patch",
-  security: [
-    {
-      Bearer: [],
-    },
-  ],
-  tags,
-  request: {
-    params: createIdUUIDParamsSchema("Note ID"),
-    body: {
-      content: {
-        "application/json": {
-          schema: z.object({
-            archived: z.boolean().openapi({
-              description: "Set to true to archive, false to unarchive",
-              example: true,
-            }),
-          }),
-        },
-      },
-      description: "Archive or unarchive the note",
-      required: true,
-    },
-  },
-  responses: {
-    [HttpStatusCodes.OK]: successContent({
-      description: "Note archive state updated",
-      schema: NoteSelectSchema,
-      resObj: {
-        details: "Note archive state updated successfully",
-        data: { ...notesExamples.note, isArchived: true },
-      },
-    }),
-    [HttpStatusCodes.BAD_REQUEST]: errorContent({
-      description: "Invalid request data",
-      examples: {
-        invalidUUID: {
-          summary: "Invalid note ID",
-          code: "INVALID_DATA",
-          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
-          fields: authExamples.uuidValErr,
-        },
-        invalidInput: {
-          summary: "Invalid request data",
-          code: "INVALID_DATA",
-          details: getErrDetailsFromErrFields(notesExamples.archiveNoteValErrs),
-          fields: notesExamples.archiveNoteValErrs,
-        },
-      },
-    }),
-    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
-      "UNAUTHORIZED",
-      "Unauthorized",
-      "No session found",
-    ),
-    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
-      "NOT_FOUND",
-      "Note not found",
-      "Note not found",
-    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
@@ -350,11 +274,6 @@ export const toggleNoteFavorite = createRoute({
       "NOT_FOUND",
       "Note not found",
       "Note not found",
-    ),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
-      "ARCHIVED_NOTE",
-      "Archived note",
-      "Archived notes cannot be favorited",
     ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
@@ -439,11 +358,6 @@ export const moveNote = createRoute({
         },
       },
     }),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
-      "ARCHIVED_NOTE",
-      "Archived note",
-      "Archived notes cannot be moved",
-    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
@@ -514,16 +428,6 @@ export const updateNote = createRoute({
         },
       },
     }),
-    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: errorContent({
-      description: "Archived notes cannot be moved or favorited",
-      examples: {
-        archivedMove: {
-          summary: "Archived note move/favorite error",
-          code: "ARCHIVED_NOTE",
-          details: "Archived notes cannot be moved or favorited",
-        },
-      },
-    }),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
@@ -588,7 +492,6 @@ export type GetAllNotesRoute = typeof getAllNotes;
 export type CreateNoteRoute = typeof createNote;
 export type GetSingleNoteRoute = typeof getSingleNote;
 export type CopyNoteRoute = typeof copyNote;
-export type ToggleNoteArchiveRoute = typeof toggleNoteArchive;
 export type ToggleNoteFavoriteRoute = typeof toggleNoteFavorite;
 export type MoveNoteRoute = typeof moveNote;
 export type DeleteNoteRoute = typeof deleteNote;

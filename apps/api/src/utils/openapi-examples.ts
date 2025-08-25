@@ -35,7 +35,6 @@ export const notesExamples = {
     content: "This is sample note content.",
     folderId: "123e4567-e89b-12d3-a456-426614174000",
     userId: authExamples.token,
-    isArchived: false,
     isFavorite: false,
     tags: ["tag1"],
     createdAt: "2025-08-11T18:26:20.296Z",
@@ -44,12 +43,8 @@ export const notesExamples = {
   createNoteValErrs: {
     title: "Too small: expected string to have >=1 characters",
     folderId: "Invalid UUID",
-    isArchived: "Invalid input: expected boolean, received string",
     isFavorite: "Invalid input: expected boolean, received string",
     tags: "Invalid input: expected array, received string",
-  },
-  archiveNoteValErrs: {
-    archived: "Invalid input: expected boolean, received string",
   },
   favoriteNoteValErrs: {
     favorite: "Invalid input: expected boolean, received string",
@@ -63,7 +58,6 @@ export const foldersExamples = {
     parentFolderId: "123e4567-e89b-12d3-a456-426614174000",
     isRoot: true,
     userId: authExamples.token,
-    isArchived: false,
     createdAt: "2025-08-11T18:26:20.296Z",
     updatedAt: "2025-08-11T18:26:20.296Z",
   },
@@ -75,7 +69,6 @@ export const foldersExamples = {
   createFolderValErrs: {
     name: "Too small: expected string to have >=1 characters",
     parentFolderId: "Invalid UUID",
-    isArchived: "Invalid input: expected boolean, received string",
   },
   folderWithItems: {
     id: "550e8400-e29b-41d4-a716-446655440000",
@@ -83,7 +76,6 @@ export const foldersExamples = {
     parentFolderId: "550e8400-e29b-41d4-a716-446655440001",
     isRoot: true,
     userId: "550e8400-e29b-41d4-a716-446655440002",
-    isArchived: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     notes: [notesExamples.note],
@@ -94,7 +86,6 @@ export const foldersExamples = {
         parentFolderId: "550e8400-e29b-41d4-a716-446655440001",
         isRoot: false,
         userId: "550e8400-e29b-41d4-a716-446655440002",
-        isArchived: false,
         createdAt: new Date(),
         updatedAt: new Date(),
         notes: [notesExamples.note],
