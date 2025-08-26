@@ -1,11 +1,3 @@
-To install dependencies:
-```sh
-bun install
-```
+# Notes API
 
-To run:
-```sh
-bun run dev
-```
-
-open http://localhost:3000
+This is the backend app for the project. Its built using Hono, and deployed using Docker.
