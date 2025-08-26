@@ -6,6 +6,7 @@ import env from "@/lib/env";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
 import { createRootFolder } from "@/queries/folders-queries";
 import type {
+  ChangePwdRoute,
   ReqPwdResetEmailRoute,
   ResetPwdRoute,
   SendVerificationEmailRoute,
@@ -193,6 +194,34 @@ export const resetPwd: AppRouteHandler<ResetPwdRoute> = async (c) => {
           error.body?.message ?? error.message,
         ),
         error.statusCode as ErrorStatusCodes<typeof resetPwd>,
+      );
+    }
+
+    throw error;
+  }
+};
+
+export const changePwd: AppRouteHandler<ChangePwdRoute> = async (c) => {
+  try {
+    const data = c.req.valid("json");
+
+    const response = await auth.api.changePassword({
+      body: { ...data, revokeOtherSessions: true },
+      headers: c.req.raw.headers,
+    });
+
+    return c.json(
+      successResponse(response, "Password changed successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    if (error instanceof APIError) {
+      return c.json(
+        errorResponse(
+          error.body?.code ?? "AUTH_ERROR",
+          error.body?.message ?? error.message,
+        ),
+        error.statusCode as ErrorStatusCodes<typeof changePwd>,
       );
     }
 

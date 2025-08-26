@@ -15,6 +15,10 @@ export const authExamples = {
     newPassword: "Too small: expected string to have >=8 characters",
     token: "Too small: expected string to have >=1 characters",
   },
+  changePwdValErrs: {
+    newPassword: "Too small: expected string to have >=8 characters",
+    currentPassword: "Too small: expected string to have >=8 characters",
+  },
   emailValErr: {
     email: "Invalid email address",
   },

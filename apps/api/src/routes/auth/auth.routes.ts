@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
+  ChangePasswordSchema,
   ReqPwdResetSchema,
   ResetPasswordSchema,
   SendVerificationEmailSchema,
@@ -365,6 +366,66 @@ export const resetPwd = createRoute({
   },
 });
 
+export const changePwd = createRoute({
+  path: "/auth/change-password",
+  method: "post",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: ChangePasswordSchema,
+        },
+      },
+      description: "Change the password for a user",
+      required: true,
+    },
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Password changed successfully",
+      schema: z.object({
+        token: z.string().nullable(),
+        user: UserSelectSchema,
+      }),
+      resObj: {
+        details: "Password changed successfully",
+        data: {
+          token: authExamples.token,
+          user: userExamples.user,
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.changePwdValErrs),
+          fields: authExamples.changePwdValErrs,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export const signOut = createRoute({
   path: "/auth/sign-out",
   method: "get",
@@ -418,4 +479,5 @@ export type SignInRoute = typeof signIn;
 export type SendVerificationEmailRoute = typeof sendVerificationEmail;
 export type ReqPwdResetEmailRoute = typeof reqPwdResetEmail;
 export type ResetPwdRoute = typeof resetPwd;
+export type ChangePwdRoute = typeof changePwd;
 export type SignOutRoute = typeof signOut;

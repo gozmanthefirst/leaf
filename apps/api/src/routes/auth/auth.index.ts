@@ -13,9 +13,12 @@ authRouter
   .openapi(authRoutes.reqPwdResetEmail, authHandlers.reqPwdResetEmail)
   .openapi(authRoutes.resetPwd, authHandlers.resetPwd);
 
+authRouter.use("/auth/change-password", authMiddleware);
 authRouter.use("/auth/sign-out", authMiddleware);
 
-// Protect the sign-out route
-authRouter.openapi(authRoutes.signOut, authHandlers.signOut);
+// Protected routes
+authRouter
+  .openapi(authRoutes.changePwd, authHandlers.changePwd)
+  .openapi(authRoutes.signOut, authHandlers.signOut);
 
 export default authRouter;
