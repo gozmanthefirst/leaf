@@ -109,4 +109,8 @@ export const userExamples = {
     createdAt: "2025-08-11T18:26:20.296Z",
     updatedAt: "2025-08-11T18:26:20.296Z",
   },
+  updateUserValErrs: {
+    name: "Too small: expected string to have >=1 characters",
+    image: "Invalid URL",
+  },
 };

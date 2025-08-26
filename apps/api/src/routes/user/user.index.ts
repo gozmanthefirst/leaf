@@ -7,6 +7,8 @@ import * as userRoutes from "@/routes/user/user.routes";
 const userRouter = createRouter();
 userRouter.use("/user/*", authMiddleware).use("/user/*", ensureRootFolder);
 
-userRouter.openapi(userRoutes.getUser, userHandlers.getUser);
+userRouter
+  .openapi(userRoutes.getUser, userHandlers.getUser)
+  .openapi(userRoutes.updateUser, userHandlers.updateUser);
 
 export default userRouter;
