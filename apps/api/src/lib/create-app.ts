@@ -1,6 +1,10 @@
+import { compress } from "@hono/bun-compress";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { secureHeaders } from "hono/secure-headers";
 
+import env from "@/lib/env";
 import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";
@@ -21,7 +25,25 @@ export const createRouter = () => {
 const createApp = () => {
   const app = createRouter();
 
-  // Middleware for Logging requests and setting up the emoji favicon
+  // CORS
+  app.use("/api/*", cors({ origin: "http://localhost:3120" }));
+
+  // Security Headers
+  app.use(
+    "*",
+    secureHeaders({
+      xFrameOptions: "DENY",
+      xXssProtection: "1",
+      strictTransportSecurity:
+        env.NODE_ENV === "production"
+          ? "max-age=31536000; includeSubDomains"
+          : false,
+      referrerPolicy: "strict-origin-when-cross-origin",
+    }),
+  );
+
+  // Middleware for compressing the response body, logging requests and setting up the emoji favicon
+  app.use(compress());
   app.use(logger());
   app.use(emojiFavicon("📔"));
 
