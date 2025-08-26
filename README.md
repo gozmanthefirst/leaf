@@ -5,17 +5,27 @@ This is a Turborepo containing the different parts of an app for writing and org
 > [!NOTE]
 > Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience. You can fork the repo and build yours too if you can't wait.
 
+- [Notes](#notes)
+  - [Why?](#why)
+  - [Features](#features)
+  - [Stack](#stack)
+  - [Prerequisites](#prerequisites)
+  - [Getting Started](#getting-started)
+  - [Running Locally](#running-locally)
+  - [Contributing](#contributing)
+  - [Roadmap](#roadmap)
+
 ## Why?
 
 I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. However, I am poor and therefore can't pay for sync at the moment, and I'd really like to be able to edit a note on my PC and still access it on my mobile devices. I also wanted a solution that gave me more control over my data and allowed me to customize the features to my specific needs. Since I'm not such a bad software developer myself, I decided to build something similar, even if its just the basic features.
 
 ## Features
 
-* Create, update, organize, and retrieve your notes.
-* Organize notes into folders.
-* Favorite notes for quick access.
-* Tag notes for easy searching and filtering.
-* Access your notes from any device with an internet connection.
+- Create, update, organize, and retrieve your notes.
+- Organize notes into folders.
+- Favorite notes for quick access.
+- Tag notes for easy searching and filtering.
+- Access your notes from any device with an internet connection.
 
 ## Stack
 
@@ -25,8 +35,8 @@ Other tools used include Drizzle as the ORM layer for the database, Biome for li
 
 ## Prerequisites
 
-* [Bun](https://bun.sh/)
-* [Docker](https://www.docker.com/)
+- [Bun](https://bun.sh/)
+- [Docker](https://www.docker.com/)
 
 ## Getting Started
 
@@ -46,15 +56,15 @@ Other tools used include Drizzle as the ORM layer for the database, Biome for li
 
 3. **Set up the database:**
 
-    * Create a `.env` file in `packages/database` and enter the DB URL:
+    - Create a `.env` file in `packages/database` and enter the DB URL:
 
         ```env
         DATABASE_URL=postgresql://user:secret@localhost:5432/notes
         ```
 
-    * The database can be created using `turbo db:up`. Make sure you have Docker set up on your machine. It can be taken down using `turbo db:down`.
+    - The database can be created using `turbo db:up`. Make sure you have Docker set up on your machine. It can be taken down using `turbo db:down`.
 
-    * The database can be migrated using the following commands:
+    - The database can be migrated using the following commands:
 
         ```sh
         turbo db:generate
@@ -63,20 +73,20 @@ Other tools used include Drizzle as the ORM layer for the database, Biome for li
 
 4. **Set up the backend app:**
 
-    * Copy `.env.example` to `.env` in the `apps/api` directory.
-    * Update the values to set up the environment variables. The required variables include:
-        * `NODE_ENV`: The environment the app is running in (e.g., `development`, `production`).
-        * `PORT`: The port the backend server will listen on (e.g., `8000`).
-        * `FRONTEND_URL`: The URL of the frontend application (e.g., `http://localhost:3000`).
-        * `DATABASE_URL`: The same DB URL as the one set in the database package.
-        * `BETTER_AUTH_SECRET`: A secret key for Better Auth. Generate a new secret using the command: `openssl rand -hex 32`.
-        * `BETTER_AUTH_URL`: The URL for Better Auth, typically the backend URL.
-        * `RESEND_API_KEY`: Your Resend API key.
-        * `RESEND_DOMAIN`: Your Resend domain.
+    - Copy `.env.example` to `.env` in the `apps/api` directory.
+    - Update the values to set up the environment variables. The required variables include:
+        - `NODE_ENV`: The environment the app is running in (e.g., `development`, `production`).
+        - `PORT`: The port the backend server will listen on (e.g., `8000`).
+        - `FRONTEND_URL`: The URL of the frontend application (e.g., `http://localhost:3000`).
+        - `DATABASE_URL`: The same DB URL as the one set in the database package.
+        - `BETTER_AUTH_SECRET`: A secret key for Better Auth. Generate a new secret using the command: `openssl rand -hex 32`.
+        - `BETTER_AUTH_URL`: The URL for Better Auth, typically the backend URL.
+        - `RESEND_API_KEY`: Your Resend API key.
+        - `RESEND_DOMAIN`: Your Resend domain.
 
 ## Running Locally
 
-* Start the dev servers for the various apps and services using:
+- Start the dev servers for the various apps and services using:
 
     ```sh
     turbo dev
@@ -97,5 +107,5 @@ Contributions are welcome! Please follow these steps:
 
 These are features that I might add later on. This is not a promise. Don't bank on me adding them.
 
-* [ ] Ability to share notes with other users.
-* [ ] Make a PWA.
+- [ ] Ability to share notes with other users.
+- [ ] Make a PWA.
