@@ -4,6 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
+import { createRootFolder } from "@/queries/folders-queries";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,6 +22,7 @@ export const auth = betterAuth({
         token,
       });
     },
+    revokeSessionsOnPasswordReset: true,
   },
   emailVerification: {
     sendOnSignUp: true,
@@ -30,6 +32,9 @@ export const auth = betterAuth({
         name: user.name,
         token,
       });
+    },
+    afterEmailVerification: async (user) => {
+      await createRootFolder(user.id);
     },
   },
 
