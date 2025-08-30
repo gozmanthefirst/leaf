@@ -23,6 +23,7 @@ export const auth = betterAuth({
       });
     },
     revokeSessionsOnPasswordReset: true,
+    autoSignIn: false,
   },
   emailVerification: {
     sendOnSignUp: true,
@@ -32,9 +33,6 @@ export const auth = betterAuth({
         name: user.name,
         token,
       });
-    },
-    afterEmailVerification: async (user) => {
-      await createRootFolder(user.id);
     },
   },
 
