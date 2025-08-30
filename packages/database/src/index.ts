@@ -9,7 +9,6 @@ import env from "./lib/env";
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
-  idleTimeoutMillis: 30000,
 });
 
 const db = drizzle(pool, {
