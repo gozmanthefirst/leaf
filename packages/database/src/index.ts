@@ -1,5 +1,4 @@
 import { drizzle } from "drizzle-orm/node-postgres";
-import { Pool } from "pg";
 
 import * as authSchema from "./db/schemas/auth-schema";
 import * as foldersSchema from "./db/schemas/folders-schema";
@@ -7,11 +6,7 @@ import * as notesSchema from "./db/schemas/notes-schema";
 import * as userSchema from "./db/schemas/user-schema";
 import env from "./lib/env";
 
-export const pool = new Pool({
-  connectionString: env.DATABASE_URL,
-});
-
-const db = drizzle(pool, {
+const db = drizzle(env.DATABASE_URL, {
   schema: {
     ...authSchema,
     ...userSchema,
