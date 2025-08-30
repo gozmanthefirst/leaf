@@ -45,7 +45,7 @@ const createApp = () => {
   // Middleware for compressing the response body, logging requests and setting up the emoji favicon
   app.use(compress());
   app.use(logger());
-  app.use(emojiFavicon("📔"));
+  app.use(emojiFavicon("🍀"));
 
   // Better Auth
   app.on(["POST", "GET"], "/api/better-auth/**", (c) =>
