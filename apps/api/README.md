@@ -1,11 +1,11 @@
-# Notes API
+# Leaf API
 
-Backend API for the Notes application.
+Backend API for the Leaf application.
 
 * Built with Hono.
 * Uses PostgreSQL for data storage.
 * Deployed with Docker.
-* [OpenAPI Docs with Scalar](https://api.notes.gozman.xyz/api/reference)
+* [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference)
 
 ## Getting Started
 
@@ -13,4 +13,4 @@ Backend API for the Notes application.
 2. Run `bun install` to install dependencies.
 3. Run `turbo dev` from the project root to start the API.
 
-See the main project [`README.md`](https://github.com/gozmanthefirst/notes) for more detailed
+See the main project [`README.md`](https://github.com/gozmanthefirst/leaf) for more detailed

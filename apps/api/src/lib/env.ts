@@ -7,6 +7,7 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().default(8000),
   FRONTEND_URL: z.url(),
   DATABASE_URL: z.url(),
+  AUTH_COOKIE: z.string(),
   BETTER_AUTH_SECRET: z.string(),
   BETTER_AUTH_URL: z.url(),
   RESEND_API_KEY: z.string(),

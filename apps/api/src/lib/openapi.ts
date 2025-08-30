@@ -7,7 +7,7 @@ const configureOpenAPI = (app: AppOpenAPI) => {
   app.doc("/api/doc", {
     openapi: "3.0.0",
     info: {
-      title: "Notes API",
+      title: "Leaf API",
       description: "The API for a note-taking app.",
       version: packageJSON.version,
     },
@@ -31,7 +31,7 @@ const configureOpenAPI = (app: AppOpenAPI) => {
         },
       },
       persistAuth: true,
-      pageTitle: "Notes API",
+      pageTitle: "Leaf API",
       theme: "saturn",
       hideModels: true,
       defaultHttpClient: {

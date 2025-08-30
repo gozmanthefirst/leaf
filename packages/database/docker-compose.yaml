@@ -1,13 +1,13 @@
-name: notes-db
+name: leaf-db
 
 services:
   postgres:
     image: postgres:17.5
-    container_name: notes-pg
+    container_name: leaf-pg
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: notes
+      POSTGRES_DB: leaf
       POSTGRES_USER: user
       POSTGRES_PASSWORD: secret
     volumes:

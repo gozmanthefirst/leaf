@@ -1,11 +1,11 @@
-# Notes
+# Leaf
 
-This is a Turborepo containing the different parts of an app for writing and organizing notes.
+This is a monorepo containing the different parts of an app for writing and organizing notes called Leaf.
 
 > [!NOTE]
 > Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience. You can fork the repo and build yours too if you can't wait.
 
-- [Notes](#notes)
+- [Leaf](#leaf)
   - [Why?](#why)
   - [Features](#features)
   - [Stack](#stack)
@@ -59,7 +59,7 @@ Other tools used include Drizzle as the ORM layer for the database, Biome for li
     - Create a `.env` file in `packages/database` and enter the DB URL:
 
         ```env
-        DATABASE_URL=postgresql://user:secret@localhost:5432/notes
+        DATABASE_URL=postgresql://user:secret@localhost:5432/leaf
         ```
 
     - The database can be created using `turbo db:up`. Make sure you have Docker set up on your machine. It can be taken down using `turbo db:down`.

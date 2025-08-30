@@ -21,7 +21,7 @@ export const sendVerificationEmail = async ({
     url ?? `${env.FRONTEND_URL}/auth/verify-email?token=${token}`;
 
   await resend.emails.send({
-    from: `Notes <notes@${env.RESEND_DOMAIN}>`,
+    from: `Leaf <leaf@${env.RESEND_DOMAIN}>`,
     to,
     subject: "Verify your email address",
     html: `
@@ -43,7 +43,7 @@ export const sendResetPasswordEmail = async ({
     url ?? `${env.FRONTEND_URL}/auth/reset-password?token=${token}`;
 
   await resend.emails.send({
-    from: `Notes <notes@${env.RESEND_DOMAIN}>`,
+    from: `Leaf <leaf@${env.RESEND_DOMAIN}>`,
     to,
     subject: "Reset your password",
     html: `
