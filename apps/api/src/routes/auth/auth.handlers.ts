@@ -4,7 +4,6 @@ import { setCookie } from "hono/cookie";
 import { auth } from "@/lib/auth";
 import env from "@/lib/env";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
-import { createRootFolder } from "@/queries/folders-queries";
 import type {
   ChangePwdRoute,
   ReqPwdResetEmailRoute,
@@ -27,8 +26,6 @@ export const signUp: AppRouteHandler<SignUpUserRoute> = async (c) => {
     const response = await auth.api.signUpEmail({
       body: data,
     });
-
-    await createRootFolder(response.user.id);
 
     return c.json(
       successResponse(response, "User signed up successfully"),

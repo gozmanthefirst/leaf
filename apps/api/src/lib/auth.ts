@@ -38,5 +38,15 @@ export const auth = betterAuth({
     },
   },
 
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          createRootFolder(user.id);
+        },
+      },
+    },
+  },
+
   plugins: [openAPI(), bearer()],
 });
