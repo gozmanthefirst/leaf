@@ -9,12 +9,9 @@ export const FolderSelectSchema = createSelectSchema(folders);
 
 export const FolderInsertSchema = createInsertSchema(folders, {
   name: (t) => t.min(1).default("untitled"),
-}).omit({
-  id: true,
-  isRoot: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
+}).pick({
+  name: true,
+  parentFolderId: true,
 });
 
 export const FolderUpdateSchema = FolderInsertSchema.extend({
