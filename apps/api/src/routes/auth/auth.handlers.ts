@@ -4,6 +4,7 @@ import { setCookie } from "hono/cookie";
 import { auth } from "@/lib/auth";
 import env from "@/lib/env";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
+import { getUserByEmail } from "@/queries/user-queries";
 import type {
   ChangePwdRoute,
   ReqPwdResetEmailRoute,
@@ -22,6 +23,15 @@ import type {
 export const signUp: AppRouteHandler<SignUpUserRoute> = async (c) => {
   try {
     const data = c.req.valid("json");
+
+    const existingAccount = await getUserByEmail(data.email);
+
+    if (existingAccount) {
+      return c.json(
+        errorResponse("ACCOUNT_EXISTS", "Account already exists"),
+        HttpStatusCodes.CONFLICT,
+      );
+    }
 
     const response = await auth.api.signUpEmail({
       body: data,
@@ -118,6 +128,15 @@ export const sendVerificationEmail: AppRouteHandler<
 > = async (c) => {
   try {
     const data = c.req.valid("json");
+
+    const existingAccount = await getUserByEmail(data.email);
+
+    if (existingAccount.emailVerified) {
+      return c.json(
+        errorResponse("ALREADY_VERIFIED", "Account already verified"),
+        HttpStatusCodes.CONFLICT,
+      );
+    }
 
     const response = await auth.api.sendVerificationEmail({
       body: data,

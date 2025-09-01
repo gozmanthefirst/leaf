@@ -62,6 +62,11 @@ export const signUp = createRoute({
         },
       },
     }),
+    [HttpStatusCodes.CONFLICT]: genericErrorContent(
+      "ACCOUNT_EXISTS",
+      "Account already exists",
+      "Account already exists",
+    ),
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
       "UNPROCESSABLE_ENTITY",
       "Unprocessable entity",
@@ -252,6 +257,11 @@ export const sendVerificationEmail = createRoute({
         },
       },
     }),
+    [HttpStatusCodes.CONFLICT]: genericErrorContent(
+      "ALREADY_VERIFIED",
+      "Account already verified",
+      "Account already verified",
+    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",

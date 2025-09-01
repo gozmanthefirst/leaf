@@ -21,3 +21,16 @@ export const getUserById = async (userId: string) => {
 
   return foundUser || null;
 };
+
+/**
+ * Returns the user with the given email, or null if not found.
+ */
+export const getUserByEmail = async (email: string) => {
+  const [foundUser] = await db
+    .select()
+    .from(user)
+    .where(eq(user.email, email))
+    .limit(1);
+
+  return foundUser || null;
+};
