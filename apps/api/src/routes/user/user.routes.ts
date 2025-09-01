@@ -25,6 +25,7 @@ export const getUser = createRoute({
     },
   ],
   tags,
+  description: "Get the current user",
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "User retrieved",
@@ -57,6 +58,7 @@ export const updateUser = createRoute({
     },
   ],
   tags,
+  description: "Update all editable fields of the current user",
   request: {
     body: {
       content: {
@@ -64,7 +66,6 @@ export const updateUser = createRoute({
           schema: UserUpdateSchema,
         },
       },
-      description: "Update all editable fields of a user",
       required: true,
     },
   },

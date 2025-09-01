@@ -25,6 +25,7 @@ export const signUp = createRoute({
   path: "/auth/sign-up",
   method: "post",
   tags,
+  description: "Sign up a new user",
   request: {
     body: {
       content: {
@@ -32,7 +33,6 @@ export const signUp = createRoute({
           schema: SignUpSchema,
         },
       },
-      description: "Sign up a new user",
       required: true,
     },
   },
@@ -84,6 +84,7 @@ export const verifyEmail = createRoute({
   path: "/auth/verify-email",
   method: "get",
   tags,
+  description: "Verify the email of a user",
   request: {
     query: z.object({
       token: z.jwt().openapi({
@@ -154,6 +155,7 @@ export const signIn = createRoute({
   path: "/auth/sign-in",
   method: "post",
   tags,
+  description: "Sign in with email and password",
   request: {
     body: {
       content: {
@@ -161,7 +163,6 @@ export const signIn = createRoute({
           schema: SignInSchema,
         },
       },
-      description: "Sign in with email and password",
       required: true,
     },
   },
@@ -222,6 +223,7 @@ export const sendVerificationEmail = createRoute({
   path: "/auth/send-verification-email",
   method: "post",
   tags,
+  description: "Send a verification email to a user",
   request: {
     body: {
       content: {
@@ -229,7 +231,6 @@ export const sendVerificationEmail = createRoute({
           schema: SendVerificationEmailSchema,
         },
       },
-      description: "Send a verification email to a user",
       required: true,
     },
   },
@@ -275,6 +276,7 @@ export const reqPwdResetEmail = createRoute({
   path: "/auth/request-password-reset",
   method: "post",
   tags,
+  description: "Send a password reset email to a user",
   request: {
     body: {
       content: {
@@ -282,7 +284,6 @@ export const reqPwdResetEmail = createRoute({
           schema: ReqPwdResetSchema,
         },
       },
-      description: "Send a password reset email to a user",
       required: true,
     },
   },
@@ -326,6 +327,7 @@ export const resetPwd = createRoute({
   path: "/auth/reset-password",
   method: "post",
   tags,
+  description: "Reset the password for a user",
   request: {
     body: {
       content: {
@@ -333,7 +335,6 @@ export const resetPwd = createRoute({
           schema: ResetPasswordSchema,
         },
       },
-      description: "Reset the password for a user",
       required: true,
     },
   },
@@ -385,6 +386,7 @@ export const changePwd = createRoute({
     },
   ],
   tags,
+  description: "Change the password for a user",
   request: {
     body: {
       content: {
@@ -392,7 +394,6 @@ export const changePwd = createRoute({
           schema: ChangePasswordSchema,
         },
       },
-      description: "Change the password for a user",
       required: true,
     },
   },
@@ -445,6 +446,7 @@ export const signOut = createRoute({
     },
   ],
   tags,
+  description: "Sign out the current user",
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "User signed out successfully",

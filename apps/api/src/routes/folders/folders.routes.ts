@@ -2,6 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import {
   FolderInsertSchema,
   FolderSelectSchema,
+  FolderUpdateSchema,
   FolderWithItemsSchema,
 } from "@repo/database/validators/folders-validators";
 
@@ -15,7 +16,6 @@ import {
   serverErrorContent,
   successContent,
 } from "@/utils/openapi-helpers";
-import { FolderUpdateSchema } from "../../../../../packages/database/src/db/validators/folders-validators";
 
 const tags = ["Folders"];
 
@@ -28,6 +28,7 @@ export const getFolderWithItems = createRoute({
     },
   ],
   tags,
+  description: "Get a folder with its items",
   request: {
     query: z.object({
       folderId: z
@@ -92,6 +93,7 @@ export const createFolder = createRoute({
     },
   ],
   tags,
+  description: "Create a new folder",
   request: {
     body: {
       content: {
@@ -99,7 +101,6 @@ export const createFolder = createRoute({
           schema: FolderInsertSchema,
         },
       },
-      description: "Create a new folder",
       required: true,
     },
   },
@@ -153,6 +154,7 @@ export const moveFolder = createRoute({
     },
   ],
   tags,
+  description: "Move folder to another parent folder",
   request: {
     params: createIdUUIDParamsSchema("Folder ID"),
     body: {
@@ -166,7 +168,6 @@ export const moveFolder = createRoute({
           }),
         },
       },
-      description: "Move folder to another parent folder",
       required: true,
     },
   },
@@ -251,6 +252,7 @@ export const updateFolder = createRoute({
     },
   ],
   tags,
+  description: "Update an existing folder",
   request: {
     params: createIdUUIDParamsSchema("Folder ID"),
     body: {
@@ -259,7 +261,6 @@ export const updateFolder = createRoute({
           schema: FolderUpdateSchema,
         },
       },
-      description: "Update an existing folder",
       required: true,
     },
   },
@@ -344,6 +345,7 @@ export const deleteFolder = createRoute({
     },
   ],
   tags,
+  description: "Delete a folder",
   request: {
     params: createIdUUIDParamsSchema("Folder ID"),
   },

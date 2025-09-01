@@ -27,6 +27,7 @@ export const getAllNotes = createRoute({
     },
   ],
   tags,
+  description: "Get all notes for the current user",
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
@@ -59,6 +60,7 @@ export const createNote = createRoute({
     },
   ],
   tags,
+  description: "Create a new note",
   request: {
     body: {
       content: {
@@ -66,7 +68,6 @@ export const createNote = createRoute({
           schema: NoteInsertSchema,
         },
       },
-      description: "Create a new note",
       required: true,
     },
   },
@@ -118,6 +119,7 @@ export const getSingleNote = createRoute({
     },
   ],
   tags,
+  description: "Get a single note for the current user",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
   },
@@ -169,6 +171,7 @@ export const copyNote = createRoute({
     },
   ],
   tags,
+  description: "Make a copy of a note",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
   },
@@ -220,6 +223,7 @@ export const toggleNoteFavorite = createRoute({
     },
   ],
   tags,
+  description: "Favorite or unfavorite a note",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
     body: {
@@ -233,7 +237,6 @@ export const toggleNoteFavorite = createRoute({
           }),
         },
       },
-      description: "Favorite or unfavorite the note",
       required: true,
     },
   },
@@ -293,6 +296,7 @@ export const moveNote = createRoute({
     },
   ],
   tags,
+  description: "Move note to another folder",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
     body: {
@@ -306,7 +310,6 @@ export const moveNote = createRoute({
           }),
         },
       },
-      description: "Move note to another folder",
       required: true,
     },
   },
@@ -376,6 +379,7 @@ export const updateNote = createRoute({
     },
   ],
   tags,
+  description: "Update all editable fields of a note",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
     body: {
@@ -384,7 +388,6 @@ export const updateNote = createRoute({
           schema: NoteUpdateSchema,
         },
       },
-      description: "Update all editable fields of a note",
       required: true,
     },
   },
@@ -452,6 +455,7 @@ export const deleteNote = createRoute({
     },
   ],
   tags,
+  description: "Delete a note",
   request: {
     params: createIdUUIDParamsSchema("Note ID"),
   },
