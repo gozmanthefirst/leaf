@@ -11,6 +11,7 @@
     "dev": "bun run --hot src/index.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
+    "db:delete": "docker compose down -v",
     "db:psql": "docker exec -it leaf-pg psql -U user -d leaf",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
