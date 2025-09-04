@@ -131,6 +131,13 @@ export const sendVerificationEmail: AppRouteHandler<
 
     const existingAccount = await getUserByEmail(data.email);
 
+    if (!existingAccount) {
+      return c.json(
+        errorResponse("NOT_FOUND", "Account not found"),
+        HttpStatusCodes.NOT_FOUND,
+      );
+    }
+
     if (existingAccount.emailVerified) {
       return c.json(
         errorResponse("ALREADY_VERIFIED", "Account already verified"),

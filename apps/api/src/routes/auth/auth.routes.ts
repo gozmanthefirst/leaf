@@ -258,6 +258,11 @@ export const sendVerificationEmail = createRoute({
         },
       },
     }),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Account not found",
+      "Account not found",
+    ),
     [HttpStatusCodes.CONFLICT]: genericErrorContent(
       "ALREADY_VERIFIED",
       "Account already verified",

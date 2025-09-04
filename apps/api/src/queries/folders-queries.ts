@@ -17,35 +17,35 @@ import { getUserById } from "./user-queries";
  * Ensures that a root folder exists for the given user, creating one if necessary.
  * Returns the root folder.
  */
-export const createRootFolder = async (userId: string): Promise<Folder> => {
+export const createRootFolder = async (userId: string) => {
   const user = await getUserById(userId);
 
-  // Check if root folder exists
-  const [existingRoot] = await db
-    .select()
-    .from(folders)
-    .where(and(eq(folders.userId, user.id), eq(folders.isRoot, true)))
-    .limit(1);
+  if (user) {
+    const existingRoot = await db.query.folders.findFirst({
+      where: (folder, { eq, and }) =>
+        and(eq(folder.userId, user.id), eq(folder.isRoot, true)),
+    });
 
-  if (existingRoot) {
-    return existingRoot;
+    if (existingRoot) {
+      return existingRoot;
+    }
+
+    // Create a new root folder
+    const newRootId = randomUUID();
+
+    const [newRoot] = await db
+      .insert(folders)
+      .values({
+        id: newRootId,
+        name: `${user.name}'s Root Folder`,
+        parentFolderId: newRootId,
+        isRoot: true,
+        userId: user.id,
+      })
+      .returning();
+
+    return newRoot;
   }
-
-  // Create a new root folder
-  const newRootId = randomUUID();
-
-  const [newRoot] = await db
-    .insert(folders)
-    .values({
-      id: newRootId,
-      name: `${user.name}'s Root Folder`,
-      parentFolderId: newRootId,
-      isRoot: true,
-      userId: user.id,
-    })
-    .returning();
-
-  return newRoot;
 };
 
 /**

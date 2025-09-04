@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import db, { and, eq } from "@repo/database";
+import db from "@repo/database";
 import { folders } from "@repo/database/schemas/folders-schema";
 import { createMiddleware } from "hono/factory";
 
@@ -10,15 +10,13 @@ export const ensureRootFolder = createMiddleware<AppBindings>(
   async (c, next) => {
     const user = c.get("user");
 
-    // Check if root folder exists
-    const existingRoot = await db
-      .select()
-      .from(folders)
-      .where(and(eq(folders.userId, user.id), eq(folders.isRoot, true)))
-      .limit(1);
+    const existingRoot = await db.query.folders.findFirst({
+      where: (folder, { eq, and }) =>
+        and(eq(folder.userId, user.id), eq(folder.isRoot, true)),
+    });
 
     // If no root folder exists, create a self-referencing root folder
-    if (existingRoot.length === 0) {
+    if (!existingRoot) {
       const newRootId = randomUUID();
 
       await db

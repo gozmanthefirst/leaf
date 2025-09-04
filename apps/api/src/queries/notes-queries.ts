@@ -1,21 +1,15 @@
-import db, { and, eq, sql } from "@repo/database";
-import { notes } from "@repo/database/schemas/notes-schema";
-import type { Note } from "@repo/database/validators/notes-validators";
+import db from "@repo/database";
 
 /**
  * Fetches the note with the given ID belonging to the specified user, or null if not found.
  */
-export const getNoteForUser = async (
-  noteId: string,
-  userId: string,
-): Promise<Note | null> => {
-  const [foundNote] = await db
-    .select()
-    .from(notes)
-    .where(and(eq(notes.id, noteId), eq(notes.userId, userId)))
-    .limit(1);
+export const getNoteForUser = async (noteId: string, userId: string) => {
+  const note = await db.query.notes.findFirst({
+    where: (note, { eq, and }) =>
+      and(eq(note.id, noteId), eq(note.userId, userId)),
+  });
 
-  return foundNote || null;
+  return note || null;
 };
 
 /**
@@ -28,16 +22,17 @@ export const generateUniqueNoteTitle = async (
 ): Promise<string> => {
   // Get all existing notes with titles that start with the intended title
   // BUT only within the same folder
-  const existingNotes = await db
-    .select({ title: notes.title })
-    .from(notes)
-    .where(
+  const existingNotes = await db.query.notes.findMany({
+    columns: {
+      title: true,
+    },
+    where: (note, { eq, and, like }) =>
       and(
-        eq(notes.userId, userId),
-        eq(notes.folderId, folderId),
-        sql`${notes.title} LIKE ${`${intendedTitle}%`}`,
+        eq(note.userId, userId),
+        eq(note.folderId, folderId),
+        like(note.title, `${intendedTitle}%`),
       ),
-    );
+  });
 
   const existingTitles = new Set(existingNotes.map((note) => note.title));
 
@@ -71,11 +66,13 @@ export const noteExistsWithTitle = async (
   title: string,
   userId: string,
 ): Promise<boolean> => {
-  const [existingNote] = await db
-    .select({ id: notes.id })
-    .from(notes)
-    .where(and(eq(notes.title, title), eq(notes.userId, userId)))
-    .limit(1);
+  const existingNote = await db.query.notes.findFirst({
+    columns: {
+      id: true,
+    },
+    where: (note, { eq, and }) =>
+      and(eq(note.title, title), eq(note.userId, userId)),
+  });
 
   return !!existingNote;
 };
