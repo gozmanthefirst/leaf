@@ -25,3 +25,9 @@ export type ErrorStatusCodes<R> = Extract<
 > extends { status: infer S }
   ? S
   : never;
+
+export type EncryptedNote = {
+  contentEncrypted: string;
+  contentIv: string;
+  contentTag: string;
+};

@@ -8,6 +8,7 @@ const EnvSchema = z.object({
   FRONTEND_URL: z.url(),
   DATABASE_URL: z.url(),
   AUTH_COOKIE: z.string(),
+  ENCRYPTION_KEY: z.string(),
   BETTER_AUTH_SECRET: z.string(),
   BETTER_AUTH_URL: z.url(),
   RESEND_API_KEY: z.string(),

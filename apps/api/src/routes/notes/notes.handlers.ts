@@ -1,7 +1,9 @@
 import db, { eq } from "@repo/database";
 import { notes } from "@repo/database/schemas/notes-schema";
+import type { Note } from "@repo/database/validators/notes-validators";
 
-import type { AppRouteHandler } from "@/lib/types";
+import { decryptContent, encryptContent } from "@/lib/encryption";
+import type { AppRouteHandler, EncryptedNote } from "@/lib/types";
 import { getFolderForUser } from "@/queries/folders-queries";
 import {
   generateUniqueNoteTitle,
@@ -62,8 +64,26 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
       noteData.folderId,
     );
 
+    let encryptedData: EncryptedNote = {
+      contentEncrypted: "",
+      contentIv: "",
+      contentTag: "",
+    };
+
+    if (noteData.content) {
+      const { encrypted, iv, tag } = encryptContent(noteData.content);
+      encryptedData = {
+        contentEncrypted: encrypted,
+        contentIv: iv,
+        contentTag: tag,
+      };
+    }
+
+    const { content: _, ...rest } = noteData;
+
     const payload = {
-      ...noteData,
+      ...rest,
+      ...encryptedData,
       userId: user.id,
       title: uniqueTitle,
       tags: normalizeTags(noteData.tags),
@@ -98,8 +118,31 @@ export const getSingleNote: AppRouteHandler<GetSingleNoteRoute> = async (c) => {
       );
     }
 
+    const decryptedNote: Omit<
+      Note,
+      "contentEncrypted" | "contentIv" | "contentTag"
+    > & { content: string } = {
+      id: note.id,
+      title: note.title,
+      content: "",
+      folderId: note.folderId,
+      userId: note.userId,
+      isFavorite: note.isFavorite,
+      tags: note.tags,
+      createdAt: note.createdAt,
+      updatedAt: note.updatedAt,
+    };
+
+    if (note.contentEncrypted && note.contentIv && note.contentTag) {
+      decryptedNote.content = decryptContent(
+        note.contentEncrypted,
+        note.contentIv,
+        note.contentTag,
+      );
+    }
+
     return c.json(
-      successResponse(note, "Note retrieved successfully"),
+      successResponse(decryptedNote, "Note retrieved successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {
@@ -132,9 +175,23 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
       noteToBeCopied.folderId,
     );
 
+    // Decrypt the content of the original note
+    const decryptedContent = noteToBeCopied.contentEncrypted
+      ? decryptContent(
+          noteToBeCopied.contentEncrypted,
+          noteToBeCopied.contentIv,
+          noteToBeCopied.contentTag,
+        )
+      : "";
+
+    // Encrypt the content for the new note
+    const { encrypted, iv, tag } = encryptContent(decryptedContent);
+
     const payload = {
       title: uniqueTitle,
-      content: noteToBeCopied.content,
+      contentEncrypted: encrypted,
+      contentIv: iv,
+      contentTag: tag,
       userId: user.id,
       folderId: noteToBeCopied.folderId,
       isFavorite: false,
@@ -272,23 +329,8 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
 
     const folderId = noteData.folderId ?? note.folderId;
     const title = noteData.title ?? note.title;
-    const content = noteData.content ?? note.content;
     const isFavorite = noteData.isFavorite ?? note.isFavorite;
     const tags = normalizeTags(noteData.tags ?? note.tags);
-
-    // Check for no changes
-    if (
-      folderId === note.folderId &&
-      title === note.title &&
-      content === note.content &&
-      isFavorite === note.isFavorite &&
-      JSON.stringify(tags) === JSON.stringify(note.tags)
-    ) {
-      return c.json(
-        successResponse(note, "No changes to update"),
-        HttpStatusCodes.OK,
-      );
-    }
 
     if (folderId !== note.folderId) {
       const folder = await getFolderForUser(folderId, user.id);
@@ -300,6 +342,21 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       }
     }
 
+    let encryptedData: EncryptedNote = {
+      contentEncrypted: "",
+      contentIv: "",
+      contentTag: "",
+    };
+
+    if (noteData.content) {
+      const { encrypted, iv, tag } = encryptContent(noteData.content);
+      encryptedData = {
+        contentEncrypted: encrypted,
+        contentIv: iv,
+        contentTag: tag,
+      };
+    }
+
     let newTitle = title;
     if (folderId !== note.folderId || title !== note.title) {
       newTitle = await generateUniqueNoteTitle(title, user.id, folderId);
@@ -309,17 +366,34 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       .update(notes)
       .set({
         ...noteData,
+        ...encryptedData,
         folderId,
         title: newTitle,
-        content,
         isFavorite,
         tags,
       })
       .where(eq(notes.id, id))
       .returning();
 
+    const decryptedUpdatedNote: Omit<
+      Note,
+      "contentEncrypted" | "contentIv" | "contentTag"
+    > & { content: string } = {
+      id: updatedNote.id,
+      title: updatedNote.title,
+      content: "",
+      folderId: updatedNote.folderId,
+      userId: updatedNote.userId,
+      isFavorite: updatedNote.isFavorite,
+      tags: updatedNote.tags,
+      createdAt: updatedNote.createdAt,
+      updatedAt: updatedNote.updatedAt,
+    };
+
+    decryptedUpdatedNote.content = noteData.content || "";
+
     return c.json(
-      successResponse(updatedNote, "Note updated successfully"),
+      successResponse(decryptedUpdatedNote, "Note updated successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {

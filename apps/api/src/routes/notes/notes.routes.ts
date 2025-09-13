@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
+  EncryptedNoteSelectSchema,
   NoteInsertSchema,
   NoteSelectSchema,
   NoteUpdateSchema,
@@ -31,10 +32,10 @@ export const getAllNotes = createRoute({
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "All notes retrieved",
-      schema: z.array(NoteSelectSchema),
+      schema: z.array(EncryptedNoteSelectSchema),
       resObj: {
         details: "All notes retrieved successfully",
-        data: [notesExamples.note],
+        data: [notesExamples.encryptedNote],
       },
     }),
     [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
@@ -74,10 +75,10 @@ export const createNote = createRoute({
   responses: {
     [HttpStatusCodes.CREATED]: successContent({
       description: "Note created",
-      schema: NoteSelectSchema,
+      schema: EncryptedNoteSelectSchema,
       resObj: {
         details: "Note created successfully",
-        data: { ...notesExamples.note, title: "New note" },
+        data: { ...notesExamples.encryptedNote, title: "New note" },
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
@@ -178,10 +179,10 @@ export const copyNote = createRoute({
   responses: {
     [HttpStatusCodes.CREATED]: successContent({
       description: "Note copied",
-      schema: NoteSelectSchema,
+      schema: EncryptedNoteSelectSchema,
       resObj: {
         details: "Note copied successfully",
-        data: notesExamples.note,
+        data: notesExamples.encryptedNote,
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
@@ -243,10 +244,10 @@ export const toggleNoteFavorite = createRoute({
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "Note favorite state updated",
-      schema: NoteSelectSchema,
+      schema: EncryptedNoteSelectSchema,
       resObj: {
         details: "Note favorite state updated successfully",
-        data: { ...notesExamples.note, isFavorite: true },
+        data: { ...notesExamples.encryptedNote, isFavorite: true },
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
@@ -303,7 +304,7 @@ export const moveNote = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            folderId: z.string().uuid().openapi({
+            folderId: z.uuid().openapi({
               description: "Destination folder ID",
               example: "123e4567-e89b-12d3-a456-426614174000",
             }),
@@ -316,10 +317,10 @@ export const moveNote = createRoute({
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "Note moved",
-      schema: NoteSelectSchema,
+      schema: EncryptedNoteSelectSchema,
       resObj: {
         details: "Note moved successfully",
-        data: notesExamples.note,
+        data: notesExamples.encryptedNote,
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
@@ -462,10 +463,10 @@ export const deleteNote = createRoute({
   responses: {
     [HttpStatusCodes.OK]: successContent({
       description: "Note deleted",
-      schema: NoteSelectSchema,
+      schema: EncryptedNoteSelectSchema,
       resObj: {
         details: "Note deleted successfully",
-        data: notesExamples.note,
+        data: notesExamples.encryptedNote,
       },
     }),
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
