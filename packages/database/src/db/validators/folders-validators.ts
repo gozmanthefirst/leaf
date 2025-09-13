@@ -3,7 +3,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import z from "zod";
 
 import { folders } from "../schemas/folders-schema";
-import { type Note, NoteSelectSchema } from "./notes-validators";
+import { EncryptedNoteSelectSchema, type Note } from "./notes-validators";
 
 export const FolderSelectSchema = createSelectSchema(folders);
 
@@ -20,7 +20,7 @@ export const FolderUpdateSchema = FolderInsertSchema.extend({
 
 export const FolderWithItemsSchema = z.object({
   ...FolderSelectSchema.shape,
-  notes: z.array(NoteSelectSchema),
+  notes: z.array(EncryptedNoteSelectSchema),
   folders: z.array(z.any()),
 });
 

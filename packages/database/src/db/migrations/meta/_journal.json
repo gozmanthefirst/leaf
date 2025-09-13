@@ -57,6 +57,20 @@
       "when": 1756154994285,
       "tag": "0007_quiet_cobalt_man",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1757795283725,
+      "tag": "0008_fancy_catseye",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1757797731038,
+      "tag": "0009_noisy_quasimodo",
+      "breakpoints": true
     }
   ]
 }

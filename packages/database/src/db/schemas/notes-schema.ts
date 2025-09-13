@@ -7,7 +7,9 @@ import { user } from "./user-schema";
 export const notes = pgTable("notes", {
   id: uuid().primaryKey().defaultRandom(),
   title: text().notNull(),
-  content: text().default("").notNull(),
+  contentEncrypted: text("content_encrypted").default("").notNull(),
+  contentIv: text("content_iv").notNull(),
+  contentTag: text("content_tag").notNull(),
   folderId: uuid("folder_id")
     .notNull()
     .references(() => folders.id, { onDelete: "cascade" }),
