@@ -9,9 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteRouteImport } from './routes/auth/route'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
+import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 
+const AuthRouteRoute = AuthRouteRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MainRouteRoute = MainRouteRouteImport.update({
   id: '/_main',
   getParentRoute: () => rootRouteImport,
@@ -21,32 +30,84 @@ const MainIndexRoute = MainIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainRouteRoute,
 } as any)
+const AuthSignUpRoute = AuthSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthSignInRoute = AuthSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
+  '/auth': typeof AuthRouteRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof MainIndexRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRouteRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/': typeof MainIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_main': typeof MainRouteRouteWithChildren
+  '/auth': typeof AuthRouteRouteWithChildren
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/sign-in': typeof AuthSignInRoute
+  '/auth/sign-up': typeof AuthSignUpRoute
   '/_main/': typeof MainIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/_main' | '/_main/'
+  to:
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/'
+  id:
+    | '__root__'
+    | '/_main'
+    | '/auth'
+    | '/auth/forgot-password'
+    | '/auth/sign-in'
+    | '/auth/sign-up'
+    | '/_main/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   MainRouteRoute: typeof MainRouteRouteWithChildren
+  AuthRouteRoute: typeof AuthRouteRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_main': {
       id: '/_main'
       path: ''
@@ -60,6 +121,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof MainIndexRouteImport
       parentRoute: typeof MainRouteRoute
+    }
+    '/auth/sign-up': {
+      id: '/auth/sign-up'
+      path: '/sign-up'
+      fullPath: '/auth/sign-up'
+      preLoaderRoute: typeof AuthSignUpRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/sign-in': {
+      id: '/auth/sign-in'
+      path: '/sign-in'
+      fullPath: '/auth/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRouteRoute
     }
   }
 }
@@ -76,8 +158,25 @@ const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
   MainRouteRouteChildren,
 )
 
+interface AuthRouteRouteChildren {
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthSignInRoute: typeof AuthSignInRoute
+  AuthSignUpRoute: typeof AuthSignUpRoute
+}
+
+const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthSignInRoute: AuthSignInRoute,
+  AuthSignUpRoute: AuthSignUpRoute,
+}
+
+const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
+  AuthRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   MainRouteRoute: MainRouteRouteWithChildren,
+  AuthRouteRoute: AuthRouteRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
