@@ -15,29 +15,17 @@
   --breakpoint-2xl: 1536px;
   --breakpoint-3xl: 1920px;
 
-  --color-background: oklch(97% 0.01 308.36);
-  --color-foreground: oklch(17% 0 0);
-
-  /* Primary */
-  --color-primary-50: oklch(93.29% 0.047 314.99);
-  --color-primary-100: oklch(85.94% 0.101 314.86);
-  --color-primary-200: oklch(74.12% 0.194 314.2);
-  --color-primary-300: oklch(63.94% 0.273 312.28);
-  --color-primary-400: oklch(58.65% 0.299 308.19);
-  --color-primary-500: oklch(46.75% 0.238 308.51);
-  --color-primary-600: oklch(40.39% 0.205 309.25);
-  --color-primary-700: oklch(32.43% 0.164 309.98);
-  --color-primary-800: oklch(25.04% 0.127 310.21);
-  --color-primary-900: oklch(15.84% 0.079 312.8);
-  --color-primary-950: oklch(12.09% 0.059 317.3);
+  --color-background: oklch(97% 0 0);
+  --color-foreground: oklch(20.5% 0 0);
 
   /* Fonts */
   --font-inter: "Inter Variable", sans-serif;
+  --font-roboto: "Roboto Condensed Variable", sans-serif;
 }
 
 @utility container {
   margin-inline: auto;
-  padding-inline: 1.5rem;
+  padding-inline: 1rem;
   max-width: 666px;
 }
 
