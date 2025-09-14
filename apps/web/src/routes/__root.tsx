@@ -57,13 +57,14 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
 
       <body className="min-h-dvh font-inter">
+        {/* <body className="min-h-dvh font-inter dark"> */}
         <ThemeProvider
           attribute={"class"}
           defaultTheme="light"
           disableTransitionOnChange
           enableSystem
         >
-          <div className="relative flex min-h-dvh flex-col bg-background text-[15px]/[1.6] text-neutral-800 antialiased **:outline-1 **:outline-transparent **:outline-offset-2 selection:bg-lime-300 dark:bg-foreground dark:text-neutral-200 dark:selection:bg-lime-700">
+          <div className="relative isolate flex min-h-dvh flex-col bg-background text-neutral-800 text-sm antialiased **:outline-transparent **:outline-offset-2 selection:bg-lime-300 dark:bg-foreground dark:text-neutral-200 dark:selection:bg-lime-700">
             {children}
           </div>
         </ThemeProvider>
