@@ -13,4 +13,4 @@ Backend API for the Leaf application.
 2. Run `bun install` to install dependencies.
 3. Run `turbo dev` from the project root to start the API.
 
-See the main project [`README.md`](https://github.com/gozmanthefirst/leaf) for more detailed
+See the main project [`README.md`](https://github.com/gozmanthefirst/leaf) for more details
