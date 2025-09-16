@@ -1,20 +1,99 @@
 /** biome-ignore-all lint/correctness/useUniqueElementIds: needed */
 
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { useMutation } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { useEffect, useState } from "react";
 import { TbEye, TbEyeClosed } from "react-icons/tb";
+import { toast } from "sonner";
+import z from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Input, InputAddon } from "@/components/ui/input";
+import { Input, InputAddon, InputError } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandLink } from "@/components/ui/styled-texts";
+import { cancelToastEl } from "@/components/ui/toaster";
+import { signInErrMaps } from "@/error-mappings/auth-error-mappings";
+import { useInputRefs } from "@/hooks/use-input-refs";
+import { apiErrorHandler } from "@/lib/api-error";
+import { SignInSchema } from "@/schemas/auth-schema";
+import { $signIn } from "@/server/auth";
+
+const SearchSchema = z.object({
+  error: z.string().optional(),
+  success: z.string().optional(),
+});
 
 export const Route = createFileRoute("/auth/sign-in")({
+  validateSearch: zodValidator(SearchSchema),
   component: SignInPage,
 });
 
 function SignInPage() {
+  const signIn = useServerFn($signIn);
+  const { error, success } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.fullPath });
+
   const [isPwdVisible, setIsPwdVisible] = useState(false);
+
+  // Refs for focusing on input fields after validation errors
+  const [emailInputRef, pwdInputRef] = useInputRefs(2);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error, cancelToastEl);
+    }
+    if (success) {
+      toast.success(success, cancelToastEl);
+    }
+    navigate({
+      search: { error: undefined, success: undefined },
+    });
+  }, [navigate, error, success]);
+
+  const signInMutation = useMutation({
+    mutationFn: signIn,
+    onSuccess: () => {
+      toast.success("You've successfully signed in!", cancelToastEl);
+      form.reset();
+      navigate({
+        to: "/",
+      });
+    },
+    onError: (error) => {
+      console.log(error);
+
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "An error occurred while signing in. Please try again.",
+        errorMapping: signInErrMaps,
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+  });
+
+  const form = useForm({
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    validators: {
+      onChange: SignInSchema,
+    },
+    onSubmit: async ({ value }) => {
+      signInMutation.mutate({ data: value });
+    },
+    canSubmitWhenInvalid: true,
+    onSubmitInvalid: ({ formApi }) => {
+      const fieldStates = formApi.state.fieldMeta;
+      if (fieldStates.email?.errorMap?.onChange) {
+        emailInputRef?.current?.focus();
+      } else if (fieldStates.password?.errorMap?.onChange) {
+        pwdInputRef?.current?.focus();
+      }
+    },
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -22,38 +101,110 @@ function SignInPage() {
         <h1 className="font-bold font-roboto text-3xl">Sign In</h1>
       </div>
 
-      <form className="flex flex-col gap-4">
-        {/* Email */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" placeholder="johndoe@example.com" type="email" />
-        </div>
+      <form
+        className="flex flex-col gap-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
+      >
+        <form.Field name="email">
+          {(field) => (
+            <div>
+              <Label className="mb-1.5" htmlFor={field.name}>
+                Email
+              </Label>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0}
+                disabled={signInMutation.isPending}
+                id={field.name}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="johndoe@example.com"
+                ref={emailInputRef}
+                type="email"
+                value={field.state.value}
+              />
+              {field.state.meta.errorMap.onChange ? (
+                <InputError
+                  error={
+                    field.state.meta.errorMap.onChange[0]?.message ||
+                    "Something went wrong"
+                  }
+                />
+              ) : null}
+            </div>
+          )}
+        </form.Field>
 
-        {/* Password */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Input id="password" type={isPwdVisible ? "text" : "password"} />
-            <InputAddon
-              isVisible={isPwdVisible}
-              onClick={() => setIsPwdVisible((prev) => !prev)}
+        <form.Field name="password">
+          {(field) => (
+            <div>
+              <Label className="mb-1.5" htmlFor={field.name}>
+                Password
+              </Label>
+              <div className="relative">
+                <Input
+                  aria-invalid={field.state.meta.errors.length > 0}
+                  disabled={signInMutation.isPending}
+                  id={field.name}
+                  name={field.name}
+                  onBlur={field.handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  ref={pwdInputRef}
+                  type={isPwdVisible ? "text" : "password"}
+                  value={field.state.value}
+                />
+                <InputAddon
+                  aria-invalid={field.state.meta.errors.length > 0}
+                  isVisible={isPwdVisible}
+                  onClick={() => setIsPwdVisible((prev) => !prev)}
+                >
+                  {isPwdVisible ? (
+                    <TbEyeClosed className="size-4" />
+                  ) : (
+                    <TbEye className="size-4" />
+                  )}
+                </InputAddon>
+              </div>
+              {field.state.meta.errorMap.onChange ? (
+                <InputError
+                  error={
+                    field.state.meta.errorMap.onChange[0]?.message ||
+                    "Something went wrong"
+                  }
+                />
+              ) : null}
+              <div className="mt-0.5 flex justify-end">
+                <BrandLink
+                  className="self-end text-xs outline outline-lime-500"
+                  to="/auth/forgot-password"
+                >
+                  Forgot password?
+                </BrandLink>
+              </div>
+            </div>
+          )}
+        </form.Field>
+
+        <form.Subscribe selector={(state) => [state.isFormValid]}>
+          {([isFormValid]) => (
+            <Button
+              className="mt-2"
+              disabled={!isFormValid || signInMutation.isPending}
+              type="submit"
+              variant={
+                !isFormValid || signInMutation.isPending
+                  ? "secondary"
+                  : "default"
+              }
             >
-              {isPwdVisible ? (
-                <TbEyeClosed className="size-4" />
-              ) : (
-                <TbEye className="size-4" />
-              )}
-            </InputAddon>
-          </div>
-          <BrandLink
-            className="self-end text-xs outline outline-lime-500"
-            to="/auth/forgot-password"
-          >
-            Forgot password?
-          </BrandLink>
-        </div>
-
-        <Button className="mt-2">Sign In</Button>
+              {signInMutation.isPending ? "Signing in..." : "Sign In"}
+            </Button>
+          )}
+        </form.Subscribe>
 
         <div className="self-center text-center text-neutral-600 text-sm dark:text-neutral-400">
           Don't have an account?{" "}
