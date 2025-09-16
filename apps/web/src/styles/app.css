@@ -77,11 +77,11 @@ input[type="number"] {
 /* The toast is not wide enough on large screens, so we need to set a larger width for medium and large screens */
 @media (min-width: 601px) and (max-width: 768px) {
   .large-width {
-    width: 28rem !important;
+    width: 20rem !important;
   }
 }
 @media (min-width: 769px) {
   .large-width {
-    width: 32rem !important;
+    width: 25rem !important;
   }
 }
