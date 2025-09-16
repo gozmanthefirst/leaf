@@ -1,5 +1,3 @@
-/** biome-ignore-all lint/correctness/useUniqueElementIds: needed */
-
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -18,6 +16,7 @@ import { cancelToastEl } from "@/components/ui/toaster";
 import { signInErrMaps } from "@/error-mappings/auth-error-mappings";
 import { useInputRefs } from "@/hooks/use-input-refs";
 import { apiErrorHandler } from "@/lib/api-error";
+import { authClient } from "@/lib/better-auth-client";
 import { SignInSchema } from "@/schemas/auth-schema";
 import { $signIn } from "@/server/auth";
 
@@ -37,6 +36,7 @@ function SignInPage() {
   const navigate = useNavigate({ from: Route.fullPath });
 
   const [isPwdVisible, setIsPwdVisible] = useState(false);
+  const [buttonState, setButtonState] = useState<"idle" | "loading">("idle");
 
   // Refs for focusing on input fields after validation errors
   const [emailInputRef, pwdInputRef] = useInputRefs(2);
@@ -72,6 +72,33 @@ function SignInPage() {
       toast.error(apiError.details, cancelToastEl);
     },
   });
+
+  const handleGoogleSignIn = async () => {
+    try {
+      await authClient.signIn.social(
+        {
+          provider: "google",
+        },
+        {
+          onRequest() {
+            setButtonState("loading");
+          },
+          onError(ctx) {
+            if (process.env.NODE_ENV !== "production") {
+              console.log(ctx.error);
+            }
+            toast.error(ctx.error.message, cancelToastEl);
+          },
+        },
+      );
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error(error);
+      }
+    } finally {
+      setButtonState("idle");
+    }
+  };
 
   const form = useForm({
     defaultValues: {
@@ -109,6 +136,16 @@ function SignInPage() {
           form.handleSubmit();
         }}
       >
+        <Button onClick={handleGoogleSignIn} variant={"secondary"}>
+          {buttonState === "loading" ? "Signing in..." : "Sign in with Google"}
+        </Button>
+
+        <div className="flex items-center justify-center gap-4 text-neutral-500">
+          <span className="h-px w-full bg-neutral-300 dark:bg-neutral-700/75" />
+          <span>or</span>
+          <span className="h-px w-full bg-neutral-300 dark:bg-neutral-700/75" />
+        </div>
+
         <form.Field name="email">
           {(field) => (
             <div>
