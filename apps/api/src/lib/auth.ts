@@ -5,6 +5,7 @@ import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
 import { createRootFolder } from "@/queries/folders-queries";
+import env from "./env";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -42,6 +43,20 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           createRootFolder(user.id);
+        },
+      },
+    },
+  },
+
+  advanced: {
+    cookies: {
+      session_token: {
+        name: env.AUTH_COOKIE,
+        attributes: {
+          path: "/",
+          httpOnly: true,
+          secure: env.NODE_ENV === "production",
+          sameSite: "lax",
         },
       },
     },
