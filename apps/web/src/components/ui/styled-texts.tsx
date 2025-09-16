@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/utils/cn";
 
-export const BrandLink = ({
+const BrandLink = ({
   className,
   ...props
 }: LinkProps & ComponentProps<"a">) => {
@@ -17,3 +17,5 @@ export const BrandLink = ({
     />
   );
 };
+
+export { BrandLink };

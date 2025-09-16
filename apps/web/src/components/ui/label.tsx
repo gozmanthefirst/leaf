@@ -3,7 +3,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/utils/cn";
 
-function Label({ className, ...props }: ComponentProps<"label">) {
+const Label = ({ className, ...props }: ComponentProps<"label">) => {
   return (
     <label
       className={cn(
@@ -14,6 +14,6 @@ function Label({ className, ...props }: ComponentProps<"label">) {
       {...props}
     />
   );
-}
+};
 
 export { Label };

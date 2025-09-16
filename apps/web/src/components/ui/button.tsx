@@ -11,6 +11,8 @@ const buttonVariants = cva(
       variant: {
         default:
           "bg-lime-500 text-neutral-950 shadow focus-visible:outline-lime-500 lg:hover:bg-lime-500/90",
+        secondary:
+          "bg-neutral-300 text-neutral-900 shadow-xs focus-visible:outline-neutral-400 lg:hover:bg-neutral-300/80 dark:bg-neutral-700 dark:text-neutral-50 dark:focus-visible:outline-neutral-600 lg:dark:hover:bg-neutral-700/80",
       },
       size: {
         default: "h-9 px-8 py-2 has-[>svg]:px-3",

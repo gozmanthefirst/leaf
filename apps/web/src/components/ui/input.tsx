@@ -3,10 +3,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/utils/cn";
 
-export const Input = ({
-  className,
-  ...props
-}: ComponentProps<typeof BaseInput>) => {
+const Input = ({ className, ...props }: ComponentProps<typeof BaseInput>) => {
   return (
     <BaseInput
       className={cn(
@@ -21,7 +18,7 @@ export const Input = ({
   );
 };
 
-export const InputAddon = ({
+const InputAddon = ({
   className,
   isVisible,
   ...props
@@ -33,14 +30,17 @@ export const InputAddon = ({
       aria-controls="password"
       aria-label={isVisible ? "Hide password" : "Show password"}
       aria-pressed={isVisible}
-      className="absolute inset-y-0 end-0 flex h-full w-8 items-center justify-center rounded-e-lg text-neutral-600 outline-none transition-[color,box-shadow] focus:z-10 focus-visible:border focus-visible:border-lime-500 focus-visible:ring-[3px] focus-visible:ring-lime-500/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 lg:hover:text-neutral-700 dark:text-neutral-400 dark:focus-visible:border-lime-500 dark:focus-visible:ring-lime-500/30 dark:lg:hover:text-neutral-200"
+      className={cn(
+        "absolute inset-y-0 end-0 flex h-full w-8 items-center justify-center rounded-e-lg text-neutral-600 outline-none transition-[color,box-shadow] focus:z-10 focus-visible:border focus-visible:border-lime-500 focus-visible:ring-[3px] focus-visible:ring-lime-500/30 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 lg:hover:text-neutral-700 dark:text-neutral-400 dark:focus-visible:border-lime-500 dark:focus-visible:ring-lime-500/30 dark:lg:hover:text-neutral-200",
+        "aria-invalid:border-red-400 focus-visible:aria-invalid:border-red-600 focus-visible:aria-invalid:ring-red-600/30 dark:aria-invalid:border-red-900 dark:focus-visible:aria-invalid:border-red-700 dark:focus-visible:aria-invalid:ring-red-500/30",
+      )}
       type="button"
       {...props}
     />
   );
 };
 
-export const InputError = ({
+const InputError = ({
   className,
   error,
   ...props
@@ -49,7 +49,7 @@ export const InputError = ({
 }) => {
   return (
     <p
-      className={cn("mt-1.5 text-red-600 text-xs dark:text-red-500", className)}
+      className={cn("mt-0.5 text-red-600 text-xs dark:text-red-500", className)}
       data-slot="form-error"
       {...props}
     >
@@ -57,3 +57,5 @@ export const InputError = ({
     </p>
   );
 };
+
+export { Input, InputAddon, InputError };
