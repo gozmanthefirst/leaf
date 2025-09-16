@@ -206,6 +206,17 @@ export const signIn = createRoute({
         },
       },
     }),
+    [HttpStatusCodes.FORBIDDEN]: errorContent({
+      description: "Email not verified",
+      examples: {
+        validationError: {
+          summary: "Email not verified",
+          code: "EMAIL_NOT_VERIFIED",
+          details: "Email not verified",
+          fields: {},
+        },
+      },
+    }),
     [HttpStatusCodes.UNPROCESSABLE_ENTITY]: genericErrorContent(
       "UNPROCESSABLE_ENTITY",
       "Unprocessable entity",
@@ -297,14 +308,11 @@ export const reqPwdResetEmail = createRoute({
       description: "Password reset email sent",
       schema: z.object({
         status: z.boolean(),
-        message: z.string().optional(),
       }),
       resObj: {
         details: "Password reset email sent successfully",
         data: {
           status: true,
-          message:
-            "If this email exists in our system, check your email for the reset link",
         },
       },
     }),

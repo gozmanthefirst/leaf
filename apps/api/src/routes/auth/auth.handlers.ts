@@ -105,7 +105,10 @@ export const signIn: AppRouteHandler<SignInRoute> = async (c) => {
     });
 
     return c.json(
-      successResponse(response, "User signed in successfully"),
+      successResponse(
+        { ...response, token: authToken || response.token },
+        "User signed in successfully",
+      ),
       HttpStatusCodes.OK,
     );
   } catch (error) {
