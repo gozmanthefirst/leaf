@@ -7,6 +7,8 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
+import { ScreenSize } from "@/components/ui/screen-size";
+import { Toaster } from "@/components/ui/toaster";
 import appCss from "@/styles/app.css?url";
 import fontsCss from "@/styles/fonts.css?url";
 import { ThemeProvider } from "@/themes";
@@ -56,8 +58,8 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <HeadContent />
       </head>
 
-      <body className="min-h-dvh font-inter">
-        {/* <body className="min-h-dvh font-inter dark"> */}
+      {/* <body className="min-h-dvh font-inter"> */}
+      <body className="dark min-h-dvh font-inter">
         <ThemeProvider
           attribute={"class"}
           defaultTheme="light"
@@ -67,6 +69,9 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
           <div className="relative isolate flex min-h-dvh flex-col bg-background text-neutral-800 text-sm antialiased **:outline-transparent **:outline-offset-2 selection:bg-lime-300 dark:bg-foreground dark:text-neutral-200 dark:selection:bg-lime-700">
             {children}
           </div>
+
+          <Toaster />
+          <ScreenSize />
         </ThemeProvider>
 
         <Scripts />
