@@ -18,7 +18,7 @@ const Toaster = () => {
           description: "",
           actionButton: "",
           cancelButton:
-            "!absolute !top-1.5 !right-1.5 !bg-transparent !p-0 !size-5 !flex !items-center !justify-center !opacity-80 lg:!opacity-50 lg:hover:!opacity-80 lg:hover:!bg-neutral-100/20 dark:lg:!bg-neutral-800",
+            "!absolute !top-1.5 !right-1.5 !bg-transparent !p-0 !size-5 !flex !items-center !justify-center !opacity-80 lg:!opacity-50 lg:hover:!opacity-80 lg:hover:!bg-neutral-100/20 dark:!bg-transparent dark:lg:hover:!bg-neutral-900/20 !transition",
           closeButton: "",
         },
       }}
