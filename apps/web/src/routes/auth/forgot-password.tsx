@@ -39,8 +39,6 @@ function ForgotPwdPage() {
       });
     },
     onError: (error) => {
-      console.log(error);
-
       const apiError = apiErrorHandler(error, {
         defaultMessage:
           "An error occurred while requesting a password reset email. Please try again.",

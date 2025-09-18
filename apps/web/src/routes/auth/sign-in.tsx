@@ -63,8 +63,6 @@ function SignInPage() {
       });
     },
     onError: (error) => {
-      console.log(error);
-
       const apiError = apiErrorHandler(error, {
         defaultMessage: "An error occurred while signing in. Please try again.",
         errorMapping: signInErrMaps,
@@ -84,9 +82,6 @@ function SignInPage() {
             setButtonState("loading");
           },
           onError(ctx) {
-            if (process.env.NODE_ENV !== "production") {
-              console.log(ctx.error);
-            }
             toast.error(ctx.error.message, cancelToastEl);
           },
         },
