@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "@repo/database": "workspace:*",
+    "@repo/db": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "^1.2.21",
     "vitest": "^3.2.4"
