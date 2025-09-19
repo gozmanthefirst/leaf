@@ -1,3 +1,4 @@
+import { relations } from "drizzle-orm";
 import { boolean, pgTable, text, uuid } from "drizzle-orm/pg-core";
 
 import { timestamps } from "../../lib/helpers";
@@ -20,3 +21,13 @@ export const notes = pgTable("notes", {
   tags: text("tags").array().default([]).notNull(),
   ...timestamps,
 });
+export const noteRelations = relations(notes, ({ one }) => ({
+  author: one(user, {
+    fields: [notes.userId],
+    references: [user.id],
+  }),
+  folders: one(folders, {
+    fields: [notes.folderId],
+    references: [folders.id],
+  }),
+}));

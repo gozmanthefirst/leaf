@@ -1,4 +1,8 @@
+import { relations } from "drizzle-orm";
 import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+import { folders } from "./folders-schema";
+import { notes } from "./notes-schema";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -15,3 +19,7 @@ export const user = pgTable("user", {
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
+export const userRelations = relations(user, ({ many }) => ({
+  folders: many(folders),
+  notes: many(notes),
+}));
