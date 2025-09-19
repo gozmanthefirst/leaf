@@ -1,0 +1,35 @@
+model Note {
+  id               String   @id @default(uuid())
+  title            String
+  contentEncrypted String   @map("content_encrypted")
+  contentIv        String   @map("content_iv")
+  contentTag       String   @map("content_tag")
+  folderId         String   @map("folder_id")
+  userId           String   @map("user_id")
+  isFavorite       Boolean  @default(false) @map("is_favorite")
+  tags             String[] @default([])
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt() @map("updated_at")
+
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  author User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("note")
+}
+
+model Folder {
+  id             String   @id @default(uuid())
+  name           String
+  parentFolderId String   @map("parent_folder_id")
+  isRoot         Boolean  @default(false) @map("is_root")
+  userId         String   @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt() @map("updated_at")
+  Note           Note[]
+
+  parentFolder Folder   @relation("folderTofolders", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  subFolders   Folder[] @relation("folderTofolders")
+  author       User     @relation(fields: [userId], references: [id])
+
+  @@map("folder")
+}
