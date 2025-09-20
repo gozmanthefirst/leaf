@@ -1,1 +1,0 @@
-ALTER TABLE "notes" ADD CONSTRAINT "notes_title_unique" UNIQUE("title");

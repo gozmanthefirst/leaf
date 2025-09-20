@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import {
   UserSelectSchema,
   UserUpdateSchema,
-} from "@repo/database/validators/user-validators";
+} from "@repo/db/validators/user-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { userExamples } from "@/utils/openapi-examples";

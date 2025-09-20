@@ -6,8 +6,8 @@ import {
   SendVerificationEmailSchema,
   SignInSchema,
   SignUpSchema,
-} from "@repo/database/validators/auth-validators";
-import { UserSelectSchema } from "@repo/database/validators/user-validators";
+} from "@repo/db/validators/auth-validators";
+import { UserSelectSchema } from "@repo/db/validators/user-validators";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, userExamples } from "@/utils/openapi-examples";

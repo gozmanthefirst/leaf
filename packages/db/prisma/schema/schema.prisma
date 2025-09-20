@@ -4,6 +4,12 @@ generator client {
   runtime  = "bun"
 }
 
+generator zod {
+  provider = "prisma-zod-generator"
+  output   = "../../generated/zod"
+  config   = "../zod-gen.json"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")

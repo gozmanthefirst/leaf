@@ -6,6 +6,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./validators/*": {
+      "types": "./src/validators/*.ts",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
@@ -19,19 +23,18 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.16.2",
     "@prisma/client": "^6.16.2",
     "dotenv": "^17.2.2",
+    "prisma-zod-generator": "^1.21.2",
     "zod": "^4.1.9"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/bun": "^1.2.22",
-    "prisma": "^6.16.2",
-    "prisma-zod-generator": "^1.21.0"
+    "prisma": "^6.16.2"
   }
 }

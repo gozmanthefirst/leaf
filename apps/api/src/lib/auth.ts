@@ -1,15 +1,15 @@
-import db from "@repo/database";
+import db from "@repo/db";
 import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
-import { createRootFolder } from "@/queries/folders-queries";
+import { createRootFolder } from "@/queries/folder-queries";
 import env from "./env";
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: "pg",
+  database: prismaAdapter(db, {
+    provider: "postgresql",
   }),
   basePath: "/api/better-auth",
 

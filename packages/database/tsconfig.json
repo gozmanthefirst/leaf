@@ -1,4 +1,0 @@
-{
-  "extends": "@repo/typescript-config/bun.json",
-  "include": ["src/**/*.ts", "drizzle/**/*.ts"]
-}
