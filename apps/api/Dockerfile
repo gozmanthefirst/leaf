@@ -41,8 +41,11 @@ RUN addgroup --system --gid 1001 nodejs && \
   adduser --system --uid 1001 hono
 
 # Copy only the necessary files from the installer stage
+COPY --from=installer /app/pnpm-workspace.yaml ./
+COPY --from=installer /app/packages ./packages
 COPY --from=installer /app/node_modules ./node_modules
 COPY --from=installer /app/package.json ./package.json
+COPY --from=installer /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=installer /app/apps/api/dist ./apps/api/dist
 COPY --from=installer /app/apps/api/package.json ./apps/api/package.json
 
