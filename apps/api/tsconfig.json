@@ -1,5 +1,5 @@
 {
-  "extends": "@repo/typescript-config/api.json",
+  "extends": "@repo/tsconfig/api.json",
   "compilerOptions": {
     "types": ["node"],
     "typeRoots": ["./node_modules/@types"],

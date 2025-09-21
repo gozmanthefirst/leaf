@@ -35,7 +35,7 @@
     "zod": "^4.1.9"
   },
   "devDependencies": {
-    "@repo/typescript-config": "workspace:*",
+    "@repo/tsconfig": "workspace:*",
     "@types/node": "^24.5.2",
     "prisma": "^6.16.2",
     "tsc-alias": "^1.8.16",

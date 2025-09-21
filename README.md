@@ -3,7 +3,7 @@
 This is a monorepo containing the different parts of an app for writing and organizing notes called Leaf.
 
 > [!NOTE]
-> Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience. You can fork the repo and build yours too if you can't wait.
+> Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience.
 
 - [Leaf](#leaf)
   - [Why?](#why)

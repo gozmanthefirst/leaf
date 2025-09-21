@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
-  "extends": "@repo/typescript-config/react.json",
+  "extends": "@repo/tsconfig/react.json",
   "compilerOptions": {
     "types": ["vite/client"],
     "verbatimModuleSyntax": false,

@@ -1,5 +1,5 @@
 {
-  "name": "@repo/typescript-config",
+  "name": "@repo/tsconfig",
   "private": true,
   "license": "MIT",
   "publishConfig": {
