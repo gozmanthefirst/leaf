@@ -3,7 +3,7 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "^db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [
         ".next/**",
@@ -18,7 +18,7 @@
       "dependsOn": ["^check-types"]
     },
     "dev": {
-      "dependsOn": ["^db:up"],
+      "dependsOn": ["^db:generate", "^db:up"],
       "cache": false,
       "persistent": true
     },

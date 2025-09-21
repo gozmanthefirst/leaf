@@ -29,13 +29,13 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 
 ## Stack
 
-I use Bun in my side projects. It's a really great tool. I advise that you check it out, if you are not using it already. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Docker.
+I use pnpm in my projects. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Docker.
 
 Other tools used include Drizzle as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/)
+- [pnpm](https://pnpm.io/)
 - [Docker](https://www.docker.com/)
 
 ## Getting Started
@@ -43,16 +43,16 @@ Other tools used include Drizzle as the ORM layer for the database, Biome for li
 1. **Install dependencies:**
 
     ```sh
-    bun install
+    pnpm install
     ```
 
 2. **Set up Husky and Lintstaged:**
 
     ```sh
-    bunx lint-staged
+    pnpm exec husky init
     ```
 
-    After running the command, go into `.husky/pre-commit` and enter `bunx lint-staged`. It'll run any time a commit is being made.
+    After running the command, go into `.husky/pre-commit` and enter `pnpm exec lint-staged`. It'll run any time a commit is being made.
 
 3. **Set up the database:**
 

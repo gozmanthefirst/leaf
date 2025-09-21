@@ -1,7 +1,7 @@
 generator client {
   provider = "prisma-client"
   output   = "../../generated/prisma"
-  runtime  = "bun"
+  runtime  = "nodejs"
 }
 
 generator zod {

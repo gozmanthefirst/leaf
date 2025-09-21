@@ -13,7 +13,7 @@ export default defineConfig({
     tsConfigPaths(),
     tanstackStart({
       tsr: {},
-      target: "bun",
+      target: "node-server",
       customViteReactPlugin: true,
     }),
     viteReact(),

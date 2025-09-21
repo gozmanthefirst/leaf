@@ -5,10 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "bun .output/server/index.mjs",
-    "lint": "biome lint --write",
-    "format": "biome format --write",
-    "check": "biome check --write --unsafe --files-ignore-unknown=true"
+    "start": "node .output/server/index.mjs"
   },
   "dependencies": {
     "@base-ui-components/react": "^1.0.0-beta.3",
@@ -37,8 +34,8 @@
   },
   "devDependencies": {
     "@repo/db": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
     "@tailwindcss/vite": "^4.1.13",
-    "@types/bun": "^1.2.21",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",

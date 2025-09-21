@@ -1,5 +1,5 @@
-import { compress } from "@hono/bun-compress";
 import { OpenAPIHono } from "@hono/zod-openapi";
+import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";

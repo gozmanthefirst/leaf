@@ -1,7 +1,13 @@
 {
-  "extends": "@repo/typescript-config/bun.json",
+  "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "rootDir": "."
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+  "include": ["src/**/*.ts", "prisma.config.ts"],
+  "tsc-alias": {
+    "resolveFullPaths": true
+  },
+  "exclude": ["node_modules"]
 }
