@@ -36,6 +36,10 @@ RUN pnpm exec turbo run build
 FROM base AS runner
 WORKDIR /app
 
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+  adduser --system --uid 1001 hono
+
 # Copy only the necessary files from the installer stage
 COPY --from=installer /app/node_modules ./node_modules
 COPY --from=installer /app/package.json ./package.json
@@ -47,7 +51,7 @@ ENV NODE_ENV=production \
     HOSTNAME="0.0.0.0" \
     PORT=8000
 
-USER nodejs
+USER hono
 EXPOSE 8000
 
 CMD ["node", "apps/api/dist/src/server.js"]

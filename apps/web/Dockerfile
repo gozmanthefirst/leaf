@@ -36,6 +36,10 @@ RUN pnpm exec turbo run build
 FROM base AS runner
 WORKDIR /app
 
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 tanstack
+
 # Copy files from the installer stage
 COPY --from=installer /app/apps/web/.output ./
 
@@ -43,7 +47,7 @@ ENV NODE_ENV=production \
   HOSTNAME="0.0.0.0" \
   PORT=3000
 
-USER nodejs
+USER tanstack
 EXPOSE 3000
 
 # Start the application
