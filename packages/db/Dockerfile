@@ -56,4 +56,4 @@ EXPOSE 5555
 
 # Run the studio
 WORKDIR /app/packages/db
-CMD ["pnpm", "prisma", "studio", "--port", "5555", "--hostname", "0.0.0.0"]
+CMD ["pnpm", "prisma", "studio", "--port", "5556", "--hostname", "0.0.0.0"]
