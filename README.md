@@ -31,7 +31,7 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 
 I use pnpm in my projects. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Docker.
 
-Other tools used include Drizzle as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
+Other tools used include Prisma as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
 
 ## Prerequisites
 
