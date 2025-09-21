@@ -37,6 +37,10 @@ RUN cd packages/db && \
 FROM base AS runner
 WORKDIR /app
 
+# Create a non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+  adduser --system --uid 1001 prisma
+
 # Copy only the necessary files from installer
 COPY --from=installer /app/packages/db ./packages/db
 COPY --from=installer /app/node_modules ./node_modules
