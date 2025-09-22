@@ -1,13 +1,13 @@
-name: leaf-db
+name: leaf-dz-db
 
 services:
   postgres:
-    image: postgres:17.5
-    container_name: leaf-pg
+    image: postgres:17-alpine
+    container_name: leaf-dz-pg
     ports:
-      - "5432:5432"
+      - "5434:5432"
     environment:
-      POSTGRES_DB: leaf
+      POSTGRES_DB: leaf-dz
       POSTGRES_USER: user
       POSTGRES_PASSWORD: secret
     volumes:
