@@ -49,10 +49,10 @@ COPY --from=installer /app/package.json ./package.json
 # Set environment variables
 ENV NODE_ENV=production \
     HOSTNAME="0.0.0.0" \
-    PORT=5555
+    PORT=5556
 
 USER prisma
-EXPOSE 5555
+EXPOSE 5556
 
 # Run the studio
 WORKDIR /app/packages/db
