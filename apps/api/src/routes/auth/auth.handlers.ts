@@ -1,8 +1,6 @@
 import { APIError } from "better-auth/api";
-import { setCookie } from "hono/cookie";
 
 import { auth } from "@/lib/auth";
-import env from "@/lib/env";
 import type { AppRouteHandler, ErrorStatusCodes } from "@/lib/types";
 import { getUserByEmail } from "@/queries/user-queries";
 import type {
@@ -96,13 +94,6 @@ export const signIn: AppRouteHandler<SignInRoute> = async (c) => {
     // For setting the auth token in cookies and sending it in the response
     const authToken = headers.get("set-auth-token") || "";
     c.res.headers.append("Set-Auth-Token", authToken);
-    setCookie(c, env.AUTH_COOKIE, authToken, {
-      path: "/",
-      secure: env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
-    });
 
     return c.json(
       successResponse(

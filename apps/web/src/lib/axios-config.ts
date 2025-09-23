@@ -4,8 +4,13 @@ import axios from "axios";
 
 import env from "./env";
 
+const cookieName =
+  env.NODE_ENV === "development"
+    ? env.AUTH_COOKIE
+    : `__Secure-${env.AUTH_COOKIE}`;
+
 const deleteSessionToken = () => {
-  deleteCookie(env.AUTH_COOKIE);
+  deleteCookie(cookieName);
 };
 
 const axiosClient = axios.create({

@@ -1,6 +1,6 @@
-import type { User } from "@repo/database/validators/user-validators";
+import type { User } from "@repo/db";
 import { createServerFn } from "@tanstack/react-start";
-import { getHeader, setCookie } from "@tanstack/react-start/server";
+import { setCookie } from "@tanstack/react-start/server";
 import z from "zod";
 
 import { verifyEmailErrMaps } from "@/error-mappings/auth-error-mappings";
@@ -69,7 +69,8 @@ export const $verifyEmail = createServerFn({
 // sign in res data type
 type SignInData = {
   redirect: boolean;
-  token: string | null;
+  token: string;
+  url: string | undefined;
   user: User;
 };
 // sign in server fn
@@ -84,9 +85,14 @@ export const $signIn = createServerFn({
         data,
       );
 
-      const token = response.data.data.token || getHeader("Set-Auth-Token");
+      const token = response.data.data.token;
 
-      setCookie(env.AUTH_COOKIE, token || "", {
+      const cookieName =
+        env.NODE_ENV === "development"
+          ? env.AUTH_COOKIE
+          : `__Secure-${env.AUTH_COOKIE}`;
+
+      setCookie(cookieName, token, {
         path: "/",
         secure: env.NODE_ENV === "production",
         httpOnly: true,
