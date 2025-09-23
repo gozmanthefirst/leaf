@@ -1,12 +1,10 @@
 import type { User } from "@repo/db";
 import { createServerFn } from "@tanstack/react-start";
-import { setCookie } from "@tanstack/react-start/server";
 import z from "zod";
 
 import { verifyEmailErrMaps } from "@/error-mappings/auth-error-mappings";
 import { apiErrorHandler } from "@/lib/api-error";
 import { axiosClient } from "@/lib/axios-config";
-import env from "@/lib/env";
 import type { ApiSuccessResponse } from "@/lib/types";
 import {
   EmailSchema,
@@ -14,6 +12,7 @@ import {
   SignInSchema,
   SignUpSchema,
 } from "@/schemas/auth-schema";
+import { $createSessionToken } from "@/server/utils";
 import { transformAxiosError } from "@/utils/axios";
 
 //* SIGN UP
@@ -87,18 +86,7 @@ export const $signIn = createServerFn({
 
       const token = response.data.data.token;
 
-      const cookieName =
-        env.NODE_ENV === "development"
-          ? env.AUTH_COOKIE
-          : `__Secure-${env.AUTH_COOKIE}`;
-
-      setCookie(cookieName, token, {
-        path: "/",
-        secure: env.NODE_ENV === "production",
-        httpOnly: true,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 7,
-      });
+      await $createSessionToken({ data: token });
 
       return response.data;
     } catch (error) {

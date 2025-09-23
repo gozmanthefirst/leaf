@@ -1,17 +1,8 @@
 import { redirect } from "@tanstack/react-router";
-import { deleteCookie } from "@tanstack/react-start/server";
 import axios from "axios";
 
+import { $delSessionToken } from "@/server/utils";
 import env from "./env";
-
-const cookieName =
-  env.NODE_ENV === "development"
-    ? env.AUTH_COOKIE
-    : `__Secure-${env.AUTH_COOKIE}`;
-
-const deleteSessionToken = () => {
-  deleteCookie(cookieName);
-};
 
 const axiosClient = axios.create({
   baseURL: env.API_URL,
@@ -26,7 +17,7 @@ axiosAuthed.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response && error.response.status === 401) {
-      deleteSessionToken();
+      await $delSessionToken();
       throw redirect({ to: "/auth/sign-in" });
     }
     return Promise.reject(error);
