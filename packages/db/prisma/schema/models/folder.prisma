@@ -10,7 +10,7 @@ model Folder {
 
   parentFolder Folder   @relation("folderTofolders", fields: [parentFolderId], references: [id], onDelete: Cascade)
   subFolders   Folder[] @relation("folderTofolders")
-  author       User     @relation(fields: [userId], references: [id])
+  author       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("folder")
 }
