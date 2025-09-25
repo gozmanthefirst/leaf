@@ -1,14 +1,20 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+
+import { $getUser, userQueryOptions } from "@/server/user";
 
 export const Route = createFileRoute("/_main/")({
-  beforeLoad: () => {
-    throw redirect({
-      to: "/auth/sign-in",
-    });
-  },
   component: HomePage,
 });
 
 function HomePage() {
-  return <main className="container"></main>;
+  const getUser = useServerFn($getUser);
+
+  const _getUserQuery = useQuery({
+    queryFn: getUser,
+    queryKey: userQueryOptions.queryKey,
+  });
+
+  return <main className="container">Hello!</main>;
 }

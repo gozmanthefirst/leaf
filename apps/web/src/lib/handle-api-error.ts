@@ -1,3 +1,5 @@
+import { AxiosError } from "axios";
+
 import type { ApiErrorResponse } from "./types";
 
 type ErrorHandlerOptions = {
@@ -19,19 +21,11 @@ export const apiErrorHandler = (
   const { defaultMessage = "Something went wrong.", errorMapping = {} } =
     options;
 
-  // Check if it's a serialized axios error from server function
-  // biome-ignore lint/suspicious/noExplicitAny: needed to check for serialized axios error
-  const isSerializedAxiosError = (err: any): boolean => {
-    return err?.isAxiosError && err.response?.data?.status === "error";
-  };
-
-  if (isSerializedAxiosError(error)) {
-    // biome-ignore lint/suspicious/noExplicitAny: the error type is not known at this point
-    const axiosError = error as any;
-    const backendError: ApiErrorResponse["error"] =
-      axiosError.response.data.error;
-    const backendErrorCode = backendError.code;
-    const backendErrorStatus = axiosError.response.status;
+  // Check if the error is an instance of AxiosError
+  if (error instanceof AxiosError) {
+    const backendError: ApiErrorResponse["error"] = error.response?.data.error;
+    const backendErrorCode = backendError?.code || "UNKNOWN_ERROR";
+    const backendErrorStatus = error.response?.status || 500;
 
     // If the error code is INTERNAL_SERVER_ERROR, return it with the default message
     if (backendErrorCode === "INTERNAL_SERVER_ERROR") {
@@ -90,10 +84,10 @@ export const apiErrorHandler = (
     };
   }
 
-  // If the error is not a serialized axios error, return a generic error response
+  // If the error is not an AxiosError, return a generic error response
   return {
     status: "error",
-    code: "SERVER_ERROR",
+    code: "INTERNAL_SERVER_ERROR",
     details: defaultMessage,
     statusCode: 500,
   };

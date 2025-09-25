@@ -1,10 +1,10 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/auth")({
-  component: RouteComponent,
+  component: AuthLayout,
 });
 
-function RouteComponent() {
+function AuthLayout() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
       <div className="container w-full max-w-sm">

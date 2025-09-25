@@ -2,9 +2,7 @@ import type { User } from "@repo/db";
 import { createServerFn } from "@tanstack/react-start";
 import z from "zod";
 
-import { verifyEmailErrMaps } from "@/error-mappings/auth-error-mappings";
-import { apiErrorHandler } from "@/lib/api-error";
-import { axiosClient } from "@/lib/axios-config";
+import { axiosClient } from "@/lib/axios";
 import type { ApiSuccessResponse } from "@/lib/types";
 import {
   EmailSchema,
@@ -13,7 +11,6 @@ import {
   SignUpSchema,
 } from "@/schemas/auth-schema";
 import { $createSessionToken } from "@/server/utils";
-import { transformAxiosError } from "@/utils/axios";
 
 //* SIGN UP
 // sign up res data type
@@ -25,18 +22,16 @@ type SignUpData = {
 export const $signUp = createServerFn({
   method: "POST",
 })
-  .validator(SignUpSchema)
+  .inputValidator(SignUpSchema)
   .handler(async ({ data }) => {
-    try {
-      const response = await axiosClient.post<ApiSuccessResponse<SignUpData>>(
-        "/auth/sign-up",
-        data,
-      );
+    const { confirmPassword: _c, ...payload } = data;
 
-      return response.data;
-    } catch (error) {
-      throw transformAxiosError(error);
-    }
+    const response = await axiosClient.post<ApiSuccessResponse<SignUpData>>(
+      "/auth/sign-up",
+      payload,
+    );
+
+    return response.data;
   });
 
 //* VERIFY EMAIL
@@ -48,20 +43,14 @@ type VerifyEmailData = {
 export const $verifyEmail = createServerFn({
   method: "POST",
 })
-  .validator(z.object({ token: z.string().trim().catch("") }))
+  .inputValidator(z.object({ token: z.string().trim().catch("") }))
   .handler(async ({ data }) => {
-    try {
-      const response = await axiosClient.get<
-        ApiSuccessResponse<VerifyEmailData>
-      >("/auth/verify-email", { params: data });
+    const response = await axiosClient.get<ApiSuccessResponse<VerifyEmailData>>(
+      "/auth/verify-email",
+      { params: data },
+    );
 
-      return response.data;
-    } catch (error) {
-      return apiErrorHandler(error, {
-        defaultMessage: "An error occurred while verifying the email.",
-        errorMapping: verifyEmailErrMaps,
-      });
-    }
+    return response.data;
   });
 
 //* SIGN IN
@@ -76,22 +65,17 @@ type SignInData = {
 export const $signIn = createServerFn({
   method: "POST",
 })
-  .validator(SignInSchema)
+  .inputValidator(SignInSchema)
   .handler(async ({ data }) => {
-    try {
-      const response = await axiosClient.post<ApiSuccessResponse<SignInData>>(
-        "/auth/sign-in",
-        data,
-      );
+    const response = await axiosClient.post<ApiSuccessResponse<SignInData>>(
+      "/auth/sign-in",
+      data,
+    );
 
-      const token = response.data.data.token;
+    const token = response.data.data.token;
+    await $createSessionToken({ data: token });
 
-      await $createSessionToken({ data: token });
-
-      return response.data;
-    } catch (error) {
-      throw transformAxiosError(error);
-    }
+    return response.data;
   });
 
 //* FORGOT PASSWORD
@@ -103,17 +87,14 @@ type ForgotPwdData = {
 export const $forgotPwd = createServerFn({
   method: "POST",
 })
-  .validator(EmailSchema)
+  .inputValidator(EmailSchema)
   .handler(async ({ data }) => {
-    try {
-      const response = await axiosClient.post<
-        ApiSuccessResponse<ForgotPwdData>
-      >("/auth/request-password-reset", data);
+    const response = await axiosClient.post<ApiSuccessResponse<ForgotPwdData>>(
+      "/auth/request-password-reset",
+      data,
+    );
 
-      return response.data;
-    } catch (error) {
-      throw transformAxiosError(error);
-    }
+    return response.data;
   });
 
 //* RESET PASSWORD
@@ -125,18 +106,14 @@ type ResetPwdData = {
 export const $resetPwd = createServerFn({
   method: "POST",
 })
-  .validator(ResetPwdSchema)
+  .inputValidator(ResetPwdSchema)
   .handler(async ({ data }) => {
     const { confirmPassword: _c, ...payload } = data;
 
-    try {
-      const response = await axiosClient.post<ApiSuccessResponse<ResetPwdData>>(
-        "/auth/reset-password",
-        payload,
-      );
+    const response = await axiosClient.post<ApiSuccessResponse<ResetPwdData>>(
+      "/auth/reset-password",
+      payload,
+    );
 
-      return response.data;
-    } catch (error) {
-      throw transformAxiosError(error);
-    }
+    return response.data;
   });

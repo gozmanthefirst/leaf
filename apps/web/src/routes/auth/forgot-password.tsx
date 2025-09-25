@@ -11,7 +11,7 @@ import { BrandLink } from "@/components/ui/styled-texts";
 import { cancelToastEl } from "@/components/ui/toaster";
 import { forgotPwdErrMaps } from "@/error-mappings/auth-error-mappings";
 import { useInputRefs } from "@/hooks/use-input-refs";
-import { apiErrorHandler } from "@/lib/api-error";
+import { apiErrorHandler } from "@/lib/handle-api-error";
 import { EmailSchema } from "@/schemas/auth-schema";
 import { $forgotPwd } from "@/server/auth";
 

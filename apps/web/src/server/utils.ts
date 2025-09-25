@@ -11,7 +11,7 @@ import env from "@/lib/env";
 export const $createSessionToken = createServerFn({
   method: "GET",
 })
-  .validator(z.string().trim().min(1))
+  .inputValidator(z.string().trim().min(1))
   .handler(({ data: token }) => {
     const cookieName =
       env.NODE_ENV === "development"

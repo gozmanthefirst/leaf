@@ -2,6 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import z from "zod";
 
+import { verifyEmailErrMaps } from "@/error-mappings/auth-error-mappings";
+import { apiErrorHandler } from "@/lib/handle-api-error";
 import { $verifyEmail } from "@/server/auth";
 
 const SearchSchema = z.object({
@@ -11,22 +13,27 @@ const SearchSchema = z.object({
 export const Route = createFileRoute("/auth/verify-email")({
   validateSearch: zodValidator(SearchSchema),
   beforeLoad: async ({ search }) => {
-    const result = await $verifyEmail({ data: { token: search.token } });
-
-    if (result.status === "error") {
-      throw redirect({
-        to: "/auth/sign-in",
-        search: {
-          error: result.details,
-        },
+    try {
+      await $verifyEmail({ data: { token: search.token } });
+    } catch (error) {
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "An error occurred while verifying the email.",
+        errorMapping: verifyEmailErrMaps,
       });
-    } else {
+
       throw redirect({
         to: "/auth/sign-in",
         search: {
-          success: "Email verified successfully! You can now sign in.",
+          error: apiError.details,
         },
       });
     }
+
+    throw redirect({
+      to: "/auth/sign-in",
+      search: {
+        success: "Email verified successfully! You can now sign in.",
+      },
+    });
   },
 });

@@ -15,8 +15,8 @@ import { BrandLink } from "@/components/ui/styled-texts";
 import { cancelToastEl } from "@/components/ui/toaster";
 import { signInErrMaps } from "@/error-mappings/auth-error-mappings";
 import { useInputRefs } from "@/hooks/use-input-refs";
-import { apiErrorHandler } from "@/lib/api-error";
 import { authClient } from "@/lib/better-auth-client";
+import { apiErrorHandler } from "@/lib/handle-api-error";
 import { SignInSchema } from "@/schemas/auth-schema";
 import { $signIn } from "@/server/auth";
 
@@ -43,15 +43,20 @@ function SignInPage() {
 
   useEffect(() => {
     if (error) {
-      toast.error(error, cancelToastEl);
+      setTimeout(() => {
+        toast.error(error, cancelToastEl);
+      });
     }
     if (success) {
-      toast.success(success, cancelToastEl);
+      setTimeout(() => {
+        toast.success(success, cancelToastEl);
+      });
     }
+
     navigate({
       search: { error: undefined, success: undefined },
     });
-  }, [navigate, error, success]);
+  }, [error, success, navigate]);
 
   const signInMutation = useMutation({
     mutationFn: signIn,
@@ -60,6 +65,7 @@ function SignInPage() {
       form.reset();
       navigate({
         to: "/",
+        reloadDocument: true,
       });
     },
     onError: (error) => {
