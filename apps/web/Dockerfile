@@ -8,7 +8,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Install turbo globally
-RUN pnpm add -g turbo@^2.5.6
+RUN pnpm add -g turbo@^2.5.7
 
 # Copy everything
 COPY . .
@@ -30,7 +30,7 @@ COPY --from=builder /app/out/full/ .
 RUN pnpm install --frozen-lockfile
 
 # Build the app
-RUN pnpm exec turbo run build
+RUN pnpm exec turbo build
 
 # Production stage with only essential files
 FROM base AS runner
@@ -40,8 +40,10 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 tanstack
 
-# Copy files from the installer stage
-COPY --from=installer /app/apps/web/.output ./
+# Copy built app and BOTH node_modules
+COPY --from=installer /app/apps/web/dist ./apps/web/dist
+COPY --from=installer /app/node_modules ./node_modules
+COPY --from=installer /app/apps/web/node_modules ./apps/web/node_modules
 
 ENV NODE_ENV=production \
   HOSTNAME="0.0.0.0" \
@@ -50,5 +52,5 @@ ENV NODE_ENV=production \
 USER tanstack
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "server/index.mjs"]
+# Use pnpx to run the locally installed srvx
+CMD ["pnpx", "srvx", "--prod", "-s", "../client", "./apps/web/dist/server/server.js"]
