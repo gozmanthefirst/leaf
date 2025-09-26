@@ -57,7 +57,7 @@ export const auth = betterAuth({
   advanced: {
     cookies: {
       session_token: {
-        name: env.AUTH_COOKIE,
+        name: "leaf_api_auth",
         attributes: {
           path: "/",
           httpOnly: true,
