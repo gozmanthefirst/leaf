@@ -22,7 +22,15 @@ export type Env = z.infer<typeof EnvSchema>;
 let env: Env;
 
 try {
-  env = EnvSchema.parse(process.env);
+  const parsedEnv = EnvSchema.parse(process.env);
+
+  env = {
+    ...parsedEnv,
+    AUTH_COOKIE:
+      parsedEnv.NODE_ENV === "production"
+        ? `__Secure-${parsedEnv.AUTH_COOKIE}`
+        : parsedEnv.AUTH_COOKIE,
+  };
 } catch (e) {
   const error = e as ZodError;
   console.error(z.prettifyError(error));

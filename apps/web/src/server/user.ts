@@ -14,14 +14,11 @@ export const $getUser = createServerFn({
 })
   .middleware([sessionMiddleware])
   .handler(async ({ context }) => {
-    console.log("context session token:", context.session.token);
-
     const response = await axiosClient.get<ApiSuccessResponse<User>>(
       "/user/me",
       {
         headers: {
           Authorization: `Bearer ${context.session.token}`,
-          // Authorization: `Bearer E0vnkL1NSrsgea2wwNmGdI1Ei7pCVsTd.xw8cwp5j3nRhwhsEhkeFP2LGkTm5cKY3xSEY6uJ9uJM%3D`,
         },
       },
     );
