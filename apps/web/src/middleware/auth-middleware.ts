@@ -4,18 +4,16 @@ import { getCookie } from "@tanstack/react-start/server";
 import env from "@/lib/env";
 import { normalizeTokenEncoding } from "@/utils/strings";
 
-export const sessionMiddleware = createMiddleware({ type: "function" }).server(
-  async ({ next }) => {
-    const rawSessionToken = getCookie(env.AUTH_COOKIE);
+export const sessionMiddleware = createMiddleware().server(async ({ next }) => {
+  const rawSessionToken = getCookie(env.AUTH_COOKIE);
 
-    const sessionToken = rawSessionToken
-      ? normalizeTokenEncoding(rawSessionToken)
-      : undefined;
+  const sessionToken = rawSessionToken
+    ? normalizeTokenEncoding(rawSessionToken)
+    : undefined;
 
-    return next({
-      context: {
-        session: { token: sessionToken },
-      },
-    });
-  },
-);
+  return next({
+    context: {
+      session: { token: sessionToken },
+    },
+  });
+});
