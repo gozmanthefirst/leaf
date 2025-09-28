@@ -1,4 +1,4 @@
-import db from "@repo/db";
+import { db } from "@/lib/db";
 
 /**
  * Returns the user with the given ID, or null if not found.

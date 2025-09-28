@@ -1,5 +1,6 @@
-import db, { type Note } from "@repo/db";
+import type { Note } from "@repo/db";
 
+import { db } from "@/lib/db";
 import { decryptContent, encryptContent } from "@/lib/encryption";
 import type { AppRouteHandler, EncryptedNote } from "@/lib/types";
 import { getFolderForUser } from "@/queries/folder-queries";

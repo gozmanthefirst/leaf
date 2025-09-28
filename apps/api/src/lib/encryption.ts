@@ -1,6 +1,5 @@
+import { env } from "cloudflare:workers";
 import crypto from "node:crypto";
-
-import env from "./env";
 
 const ENCRYPTION_KEY = env.ENCRYPTION_KEY;
 const ALGORITHM = "aes-256-gcm";

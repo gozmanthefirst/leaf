@@ -50,9 +50,10 @@
             "groups": [
               [":URL:"],
               ":BLANK_LINE:",
+              [":PACKAGE_WITH_PROTOCOL:"],
               [":BUN:", ":NODE:"],
               ":BLANK_LINE:",
-              [":PACKAGE_WITH_PROTOCOL:", ":PACKAGE:"],
+              [":PACKAGE:"],
               ":BLANK_LINE:",
               [":ALIAS:", ":PATH:"]
             ]

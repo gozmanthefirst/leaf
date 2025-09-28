@@ -1,10 +1,11 @@
+import { env } from "cloudflare:workers";
+
 import { compress } from "@hono/bun-compress";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 
-import env from "@/lib/env";
 import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
 import errorHandler from "@/middleware/error-handler";

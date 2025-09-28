@@ -1,11 +1,12 @@
-import db from "@repo/db";
+import { env } from "cloudflare:workers";
+
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer, openAPI } from "better-auth/plugins";
 
 import { sendResetPasswordEmail, sendVerificationEmail } from "@/lib/email";
 import { createRootFolder } from "@/queries/folder-queries";
-import env from "./env";
+import { db } from "./db";
 
 export const auth = betterAuth({
   database: prismaAdapter(db, {

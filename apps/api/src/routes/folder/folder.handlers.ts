@@ -1,6 +1,6 @@
-import db from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 
+import { db } from "@/lib/db";
 import type { AppRouteHandler } from "@/lib/types";
 import {
   generateUniqueFolderName,

@@ -1,7 +1,8 @@
+import { env } from "cloudflare:workers";
+
 import type { ErrorHandler } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 
-import env from "@/lib/env";
 import { errorResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 

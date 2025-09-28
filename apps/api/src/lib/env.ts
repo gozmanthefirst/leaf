@@ -4,7 +4,6 @@ const EnvSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
-  PORT: z.coerce.number().default(8000),
   FRONTEND_URL: z.url(),
   DATABASE_URL: z.url(),
   AUTH_COOKIE: z.string(),
@@ -17,12 +16,12 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
-let env: Env;
+let initEnv: Env;
 
 try {
   const parsedEnv = EnvSchema.parse(process.env);
 
-  env = {
+  initEnv = {
     ...parsedEnv,
     AUTH_COOKIE:
       parsedEnv.NODE_ENV === "production"
@@ -35,4 +34,4 @@ try {
   process.exit(1);
 }
 
-export default env;
+export { initEnv };
