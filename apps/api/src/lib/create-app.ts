@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 
-import { compress } from "@hono/bun-compress";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -44,7 +43,6 @@ const createApp = () => {
   );
 
   // Middleware for compressing the response body, logging requests and setting up the emoji favicon
-  app.use(compress());
   app.use(logger());
   app.use(emojiFavicon("🍀"));
 

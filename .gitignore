@@ -42,3 +42,6 @@ generated
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# wrangler
+.wrangler
