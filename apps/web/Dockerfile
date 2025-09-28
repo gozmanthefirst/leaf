@@ -1,14 +1,10 @@
-FROM node:22-alpine AS base
-
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+FROM oven/bun:1.2.20 AS base
 
 FROM base AS builder
 WORKDIR /app
 
 # Install turbo globally
-RUN pnpm add -g turbo@^2.5.7
+RUN bun add -g turbo@^2.5.6
 
 # Copy everything
 COPY . .
@@ -20,37 +16,31 @@ RUN turbo prune web --docker
 FROM base AS installer
 WORKDIR /app
 
-# Copy pruned lockfile and package.json from builder
-COPY --from=builder /app/out/json/ .
+# Install Python and build-essential
+RUN apt-get update && apt-get install -y python3 build-essential
 
 # Copy pruned files from builder
 COPY --from=builder /app/out/full/ .
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies with bun
+RUN bun install --frozen-lockfile
 
 # Build the app
-RUN pnpm exec turbo build
+RUN bunx turbo run build
 
 # Production stage with only essential files
 FROM base AS runner
 WORKDIR /app
 
-# Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 tanstack
-
-# Copy built app and BOTH node_modules
-COPY --from=installer /app/apps/web/dist ./apps/web/dist
-COPY --from=installer /app/node_modules ./node_modules
-COPY --from=installer /app/apps/web/node_modules ./apps/web/node_modules
+# Copy files from the installer stage
+COPY --from=installer /app/apps/web/.output ./
 
 ENV NODE_ENV=production \
   HOSTNAME="0.0.0.0" \
   PORT=3000
 
-USER tanstack
+USER bun
 EXPOSE 3000
 
-# Use pnpx to run the locally installed srvx
-CMD ["pnpx", "srvx", "--prod", "-s", "../client", "./apps/web/dist/server/server.js"]
+# Start the application
+CMD ["bun", "server/index.mjs"]

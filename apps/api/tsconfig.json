@@ -1,19 +1,16 @@
 {
-  "extends": "@repo/tsconfig/api.json",
+  "extends": "@repo/tsconfig/bun.json",
   "compilerOptions": {
-    "types": ["node"],
-    "typeRoots": ["./node_modules/@types"],
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-    "outDir": "./dist",
-    "baseUrl": ".",
-    "noUncheckedIndexedAccess": false, // Will enable later
+    // This is for importing the package.json to the openapi config file
+    "resolveJsonModule": true,
+
+    // This is for import aliases
     "paths": {
       "@/*": ["./src/*"]
-    }
-  },
-  "tsc-alias": {
-    "resolveFullPaths": true
-  },
-  "exclude": ["node_modules"]
+    },
+
+    // This is for JSX support in Hono
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -13,7 +13,8 @@
       "!**/build/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/generated/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/.output/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
-      "!**/*.gen.{ts,tsx,js,jsx,json,jsonc,md}"
+      "!**/*.gen.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!**/worker-configuration.d.ts"
     ],
     "ignoreUnknown": true
   },

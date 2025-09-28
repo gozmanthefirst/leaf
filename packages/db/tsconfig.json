@@ -1,13 +1,4 @@
 {
-  "extends": "@repo/tsconfig/base.json",
-  "compilerOptions": {
-    "outDir": "./dist",
-    "baseUrl": ".",
-    "rootDir": "."
-  },
-  "include": ["src/**/*.ts", "prisma.config.ts"],
-  "tsc-alias": {
-    "resolveFullPaths": true
-  },
-  "exclude": ["node_modules"]
+  "extends": "@repo/tsconfig/bun.json",
+  "include": ["src/**/*.ts", "drizzle/**/*.ts"]
 }

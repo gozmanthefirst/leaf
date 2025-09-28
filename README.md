@@ -29,13 +29,13 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 
 ## Stack
 
-I use pnpm in my projects. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Docker.
+I use bun in my projects. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Cloudflare Workers.
 
 Other tools used include Prisma as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
 
 ## Prerequisites
 
-- [pnpm](https://pnpm.io/)
+- [Bun](https://bun.sh/)
 - [Docker](https://www.docker.com/)
 
 ## Getting Started
@@ -43,20 +43,20 @@ Other tools used include Prisma as the ORM layer for the database, Biome for lin
 1. **Install dependencies:**
 
     ```sh
-    pnpm install
+    bun install
     ```
 
 2. **Set up Husky and Lintstaged:**
 
     ```sh
-    pnpm exec husky init
+    bunx husky init
     ```
 
-    After running the command, go into `.husky/pre-commit` and enter `pnpm exec lint-staged`. It'll run any time a commit is being made.
+    After running the command, go into `.husky/pre-commit` and enter `bunx lint-staged`. It'll run any time a commit is being made.
 
 3. **Set up the database:**
 
-    - Create a `.env` file in `packages/database` and enter the DB URL:
+    - Create a `.env` file in `packages/db` and enter the DB URL:
 
         ```env
         DATABASE_URL=postgresql://user:secret@localhost:5432/leaf

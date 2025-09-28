@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "start": "pnpx srvx --prod -s ../client  dist/server/server.js"
+    "start": "bun run server.ts"
   },
   "dependencies": {
     "@base-ui-components/react": "1.0.0-beta.3",
@@ -30,7 +30,6 @@
     "react-dom": "^19.1.1",
     "react-icons": "^5.5.0",
     "sonner": "^2.0.7",
-    "srvx": "^0.8.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
     "vite": "^7.1.7",
@@ -40,6 +39,7 @@
     "@repo/db": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@tailwindcss/vite": "^4.1.13",
+    "@types/bun": "^1.2.21",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
     "tailwindcss": "^4.1.13",

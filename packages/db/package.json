@@ -3,18 +3,11 @@
   "type": "module",
   "private": true,
   "exports": {
-    ".": {
-      "types": "./src/index.ts",
-      "default": "./dist/src/index.js"
-    },
-    "./validators/*": {
-      "types": "./src/validators/*.ts",
-      "default": "./dist/src/validators/*.js"
-    }
+    ".": "./src/index.ts",
+    "./validators/*": "./src/validators/*.ts"
   },
   "scripts": {
-    "dev": "tsc -w",
-    "build": "tsc && tsc-alias",
+    "dev": "bun run --hot src/index.ts",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:delete": "docker compose down -v",
@@ -23,8 +16,7 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.16.2",
@@ -36,9 +28,7 @@
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^24.5.2",
-    "prisma": "^6.16.2",
-    "tsc-alias": "^1.8.16",
-    "typescript": "^5.9.2"
+    "@types/bun": "latest",
+    "prisma": "^6.16.2"
   }
 }
