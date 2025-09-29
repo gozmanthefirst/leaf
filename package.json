@@ -27,5 +27,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "@repo/db"
   ]
 }

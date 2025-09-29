@@ -17,7 +17,7 @@
     "db:reset": "prisma migrate reset",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "bun run db:generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.16.2",
