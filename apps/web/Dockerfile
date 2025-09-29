@@ -4,7 +4,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Install turbo globally
-RUN bun add -g turbo@^2.5.6
+RUN bun add -g turbo@^2.5.8
 
 # Copy everything
 COPY . .
@@ -15,9 +15,6 @@ RUN turbo prune web --docker
 # Installer stage
 FROM base AS installer
 WORKDIR /app
-
-# Install Python and build-essential
-RUN apt-get update && apt-get install -y python3 build-essential
 
 # Copy pruned files from builder
 COPY --from=builder /app/out/full/ .

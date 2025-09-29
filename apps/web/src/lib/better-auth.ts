@@ -1,8 +1,8 @@
+import { db } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { bearer } from "better-auth/plugins";
 
-import { db } from "./db";
 import env from "./env";
 
 export const auth = betterAuth({

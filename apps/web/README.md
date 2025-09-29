@@ -4,7 +4,7 @@ A WYSIWYG web app for the Leaf application.
 
 * Built with TanStack Start.
 * Uses Tiptap for the WYSIWYG functionality.
-* Deployed with Cloudflare.
+* Deployed with Docker.
 
 ## Getting Started
 

@@ -1,6 +1,7 @@
 {
   "name": "api",
   "version": "0.0.1",
+  "type": "module",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "build": "bun build src/index.ts --outdir ./dist --target bun --minify",
