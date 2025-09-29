@@ -1,9 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import type { Folder, Note } from "@repo/db";
+import { db, type Folder, type Note } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 
-import { db } from "@/lib/db";
 import { getUserById } from "./user-queries";
 
 /**

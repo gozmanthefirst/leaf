@@ -4,9 +4,8 @@ Backend API for the Leaf application.
 
 * Built with Hono.
 * Uses PostgreSQL for data storage.
-* Developed locally using Wrangler.
-* Deployed with Cloudflare Workers.
-* [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference)
+* Deployed with Docker.
+<!-- * [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference) -->
 
 ## Getting Started
 

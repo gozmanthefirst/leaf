@@ -4,7 +4,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Install turbo globally
-RUN bun add -g turbo@^2.5.6
+RUN bun add -g turbo@^2.5.8
 
 # Copy everything
 COPY . .
@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=builder /app/out/full/ .
 
 # Install dependencies with bun
-RUN bun install --frozen-lockfile --production
+RUN bun install --frozen-lockfile
 
 # Build the app
 RUN bunx turbo run build

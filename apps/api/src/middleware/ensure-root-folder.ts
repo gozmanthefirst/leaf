@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
+import { db } from "@repo/db";
 import { createMiddleware } from "hono/factory";
 
-import { db } from "@/lib/db";
 import type { AppBindings } from "@/lib/types";
 
 export const ensureRootFolder = createMiddleware<AppBindings>(

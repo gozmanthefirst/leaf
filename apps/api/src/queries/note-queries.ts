@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { db } from "@repo/db";
 
 /**
  * Fetches the note with the given ID belonging to the specified user, or null if not found.

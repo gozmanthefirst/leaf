@@ -1,11 +1,10 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../generated/prisma/client";
+import env from "./lib/env";
 
-const dbInit = (dbUrl: string) => {
-  const adapter = new PrismaPg({ connectionString: dbUrl });
-  return new PrismaClient({ adapter });
-};
+const adapter = new PrismaPg({ connectionString: env.DATABASE_URL });
+const db = new PrismaClient({ adapter });
 
 export * from "../generated/prisma/client";
-export { dbInit };
+export { db };
