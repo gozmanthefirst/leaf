@@ -105,7 +105,7 @@ Contributions are welcome! Please follow these steps:
 
 ## Roadmap
 
-These are features that I might add later on. This is not a promise. Don't bank on me adding them.
+These are features that I might add later on. This is not a promise. Don't bank on me adding them
 
 - [ ] Ability to share notes with other users.
 - [ ] Make a PWA.
