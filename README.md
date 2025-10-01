@@ -5,16 +5,6 @@ This is a monorepo containing the different parts of an app for writing and orga
 > [!NOTE]
 > Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience.
 
-- [Leaf](#leaf)
-  - [Why?](#why)
-  - [Features](#features)
-  - [Stack](#stack)
-  - [Prerequisites](#prerequisites)
-  - [Getting Started](#getting-started)
-  - [Running Locally](#running-locally)
-  - [Contributing](#contributing)
-  - [Roadmap](#roadmap)
-
 ## Why?
 
 I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. However, I am poor and therefore can't pay for sync at the moment, and I'd really like to be able to edit a note on my PC and still access it on my mobile devices. I also wanted a solution that gave me more control over my data and allowed me to customize the features to my specific needs. Since I'm not such a bad software developer myself, I decided to build something similar, even if its just the basic features.
@@ -27,11 +17,20 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 - Tag notes for easy searching and filtering.
 - Access your notes from any device with an internet connection.
 
-## Stack
+## Tech Stack
 
-I use bun in my projects. The API was built using Hono. The web app will be built using TanStack Start. The database that was used is PostgreSQL. The app is deployed using Cloudflare Workers.
+- **Runtime:** Bun
+- **Frontend Framework:** TanStack Start
+- **Backend Framework:** Hono
+- **Database:** Postgres
+- **Deployment:** Docker
 
 Other tools used include Prisma as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
+
+## Live Demo
+
+- [API Base URL](https://api.leaf.gozman.xyz/api)
+- [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference)
 
 ## Prerequisites
 
@@ -62,9 +61,9 @@ Other tools used include Prisma as the ORM layer for the database, Biome for lin
         DATABASE_URL=postgresql://user:secret@localhost:5432/leaf
         ```
 
-    - The database can be created using `turbo db:up`. Make sure you have Docker set up on your machine. It can be taken down using `turbo db:down`.
+    - The database can be created using `turbo db:up`. Make sure you have Docker set up on your machine. It can be taken down using `turbo db:down`, and deleted using `turbo db:delete`.
 
-    - The database can be migrated using the following commands:
+    - Migrate the database using the following commands:
 
         ```sh
         turbo db:generate
@@ -75,12 +74,15 @@ Other tools used include Prisma as the ORM layer for the database, Biome for lin
 
     - Copy `.env.example` to `.env` in the `apps/api` directory.
     - Update the values to set up the environment variables. The required variables include:
-        - `NODE_ENV`: The environment the app is running in (e.g., `development`, `production`).
         - `PORT`: The port the backend server will listen on (e.g., `8000`).
         - `FRONTEND_URL`: The URL of the frontend application (e.g., `http://localhost:3000`).
         - `DATABASE_URL`: The same DB URL as the one set in the database package.
+        - `AUTH_COOKIE`: The name of the auth session cookie.
+        - `ENCRYPTION_KEY`: A secret key for encrypting notes. Generate a new secret using the command: `openssl rand -hex 32`.
         - `BETTER_AUTH_SECRET`: A secret key for Better Auth. Generate a new secret using the command: `openssl rand -hex 32`.
         - `BETTER_AUTH_URL`: The URL for Better Auth, typically the backend URL.
+        - `RESEND_API_KEY`: Your Resend API key.
+        - `RESEND_DOMAIN`: Your Resend domain.
         - `RESEND_API_KEY`: Your Resend API key.
         - `RESEND_DOMAIN`: Your Resend domain.
 

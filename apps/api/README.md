@@ -5,7 +5,7 @@ Backend API for the Leaf application.
 * Built with Hono.
 * Uses PostgreSQL for data storage.
 * Deployed with Docker.
-<!-- * [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference) -->
+* [OpenAPI Docs with Scalar](https://api.leaf.gozman.xyz/api/reference)
 
 ## Getting Started
 
