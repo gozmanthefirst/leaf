@@ -9,6 +9,13 @@ export const Route = createFileRoute("/_main")({
     try {
       const user = await context.queryClient.ensureQueryData(userQueryOptions);
 
+      if (!user) {
+        await $delSessionToken();
+        throw redirect({
+          to: "/auth/sign-in",
+        });
+      }
+
       return { user };
     } catch (error) {
       console.log("Error fetching user, redirecting to sign-in:", error);
