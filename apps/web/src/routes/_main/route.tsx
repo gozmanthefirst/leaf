@@ -1,37 +1,18 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
-import { queryKeys } from "@/lib/query";
 import { $delSessionToken } from "@/lib/server-utils";
 import { userQueryOptions } from "@/server/user";
 
 export const Route = createFileRoute("/_main")({
   beforeLoad: async ({ context }) => {
-    try {
-      const user = await context.queryClient.ensureQueryData(userQueryOptions);
+    const user = await context.queryClient
+      .fetchQuery(userQueryOptions)
+      .catch(() => null);
 
-      if (!user) {
-        await $delSessionToken();
-        throw redirect({
-          to: "/auth/sign-in",
-        });
-      }
-
-      return { user };
-    } catch (error) {
-      console.log("Error fetching user, redirecting to sign-in:", error);
-
+    if (!user) {
       await $delSessionToken();
-      throw redirect({
-        to: "/auth/sign-in",
-      });
+      throw redirect({ to: "/auth/sign-in" });
     }
-  },
-  loader: async ({ context }) => {
-    await context.queryClient.invalidateQueries({ queryKey: [queryKeys.user] });
-
-    return {
-      user: context.user,
-    };
   },
   component: MainLayout,
 });
