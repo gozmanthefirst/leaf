@@ -137,7 +137,11 @@ function SignInPage() {
           form.handleSubmit();
         }}
       >
-        <Button onClick={handleGoogleSignIn} variant={"secondary"}>
+        <Button
+          disabled={buttonState === "loading" || signInMutation.isPending}
+          onClick={handleGoogleSignIn}
+          variant={"secondary"}
+        >
           {buttonState === "loading" ? "Signing in..." : "Sign in with Google"}
         </Button>
 
@@ -215,9 +219,9 @@ function SignInPage() {
                   }
                 />
               ) : null}
-              <div className="mt-0.5 flex justify-end">
+              <div className="mt-1 flex justify-end">
                 <BrandLink
-                  className="self-end text-xs outline outline-lime-500"
+                  className="self-end text-xs"
                   to="/auth/forgot-password"
                 >
                   Forgot password?

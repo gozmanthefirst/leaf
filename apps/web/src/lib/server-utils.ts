@@ -7,7 +7,7 @@ import {
 import z from "zod";
 
 import env from "@/lib/env";
-import { normalizeTokenEncoding } from "@/utils/strings";
+import { normalizeTokenEncoding } from "@/lib/utils";
 
 export const $createSessionToken = createServerFn({
   method: "GET",

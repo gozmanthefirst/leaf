@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import z from "zod";
 
 import { axiosClient } from "@/lib/axios";
+import { $createSessionToken } from "@/lib/server-utils";
 import type { ApiSuccessResponse } from "@/lib/types";
 import {
   EmailSchema,
@@ -10,7 +11,6 @@ import {
   SignInSchema,
   SignUpSchema,
 } from "@/schemas/auth-schema";
-import { $createSessionToken } from "@/server/utils";
 
 //* SIGN UP
 // sign up res data type
