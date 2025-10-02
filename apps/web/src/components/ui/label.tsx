@@ -1,11 +1,16 @@
 /** biome-ignore-all lint/a11y/noLabelWithoutControl: needed */
+
+import * as LabelPrimitive from "@radix-ui/react-label";
 import type { ComponentProps } from "react";
 
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
-const Label = ({ className, ...props }: ComponentProps<"label">) => {
+const Label = ({
+  className,
+  ...props
+}: ComponentProps<typeof LabelPrimitive.Root>) => {
   return (
-    <label
+    <LabelPrimitive.Root
       className={cn(
         "flex select-none items-center gap-2 font-medium text-neutral-700 text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-50 group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 dark:text-neutral-300",
         className,

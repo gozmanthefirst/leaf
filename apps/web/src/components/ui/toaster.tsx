@@ -1,7 +1,6 @@
+import { useTheme } from "next-themes";
 import { TbX } from "react-icons/tb";
 import { Toaster as Sonner } from "sonner";
-
-import { useTheme } from "@/themes";
 
 const Toaster = () => {
   const { theme } = useTheme();

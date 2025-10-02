@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
 export const ScreenSize = () => {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
