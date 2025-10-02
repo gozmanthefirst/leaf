@@ -1,15 +1,21 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
+import { $delSessionToken } from "@/lib/server-utils";
 import { $getUser } from "@/server/user";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async () => {
-    const user = await $getUser();
+    try {
+      const user = await $getUser();
 
-    if (user) {
-      throw redirect({
-        to: "/",
-      });
+      if (user) {
+        throw redirect({
+          to: "/",
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      await $delSessionToken();
     }
   },
   component: AuthLayout,
