@@ -72,3 +72,24 @@ export const initialsFromName = (fullName: string): string => {
     )?.toUpperCase() ?? "";
   return firstInitial + lastInitial;
 };
+
+/**
+ * Masks an email address by truncating the local part and adding asterisks.
+ * - If not an email: return as-is
+ */
+export const maskEmail = (input: string): string => {
+  const atIndex = input.indexOf("@");
+  if (atIndex === -1 || atIndex === 0) {
+    // Not an email or empty local part
+    return input;
+  }
+
+  const localPart = input.slice(0, atIndex);
+  const domain = input.slice(atIndex);
+
+  if (localPart.length > 3) {
+    return `${localPart.slice(0, 3)}*****${domain}`;
+  } else {
+    return `${localPart.slice(0, 1)}***${domain}`;
+  }
+};

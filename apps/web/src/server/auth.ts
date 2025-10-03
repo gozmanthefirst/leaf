@@ -3,8 +3,9 @@ import { createServerFn } from "@tanstack/react-start";
 import z from "zod";
 
 import { axiosClient } from "@/lib/axios";
-import { $createSessionToken } from "@/lib/server-utils";
+import { $createSessionToken, $delSessionToken } from "@/lib/server-utils";
 import type { ApiSuccessResponse } from "@/lib/types";
+import { sessionMiddleware } from "@/middleware/auth-middleware";
 import {
   EmailSchema,
   ResetPwdSchema,
@@ -115,5 +116,25 @@ export const $resetPwd = createServerFn({
       payload,
     );
 
+    return response.data;
+  });
+
+//* SIGN OUT
+// sign out server fn
+export const $signOut = createServerFn({
+  method: "GET",
+})
+  .middleware([sessionMiddleware])
+  .handler(async ({ context }) => {
+    const response = await axiosClient.get<ApiSuccessResponse>(
+      "/auth/sign-out",
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    await $delSessionToken();
     return response.data;
   });

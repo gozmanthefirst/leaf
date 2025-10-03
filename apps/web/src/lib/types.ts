@@ -12,3 +12,5 @@ export type ApiErrorResponse = {
     fields: Record<string, string>;
   };
 };
+
+export type Theme = "light" | "dark" | "system";

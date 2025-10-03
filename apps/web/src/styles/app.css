@@ -171,7 +171,7 @@ input[type="number"] {
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.444 0.177 26.899);
+  --destructive: oklch(0.505 0.213 27.518);
   --border: oklch(0.269 0 0);
   --input: oklch(0.269 0 0);
   --ring: oklch(0.556 0 0);

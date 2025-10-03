@@ -65,3 +65,9 @@ export const resetPwdErrMaps: Record<string, Record<string, string> | string> =
     UNPROCESSABLE_ENTITY: "Please check your input and try again.",
     TOO_MANY_REQUESTS: "Too many attempts. Please try again later.",
   };
+
+export const signOutErrMaps: Record<string, Record<string, string> | string> = {
+  FAILED_TO_GET_SESSION: "You must be signed in to sign out.",
+  UNAUTHORIZED: "You must be signed in to sign out.",
+  TOO_MANY_REQUESTS: "Too many attempts. Please try again later.",
+};
