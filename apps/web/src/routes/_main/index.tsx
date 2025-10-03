@@ -1,18 +1,22 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 
-import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export const Route = createFileRoute("/_main/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const mainRoute = getRouteApi("/_main");
+  const { user } = mainRoute.useLoaderData();
+
   return (
-    <main className="container flex min-h-svh flex-col items-center justify-center gap-8 p-4">
-      <p className="text-center font-bold font-roboto text-4xl">Hello!</p>
-      <Button asChild size={"sm"}>
-        <Link to="/auth/sign-in">Sign In</Link>
-      </Button>
+    <main className="container flex h-full flex-col gap-2 p-4">
+      <header>
+        <SidebarTrigger className="-ml-2 lg:hidden" />
+      </header>
+      <div></div>
+      <h1 className="font-semibold text-lg">Welcome, {user.name}!</h1>
     </main>
   );
 }

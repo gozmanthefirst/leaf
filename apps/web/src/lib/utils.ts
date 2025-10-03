@@ -45,3 +45,30 @@ export const normalizeTokenEncoding = (token: string): string => {
   // Now encode it back one step
   return encodeURIComponent(decoded);
 };
+
+/**
+ * Returns initials for a given full name.
+ * - 1 name: first two letters, first uppercase (e.g., "chris" -> "Ch")
+ * - 2 names: initials of both (e.g., "chris smith" -> "CS")
+ * - >2 names: initials of first and last (e.g., "jean luc picard" -> "JP")
+ */
+export const initialsFromName = (fullName: string): string => {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+
+  if (parts.length === 1) {
+    const word = parts[0];
+    const two = word.slice(0, 2);
+    if (two.length === 0) return "";
+    if (two.length === 1) return two[0].toUpperCase();
+    return two[0].toUpperCase() + two[1].toLowerCase();
+  }
+
+  const firstInitial = parts[0][0]?.toUpperCase() ?? "";
+  const lastInitial =
+    (parts.length === 2
+      ? parts[1][0]
+      : parts[parts.length - 1][0]
+    )?.toUpperCase() ?? "";
+  return firstInitial + lastInitial;
+};
