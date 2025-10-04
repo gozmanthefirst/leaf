@@ -422,7 +422,7 @@ const FolderNodeDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={isMobile ? "end" : "start"}
-        className="w-56 rounded-lg"
+        className="w-56"
         side={isMobile ? "bottom" : "right"}
       >
         <DropdownMenuItem>
@@ -477,7 +477,7 @@ const NoteItemDropdown = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={isMobile ? "end" : "start"}
-        className="w-56 rounded-lg"
+        className="w-56"
         side={isMobile ? "bottom" : "right"}
       >
         <DropdownMenuItem>
