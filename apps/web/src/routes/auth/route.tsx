@@ -4,9 +4,7 @@ import { userQueryOptions } from "@/server/user";
 
 export const Route = createFileRoute("/auth")({
   beforeLoad: async ({ context }) => {
-    const user = await context.queryClient
-      .fetchQuery(userQueryOptions)
-      .catch(() => null);
+    const user = await context.queryClient.fetchQuery(userQueryOptions);
 
     if (user) {
       throw redirect({ to: "/" });
