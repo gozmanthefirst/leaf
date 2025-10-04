@@ -14,16 +14,20 @@ export const $getUser = createServerFn({
 })
   .middleware([sessionMiddleware])
   .handler(async ({ context }) => {
-    const response = await axiosClient.get<ApiSuccessResponse<User>>(
-      "/user/me",
-      {
-        headers: {
-          Authorization: `Bearer ${context.session.token}`,
+    try {
+      const response = await axiosClient.get<ApiSuccessResponse<User>>(
+        "/user/me",
+        {
+          headers: {
+            Authorization: `Bearer ${context.session.token}`,
+          },
         },
-      },
-    );
+      );
 
-    return response.data;
+      return response.data.data;
+    } catch (_error) {
+      return null;
+    }
   });
 // get user query options
 export const userQueryOptions = queryOptions({

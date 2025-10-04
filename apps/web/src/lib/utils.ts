@@ -1,3 +1,4 @@
+import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -93,3 +94,68 @@ export const maskEmail = (input: string): string => {
     return `${localPart.slice(0, 1)}***${domain}`;
   }
 };
+
+/**
+ * Recursively counts all descendant folders (excluding the root itself)
+ * and notes contained within the provided folder.
+ * @param folder Root folder to start counting from.
+ * @returns Object with total counts { folders, notes }.
+ */
+export const countFolderStats = (
+  folder: FolderWithItems,
+): { folders: number; notes: number } => {
+  let folders = 0;
+  let notes = folder.notes?.length || 0;
+  if (folder.folders) {
+    folders += folder.folders.length;
+    for (const f of folder.folders) {
+      const c = countFolderStats(f);
+      folders += c.folders;
+      notes += c.notes;
+    }
+  }
+  return { folders, notes };
+};
+
+/**
+ * Returns shallow, alphabetically (case-insensitive) sorted copies
+ * of a folder's immediate child folders and notes.
+ * @param folder Folder whose direct children to sort.
+ * @returns { folders, notes } arrays.
+ */
+export const sortFolderItems = (folder: FolderWithItems) => {
+  const folders = [...(folder.folders ?? [])].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+  );
+  const notes = [...(folder.notes ?? [])].sort((a, b) =>
+    a.title.localeCompare(b.title, undefined, { sensitivity: "base" }),
+  );
+  return { folders, notes };
+};
+
+/**
+ * Returns the chain of folder IDs (excluding the root itself) leading to the
+ * folder that contains the most recently updated note anywhere in the tree.
+ * Used to auto-open only that branch on initial render.
+ */
+export function findLatestNoteFolderPath(root: FolderWithItems): string[] {
+  let bestTime = -Infinity;
+  let bestPath: string[] = [];
+
+  const dfs = (folder: FolderWithItems, path: string[]) => {
+    for (const note of folder.notes ?? []) {
+      const raw = note.updatedAt;
+      const t = raw ? new Date(raw).getTime() : NaN;
+      if (!Number.isNaN(t) && t > bestTime) {
+        bestTime = t;
+        bestPath = path.slice();
+      }
+    }
+    for (const sub of folder.folders ?? []) {
+      dfs(sub, [...path, sub.id]);
+    }
+  };
+
+  dfs(root, []);
+  return bestPath;
+}

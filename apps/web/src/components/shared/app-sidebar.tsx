@@ -1,12 +1,18 @@
-import type { User } from "@repo/db";
+import type { Note, User } from "@repo/db";
+import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Image } from "@unpic/react";
 import { useTheme } from "next-themes";
+import { useMemo } from "react";
 import {
+  TbChevronRight,
   TbDeviceDesktop,
   TbDotsVertical,
+  TbFile,
   TbFilePlus,
+  TbFolder,
   TbFolderPlus,
   TbLogout,
   TbMoon,
@@ -19,9 +25,23 @@ import { toast } from "sonner";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
 import type { Theme } from "@/lib/types";
-import { initialsFromName, maskEmail } from "@/lib/utils";
+import {
+  countFolderStats,
+  findLatestNoteFolderPath,
+  initialsFromName,
+  maskEmail,
+  sortFolderItems,
+} from "@/lib/utils";
 import { $signOut } from "@/server/auth";
+import { $getFolder, folderQueryOptions } from "@/server/folder";
+import { WithState } from "../fallback/with-state";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Button } from "../ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "../ui/collapsible";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -54,10 +74,28 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const mainRoute = getRouteApi("/_main");
   const { queryClient } = mainRoute.useRouteContext();
   const signOut = useServerFn($signOut);
+  const getFolder = useServerFn($getFolder);
   const navigate = useNavigate();
 
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
+
+  const folderQuery = useQuery({
+    ...folderQueryOptions,
+    queryFn: () => getFolder(),
+  });
+
+  const rootFolder = folderQuery.data;
+
+  // This is for opening the recently updated note's folder path by default on initial render.
+  // We use useMemo to avoid re-computing on every render.
+  const openFolderIds = useMemo(
+    () =>
+      rootFolder
+        ? new Set(findLatestNoteFolderPath(rootFolder))
+        : new Set<string>(),
+    [rootFolder],
+  );
 
   const signOutUser = async () => {
     toast.promise(signOut, {
@@ -82,7 +120,6 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   return (
     <Sidebar variant="inset">
-      {/* Header */}
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -103,9 +140,27 @@ export const AppSidebar = ({ user }: { user: User }) => {
                 </div>
                 <div>
                   <h3 className="font-roboto font-semibold text-xl">Leaf</h3>
-                  <p className="text-muted-foreground text-xs">
-                    0 folders. 0 notes.
-                  </p>
+                  <WithState state={folderQuery}>
+                    {(rootFolder) => {
+                      if (!rootFolder) {
+                        return (
+                          <p className="text-muted-foreground text-xs">
+                            0 folders. 0 notes.
+                          </p>
+                        );
+                      } else {
+                        const folderStats = countFolderStats(rootFolder);
+                        return (
+                          <p className="text-muted-foreground text-xs">
+                            {folderStats.folders}{" "}
+                            {folderStats.folders === 1 ? "folder" : "folders"}.{" "}
+                            {folderStats.notes}{" "}
+                            {folderStats.notes === 1 ? "note" : "notes"}.
+                          </p>
+                        );
+                      }
+                    }}
+                  </WithState>
                 </div>
               </div>
             </SidebarMenuButton>
@@ -120,14 +175,51 @@ export const AppSidebar = ({ user }: { user: User }) => {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild size={"default"}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton size={"sm"}>
+                    <item.icon />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Notes</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <WithState state={folderQuery}>
+                {(rf) => {
+                  if (!rf) return null;
+
+                  if (rf.folders.length === 0 && rf.notes.length === 0) {
+                    return (
+                      <div className="flex flex-col gap-4 px-2 py-2">
+                        <p className="text-muted-foreground text-xs">
+                          You have no notes or folders. Create one to get
+                          started.
+                        </p>
+
+                        <Button size={"xs"}>
+                          <TbFilePlus className="size-4" />
+                          <span className="text-xs">
+                            Create your first note
+                          </span>
+                        </Button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <FolderTree
+                      folder={rf}
+                      isRoot
+                      openFolderIds={openFolderIds}
+                    />
+                  );
+                }}
+              </WithState>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -232,7 +324,93 @@ export const AppSidebar = ({ user }: { user: User }) => {
   );
 };
 
-// Menu items.
+const FolderTree = ({
+  folder,
+  isRoot = false,
+  openFolderIds,
+}: {
+  folder: FolderWithItems;
+  isRoot?: boolean;
+  openFolderIds?: Set<string>;
+}) => {
+  const { folders, notes } = sortFolderItems(folder);
+
+  const hasChildren = notes.length > 0 || folders.length > 0;
+
+  if (isRoot) {
+    return (
+      <>
+        {folders.map((f) => (
+          <FolderNode folder={f} key={f.id} openFolderIds={openFolderIds} />
+        ))}
+        {notes.map((n) => (
+          <NoteItem key={n.id} note={n} />
+        ))}
+      </>
+    );
+  }
+
+  if (!hasChildren) {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton>
+          <TbFolder />
+          <span>{folder.name}</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
+  }
+
+  return <FolderNode folder={folder} openFolderIds={openFolderIds} />;
+};
+
+const FolderNode = ({
+  folder,
+  openFolderIds,
+}: {
+  folder: FolderWithItems;
+  openFolderIds?: Set<string>;
+}) => {
+  const { folders, notes } = sortFolderItems(folder);
+  const isOpen = openFolderIds?.has(folder.id) ?? false;
+
+  return (
+    <SidebarMenuItem>
+      <Collapsible
+        className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+        defaultOpen={isOpen}
+      >
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton size={"sm"}>
+            <TbChevronRight className="transition-transform" />
+            {folder.name}
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="ml-4 border-muted border-l pl-2">
+          <SidebarMenu>
+            {notes.map((n) => (
+              <NoteItem key={n.id} note={n} />
+            ))}
+            {folders.map((f) => (
+              <FolderNode folder={f} key={f.id} openFolderIds={openFolderIds} />
+            ))}
+          </SidebarMenu>
+        </CollapsibleContent>
+      </Collapsible>
+    </SidebarMenuItem>
+  );
+};
+
+const NoteItem = ({ note }: { note: Note }) => (
+  <SidebarMenuItem>
+    <SidebarMenuButton size={"sm"}>
+      <TbFile />
+      <span>{note.title}</span>
+    </SidebarMenuButton>
+  </SidebarMenuItem>
+);
+
+// Actions
 const items = [
   {
     title: "Create new folder",
