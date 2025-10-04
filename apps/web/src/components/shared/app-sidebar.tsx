@@ -7,18 +7,24 @@ import { Image } from "@unpic/react";
 import { useTheme } from "next-themes";
 import { useMemo } from "react";
 import {
+  TbAppWindow,
   TbChevronRight,
   TbDeviceDesktop,
   TbDotsVertical,
+  TbEdit,
   TbFile,
+  TbFileArrowRight,
   TbFilePlus,
+  TbFiles,
   TbFolder,
   TbFolderPlus,
   TbLogout,
   TbMoon,
   TbPaint,
   TbSettings,
+  TbStar,
   TbSun,
+  TbTrash,
 } from "react-icons/tb";
 import { toast } from "sonner";
 
@@ -64,6 +70,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -375,29 +382,75 @@ const FolderNode = ({
   const isOpen = openFolderIds?.has(folder.id) ?? false;
 
   return (
-    <SidebarMenuItem>
-      <Collapsible
-        className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-        defaultOpen={isOpen}
-      >
-        <CollapsibleTrigger asChild>
+    <Collapsible
+      className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+      defaultOpen={isOpen}
+    >
+      <CollapsibleTrigger asChild>
+        <SidebarMenuItem>
           <SidebarMenuButton size={"sm"}>
             <TbChevronRight className="transition-transform" />
             {folder.name}
           </SidebarMenuButton>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="ml-4 border-muted border-l pl-2">
-          <SidebarMenu>
-            {notes.map((n) => (
-              <NoteItem key={n.id} note={n} />
-            ))}
-            {folders.map((f) => (
-              <FolderNode folder={f} key={f.id} openFolderIds={openFolderIds} />
-            ))}
-          </SidebarMenu>
-        </CollapsibleContent>
-      </Collapsible>
-    </SidebarMenuItem>
+          <FolderNodeDropdown />
+        </SidebarMenuItem>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="ml-4 border-muted border-l pl-2">
+        <SidebarMenu>
+          {notes.map((n) => (
+            <NoteItem key={n.id} note={n} />
+          ))}
+          {folders.map((f) => (
+            <FolderNode folder={f} key={f.id} openFolderIds={openFolderIds} />
+          ))}
+        </SidebarMenu>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
+
+const FolderNodeDropdown = () => {
+  const { isMobile } = useSidebar();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuAction showOnHover>
+          <TbDotsVertical className="size-4 text-muted-foreground" />
+          <span className="sr-only">More</span>
+        </SidebarMenuAction>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={isMobile ? "end" : "start"}
+        className="w-56 rounded-lg"
+        side={isMobile ? "bottom" : "right"}
+      >
+        <DropdownMenuItem>
+          <TbFilePlus className="text-muted-foreground" />
+          <span>New note</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbFolderPlus className="text-muted-foreground" />
+          <span>New folder</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem>
+          <TbFileArrowRight className="text-muted-foreground" />
+          <span>Move folder to...</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbEdit className="text-muted-foreground" />
+          <span>Rename folder</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive">
+          <TbTrash className="text-muted-foreground" />
+          <span>Delete folder</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -407,8 +460,62 @@ const NoteItem = ({ note }: { note: Note }) => (
       <TbFile />
       <span>{note.title}</span>
     </SidebarMenuButton>
+    <NoteItemDropdown />
   </SidebarMenuItem>
 );
+
+const NoteItemDropdown = () => {
+  const { isMobile } = useSidebar();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuAction showOnHover>
+          <TbDotsVertical className="size-4 text-muted-foreground" />
+          <span className="sr-only">More</span>
+        </SidebarMenuAction>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align={isMobile ? "end" : "start"}
+        className="w-56 rounded-lg"
+        side={isMobile ? "bottom" : "right"}
+      >
+        <DropdownMenuItem>
+          <TbFile className="text-muted-foreground" />
+          <span>Open</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbAppWindow className="text-muted-foreground" />
+          <span>Open in new window</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuItem>
+          <TbFiles className="text-muted-foreground" />
+          <span>Make a copy</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbFileArrowRight className="text-muted-foreground" />
+          <span>Move note to...</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbStar className="text-muted-foreground" />
+          <span>Favorite note</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem>
+          <TbEdit className="text-muted-foreground" />
+          <span>Rename note</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem variant="destructive">
+          <TbTrash className="text-muted-foreground" />
+          <span>Delete note</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
 
 // Actions
 const items = [
