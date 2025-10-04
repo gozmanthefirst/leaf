@@ -38,8 +38,8 @@ function MainLayout() {
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset>
-        <div className="flex-1">
+      <SidebarInset className="overflow-hidden">
+        <div className="relative flex-1">
           <Outlet />
         </div>
       </SidebarInset>
