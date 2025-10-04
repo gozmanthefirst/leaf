@@ -59,7 +59,7 @@ function HomePage() {
             {(rf) => {
               if (!rf) return null;
 
-              if (rf.folders.length === 0 && rf.notes.length === 0) {
+              if (rf.notes.length === 0) {
                 return (
                   <Empty>
                     <EmptyHeader>
@@ -68,7 +68,8 @@ function HomePage() {
                       </EmptyMedia>
                       <EmptyTitle>No Notes Yet</EmptyTitle>
                       <EmptyDescription>
-                        You have no notes or folders. Create one to get started.
+                        You do not have any notes yet. Create one to get
+                        started.
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
@@ -88,15 +89,33 @@ function HomePage() {
 }
 
 const NotePageHeader = () => {
+  const getFolder = useServerFn($getFolder);
+
+  const folderQuery = useQuery({
+    ...folderQueryOptions,
+    queryFn: () => getFolder(),
+  });
+
   return (
     <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center border-muted/80 px-3 lg:px-6">
       <SidebarTrigger className="lg:hidden" />
-      <div className="ml-auto flex items-center gap-1">
-        <Button className="size-7" size={"icon"} variant={"ghost"}>
-          <TbBook />
-        </Button>
-        <NotePageDropdown />
-      </div>
+
+      <WithState state={folderQuery}>
+        {(rf) => {
+          if (!rf) return null;
+
+          if (rf.notes.length === 0) return null;
+
+          return (
+            <div className="ml-auto flex items-center gap-1">
+              <Button className="size-7" size={"icon"} variant={"ghost"}>
+                <TbBook />
+              </Button>
+              <NotePageDropdown />
+            </div>
+          );
+        }}
+      </WithState>
     </header>
   );
 };
