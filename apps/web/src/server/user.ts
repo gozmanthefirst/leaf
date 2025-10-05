@@ -31,6 +31,6 @@ export const $getUser = createServerFn({
   });
 // get user query options
 export const userQueryOptions = queryOptions({
-  queryKey: [queryKeys.user],
+  queryKey: queryKeys.user(),
   queryFn: $getUser,
 });

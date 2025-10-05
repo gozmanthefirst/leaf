@@ -31,8 +31,9 @@ export const $getFolder = createServerFn({
       return null;
     }
   });
+
 // get folder query options
 export const folderQueryOptions = queryOptions({
-  queryKey: [queryKeys.folder],
+  queryKey: queryKeys.folder("root"),
   queryFn: $getFolder,
 });
