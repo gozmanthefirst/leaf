@@ -1,5 +1,6 @@
 import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -28,6 +29,7 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
+import { folderCollection } from "@/lib/collections";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
 import type { Theme } from "@/lib/types";
@@ -86,12 +88,22 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
 
-  const folderQuery = useQuery({
+  const _folderQuery = useQuery({
     ...folderQueryOptions,
     queryFn: () => getFolder(),
   });
 
-  const rootFolder = folderQuery.data;
+  const { data: folders } = useLiveQuery((q) =>
+    q.from({
+      folder: folderCollection,
+    }),
+  );
+
+  const rootFolder = useMemo(() => {
+    return folders[0];
+  }, [folders]);
+
+  // const rootFolder = folderQuery.data;
 
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
 
