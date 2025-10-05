@@ -40,7 +40,6 @@ import {
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
 import { $getFolder, folderQueryOptions } from "@/server/folder";
-import { WithState } from "../fallback/with-state";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -94,6 +93,8 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   const rootFolder = folderQuery.data;
 
+  const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
+
   // This is for opening the recently updated note's folder path by default on initial render.
   // We use useMemo to avoid re-computing on every render.
   const openFolderIds = useMemo(
@@ -109,7 +110,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
       loading: "Signing out...",
       success: (response) => {
         queryClient.invalidateQueries({
-          queryKey: [queryKeys.user],
+          queryKey: queryKeys.user(),
         });
         navigate({ to: "/auth/sign-in" });
 
@@ -147,27 +148,11 @@ export const AppSidebar = ({ user }: { user: User }) => {
                 </div>
                 <div>
                   <h3 className="font-roboto font-semibold text-xl">Leaf</h3>
-                  <WithState state={folderQuery}>
-                    {(rootFolder) => {
-                      if (!rootFolder) {
-                        return (
-                          <p className="text-muted-foreground text-xs">
-                            0 folders. 0 notes.
-                          </p>
-                        );
-                      } else {
-                        const folderStats = countFolderStats(rootFolder);
-                        return (
-                          <p className="text-muted-foreground text-xs">
-                            {folderStats.folders}{" "}
-                            {folderStats.folders === 1 ? "folder" : "folders"}.{" "}
-                            {folderStats.notes}{" "}
-                            {folderStats.notes === 1 ? "note" : "notes"}.
-                          </p>
-                        );
-                      }
-                    }}
-                  </WithState>
+                  <p className="text-muted-foreground text-xs">
+                    {folderStats
+                      ? `${folderStats.folders} ${folderStats.folders === 1 ? "folder" : "folders"}. ${folderStats.notes} ${folderStats.notes === 1 ? "note" : "notes"}.`
+                      : "0 folders. 0 notes."}
+                  </p>
                 </div>
               </div>
             </SidebarMenuButton>
@@ -196,37 +181,24 @@ export const AppSidebar = ({ user }: { user: User }) => {
           <SidebarGroupLabel>Notes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <WithState state={folderQuery}>
-                {(rf) => {
-                  if (!rf) return null;
-
-                  if (rf.folders.length === 0 && rf.notes.length === 0) {
-                    return (
-                      <div className="flex flex-col gap-4 px-2 py-2">
-                        <p className="text-muted-foreground text-xs">
-                          You have no notes or folders. Create one to get
-                          started.
-                        </p>
-
-                        <Button size={"xs"}>
-                          <TbFilePlus className="size-4" />
-                          <span className="text-xs">
-                            Create your first note
-                          </span>
-                        </Button>
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <FolderTree
-                      folder={rf}
-                      isRoot
-                      openFolderIds={openFolderIds}
-                    />
-                  );
-                }}
-              </WithState>
+              {!rootFolder ? null : rootFolder.folders.length === 0 &&
+                rootFolder.notes.length === 0 ? (
+                <div className="flex flex-col gap-4 px-2 py-2">
+                  <p className="text-muted-foreground text-xs">
+                    You have no notes or folders. Create one to get started.
+                  </p>
+                  <Button size={"xs"}>
+                    <TbFilePlus className="size-4" />
+                    <span className="text-xs">Create your first note</span>
+                  </Button>
+                </div>
+              ) : (
+                <FolderTree
+                  folder={rootFolder}
+                  isRoot
+                  openFolderIds={openFolderIds}
+                />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -382,14 +354,11 @@ const FolderNode = ({
   const isOpen = openFolderIds?.has(folder.id) ?? false;
 
   return (
-    <Collapsible
-      className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
-      defaultOpen={isOpen}
-    >
+    <Collapsible className="group/collapsible" defaultOpen={isOpen}>
       <CollapsibleTrigger asChild>
         <SidebarMenuItem>
           <SidebarMenuButton size={"sm"}>
-            <TbChevronRight className="transition-transform" />
+            <TbChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
             {folder.name}
           </SidebarMenuButton>
           <FolderNodeDropdown />
