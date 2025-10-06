@@ -101,6 +101,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
       .findOne(),
   );
 
+  // Folder and note stats for display in the sidebar header.
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
 
   // This is for opening the recently updated note's folder path by default on initial render.
