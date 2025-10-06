@@ -3,9 +3,11 @@ import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useClickAway } from "@uidotdev/usehooks";
 import { Image } from "@unpic/react";
 import { useTheme } from "next-themes";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import {
   TbAppWindow,
   TbChevronRight,
@@ -16,7 +18,6 @@ import {
   TbFileArrowRight,
   TbFilePlus,
   TbFiles,
-  TbFolder,
   TbFolderPlus,
   TbLogout,
   TbMoon,
@@ -75,6 +76,8 @@ import {
   useSidebar,
 } from "../ui/sidebar";
 import { cancelToastEl } from "../ui/toaster";
+
+const SIDEBAR_BTN_SIZE: "sm" | "default" | "lg" = "sm";
 
 export const AppSidebar = ({ user }: { user: User }) => {
   const mainRoute = getRouteApi("/_main");
@@ -167,7 +170,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton size={"sm"}>
+                  <SidebarMenuButton size={SIDEBAR_BTN_SIZE}>
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
@@ -181,24 +184,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
           <SidebarGroupLabel>Notes</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {!rootFolder ? null : rootFolder.folders.length === 0 &&
-                rootFolder.notes.length === 0 ? (
-                <div className="flex flex-col gap-4 px-2 py-2">
-                  <p className="text-muted-foreground text-xs">
-                    You have no notes or folders. Create one to get started.
-                  </p>
-                  <Button size={"xs"}>
-                    <TbFilePlus className="size-4" />
-                    <span className="text-xs">Create your first note</span>
-                  </Button>
-                </div>
-              ) : (
-                <FolderTree
-                  folder={rootFolder}
-                  isRoot
-                  openFolderIds={openFolderIds}
-                />
-              )}
+              <FolderTree folder={rootFolder} openFolderIds={openFolderIds} />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -305,18 +291,30 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
 const FolderTree = ({
   folder,
-  isRoot = false,
   openFolderIds,
 }: {
-  folder: FolderWithItems;
-  isRoot?: boolean;
+  folder: FolderWithItems | null | undefined;
   openFolderIds?: Set<string>;
 }) => {
+  if (!folder) return null;
+
+  if (folder.folders.length === 0 && folder.notes.length === 0) {
+    return (
+      <div className="flex flex-col gap-4 px-2 py-2">
+        <p className="text-muted-foreground text-xs">
+          You have no notes or folders. Create one to get started.
+        </p>
+        <Button size={"xs"}>
+          <TbFilePlus className="size-4" />
+          <span className="text-xs">Create your first note</span>
+        </Button>
+      </div>
+    );
+  }
+
   const { folders, notes } = sortFolderItems(folder);
 
-  const hasChildren = notes.length > 0 || folders.length > 0;
-
-  if (isRoot) {
+  if (folder.isRoot) {
     return (
       <>
         {folders.map((f) => (
@@ -326,17 +324,6 @@ const FolderTree = ({
           <NoteItem key={n.id} note={n} />
         ))}
       </>
-    );
-  }
-
-  if (!hasChildren) {
-    return (
-      <SidebarMenuItem>
-        <SidebarMenuButton>
-          <TbFolder />
-          <span>{folder.name}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
     );
   }
 
@@ -350,27 +337,76 @@ const FolderNode = ({
   folder: FolderWithItems;
   openFolderIds?: Set<string>;
 }) => {
+  const [renaming, setRenaming] = useState(false);
+  const [folderName, setFolderName] = useState(folder.name);
+
+  // Disable editing mode when clicking outside the input.
+  const inputRef = useClickAway<HTMLInputElement>(() => {
+    setRenaming(false);
+  });
+
+  // Disable editing mode by pressing "Esc" even if the input is not focused.
+  useHotkeys("esc", () => setRenaming(false), {
+    enableOnFormTags: true,
+  });
+
+  useEffect(() => {
+    if (renaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [renaming, inputRef]);
+
   const { folders, notes } = sortFolderItems(folder);
   const isOpen = openFolderIds?.has(folder.id) ?? false;
 
+  const startFolderRename = () => {
+    setRenaming(true);
+  };
+
   return (
     <Collapsible className="group/collapsible" defaultOpen={isOpen}>
-      <CollapsibleTrigger asChild>
-        <SidebarMenuItem>
-          <SidebarMenuButton size={"sm"}>
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
+            size={SIDEBAR_BTN_SIZE}
+            variant={renaming ? "input" : "default"}
+          >
             <TbChevronRight className="transition-transform group-data-[state=open]/collapsible:rotate-90" />
-            {folder.name}
+            {renaming ? (
+              <input
+                className="w-full bg-transparent focus-visible:outline-none"
+                onChange={(e) => setFolderName(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    setRenaming(false);
+                    // TODO: trigger rename mutation here.
+                  } else if (e.key === "Escape") {
+                    setFolderName(folder.name);
+                    setRenaming(false);
+                  }
+                }}
+                ref={inputRef}
+                value={folderName}
+              />
+            ) : (
+              <span>{folder.name}</span>
+            )}
           </SidebarMenuButton>
-          <FolderNodeDropdown />
-        </SidebarMenuItem>
-      </CollapsibleTrigger>
+        </CollapsibleTrigger>
+        {renaming ? null : (
+          <FolderNodeDropdown startFolderRename={startFolderRename} />
+        )}
+      </SidebarMenuItem>
       <CollapsibleContent className="ml-4 border-muted border-l pl-2">
         <SidebarMenu>
-          {notes.map((n) => (
-            <NoteItem key={n.id} note={n} />
-          ))}
           {folders.map((f) => (
             <FolderNode folder={f} key={f.id} openFolderIds={openFolderIds} />
+          ))}
+          {notes.map((n) => (
+            <NoteItem key={n.id} note={n} />
           ))}
         </SidebarMenu>
       </CollapsibleContent>
@@ -378,7 +414,11 @@ const FolderNode = ({
   );
 };
 
-const FolderNodeDropdown = () => {
+const FolderNodeDropdown = ({
+  startFolderRename,
+}: {
+  startFolderRename: () => void;
+}) => {
   const { isMobile } = useSidebar();
 
   return (
@@ -409,7 +449,7 @@ const FolderNodeDropdown = () => {
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move folder to...</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onSelect={startFolderRename}>
           <TbEdit className="text-muted-foreground" />
           <span>Rename folder</span>
         </DropdownMenuItem>
@@ -423,17 +463,70 @@ const FolderNodeDropdown = () => {
   );
 };
 
-const NoteItem = ({ note }: { note: Note }) => (
-  <SidebarMenuItem>
-    <SidebarMenuButton size={"sm"}>
-      <TbFile />
-      <span>{note.title}</span>
-    </SidebarMenuButton>
-    <NoteItemDropdown />
-  </SidebarMenuItem>
-);
+const NoteItem = ({ note }: { note: Note }) => {
+  const [renaming, setRenaming] = useState(false);
+  const [noteTitle, setNoteTitle] = useState(note.title);
 
-const NoteItemDropdown = () => {
+  // Disable editing mode when clicking outside the input.
+  const inputRef = useClickAway<HTMLInputElement>(() => {
+    setRenaming(false);
+  });
+
+  // Disable editing mode by pressing "Esc" even if the input is not focused.
+  useHotkeys("esc", () => setRenaming(false), {
+    enableOnFormTags: true,
+  });
+
+  useEffect(() => {
+    if (renaming && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [renaming, inputRef]);
+
+  const startNoteRename = () => {
+    setRenaming(true);
+  };
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
+        size={SIDEBAR_BTN_SIZE}
+        variant={renaming ? "input" : "default"}
+      >
+        <TbFile />
+        {renaming ? (
+          <input
+            className="w-full bg-transparent focus-visible:outline-none"
+            onChange={(e) => setNoteTitle(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setRenaming(false);
+                // TODO: trigger rename mutation here.
+              } else if (e.key === "Escape") {
+                setNoteTitle(note.title);
+                setRenaming(false);
+              }
+            }}
+            ref={inputRef}
+            value={noteTitle}
+          />
+        ) : (
+          <span>{note.title}</span>
+        )}
+      </SidebarMenuButton>
+      {renaming ? null : <NoteItemDropdown startNoteRename={startNoteRename} />}
+    </SidebarMenuItem>
+  );
+};
+
+const NoteItemDropdown = ({
+  startNoteRename,
+}: {
+  startNoteRename: () => void;
+}) => {
   const { isMobile } = useSidebar();
 
   return (
@@ -472,7 +565,7 @@ const NoteItemDropdown = () => {
           <TbStar className="text-muted-foreground" />
           <span>Favorite note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem onSelect={startNoteRename}>
           <TbEdit className="text-muted-foreground" />
           <span>Rename note</span>
         </DropdownMenuItem>
