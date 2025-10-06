@@ -10,7 +10,7 @@ export const FolderInsertSchema = FolderInputSchema.pick({
   name: true,
   parentFolderId: true,
 }).extend({
-  name: z.string().min(1).default("untitled"),
+  name: z.string().min(1).default("Untitled"),
   parentFolderId: z.uuid(),
 });
 
