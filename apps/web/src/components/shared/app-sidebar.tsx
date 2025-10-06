@@ -1,7 +1,6 @@
 import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useQuery } from "@tanstack/react-query";
+import { eq, useLiveQuery } from "@tanstack/react-db";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Image } from "@unpic/react";
@@ -29,7 +28,7 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
-import { folderCollection } from "@/lib/collections";
+import { createFolderCollection } from "@/lib/collections";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
 import type { Theme } from "@/lib/types";
@@ -41,7 +40,7 @@ import {
   sortFolderItems,
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
-import { $getFolder, folderQueryOptions } from "@/server/folder";
+import { $getFolder } from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -88,22 +87,19 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
 
-  const _folderQuery = useQuery({
-    ...folderQueryOptions,
-    queryFn: () => getFolder(),
-  });
-
-  const { data: folders } = useLiveQuery((q) =>
-    q.from({
-      folder: folderCollection,
-    }),
+  const { data: rootFolder } = useLiveQuery((q) =>
+    q
+      .from({
+        folder: createFolderCollection({
+          fn: async () => {
+            const folder = await getFolder();
+            return folder ? [folder] : [];
+          },
+        }),
+      })
+      .where(({ folder }) => eq(folder.isRoot, true))
+      .findOne(),
   );
-
-  const rootFolder = useMemo(() => {
-    return folders[0];
-  }, [folders]);
-
-  // const rootFolder = folderQuery.data;
 
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
 
