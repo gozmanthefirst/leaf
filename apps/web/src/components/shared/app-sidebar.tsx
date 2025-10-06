@@ -36,6 +36,7 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersistentFocus } from "@/hooks/use-persistent-focus";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
@@ -48,13 +49,7 @@ import {
   sortFolderItems,
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
-import {
-  $createFolder,
-  $getFolder,
-  $getFoldersInFolder,
-  folderQueryOptions,
-  foldersInFolderQueryOptions,
-} from "@/server/folder";
+import { $createFolder, $getFolder, folderQueryOptions } from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -75,6 +70,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import {
   Sidebar,
   SidebarContent,
@@ -100,6 +96,7 @@ type FolderCreationCtx = {
   openFolder: (folderId: string) => void;
   closeFolder: (folderId: string) => void;
   toggleFolder: (folderId: string) => void;
+  createFolderOptimistic: (name: string, parentId: string) => void;
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -118,7 +115,6 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const signOut = useServerFn($signOut);
   const getFolder = useServerFn($getFolder);
   const createFolder = useServerFn($createFolder);
-  const getFoldersInFolder = useServerFn($getFoldersInFolder);
   const navigate = useNavigate();
 
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
@@ -130,13 +126,8 @@ export const AppSidebar = ({ user }: { user: User }) => {
     ...folderQueryOptions,
     queryFn: () => getFolder(),
   });
-  const foldersInFolderQuery = useQuery({
-    ...foldersInFolderQueryOptions,
-    queryFn: () => getFoldersInFolder(),
-  });
 
   const rootFolder = folderQuery.data;
-  const _foldersInFolder = foldersInFolderQuery.data;
 
   // INITIAL open folder ids (latest note path)
   const initialOpenFolderIds = useMemo(
@@ -152,9 +143,19 @@ export const AppSidebar = ({ user }: { user: User }) => {
     () => initialOpenFolderIds,
   );
 
+  // FIX: Do NOT overwrite previously opened folders whenever rootFolder data changes.
+  // Instead, only add any newly required ids (e.g. latest note path) once data refreshes.
   useEffect(() => {
-    // Refresh open state when rootFolder changes drastically
-    setOpenFolderIds(initialOpenFolderIds);
+    setOpenFolderIds((prev) => {
+      // If first load (prev empty) just take initial set.
+      if (prev.size === 0) return initialOpenFolderIds;
+      // Merge: keep what was open, ensure path ids stay open, never close others.
+      const merged = new Set(prev);
+      initialOpenFolderIds.forEach((id) => {
+        merged.add(id);
+      });
+      return merged;
+    });
   }, [initialOpenFolderIds]);
 
   // Folder open state helpers
@@ -183,16 +184,116 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const isOpen = (id: string) => openFolderIds.has(id);
 
   const createFolderMutation = useMutation({
+    mutationKey: ["create-folder"],
     mutationFn: async (vars: { name: string; parentId?: string }) =>
       await createFolder({
         data: { name: vars.name, parentId: vars.parentId },
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-      queryClient.invalidateQueries({
-        queryKey: foldersInFolderQueryOptions.queryKey,
+    // Optimistic update
+    onMutate: async (vars) => {
+      const parentId = vars.parentId ?? rootFolder?.id;
+      if (!parentId || !rootFolder) {
+        return { previous: null as FolderWithItems | null };
+      }
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
       });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      const tempId = `temp-${Date.now()}`;
+
+      // Deep clone preserving structure
+      const clone = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map(clone),
+        notes: [...node.notes],
+      });
+
+      const draft = clone(previous);
+
+      const insert = (node: FolderWithItems): boolean => {
+        if (node.id === parentId) {
+          node.folders = [
+            ...node.folders,
+            {
+              id: tempId,
+              name: vars.name,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              parentFolderId: parentId,
+              isRoot: false,
+              userId: user.id,
+              folders: [],
+              notes: [],
+            },
+          ];
+          return true;
+        }
+        for (const f of node.folders) {
+          if (insert(f)) return true;
+        }
+        return false;
+      };
+
+      insert(draft);
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      // hide input
       setActiveParentId(null);
+
+      return { previous, tempId, parentId };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to create folder.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSuccess: (data, _vars, context) => {
+      if (!context?.tempId) return;
+      const serverFolder = data.data;
+      const current = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!current) return;
+
+      const replace = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map((f) => {
+          if (f.id === context.tempId) {
+            return {
+              ...f,
+              id: serverFolder.id,
+              name: serverFolder.name,
+              createdAt: serverFolder.createdAt,
+              updatedAt: serverFolder.updatedAt,
+              parentFolderId: serverFolder.parentFolderId,
+              isRoot: serverFolder.isRoot,
+              userId: serverFolder.userId,
+              folders: f.folders, // preserve (should be empty)
+              notes: f.notes,
+              // omit __optimistic
+            };
+          }
+          return replace(f);
+        }),
+      });
+
+      const patched = replace(current);
+      queryClient.setQueryData(folderQueryOptions.queryKey, patched);
+    },
+    onSettled: () => {
+      // light refetch to ensure deep consistency
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
     },
   });
 
@@ -205,6 +306,12 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const cancelCreation = () => setActiveParentId(null);
 
   const submitCreation = (name: string, parentId: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    createFolderMutation.mutate({ name: trimmed, parentId });
+  };
+
+  const createFolderOptimistic = (name: string, parentId: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     createFolderMutation.mutate({ name: trimmed, parentId });
@@ -259,6 +366,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
         openFolder,
         closeFolder,
         toggleFolder,
+        createFolderOptimistic,
       }}
     >
       <Sidebar variant="inset">
@@ -476,6 +584,7 @@ const RootFolderSection = ({
           onCreate={onSubmit}
           parentId={rootFolder.id}
           parentOpen={true}
+          siblingNames={folders.map((f) => f.name)}
         />
       )}
 
@@ -486,9 +595,8 @@ const RootFolderSection = ({
   );
 };
 
-/* ---------- Folder Node (adds inline creation for children) ---------- */
+/* ---------- Folder Node ---------- */
 const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
-  const createFolder = useServerFn($createFolder);
   const {
     activeParentId,
     start,
@@ -497,6 +605,7 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
     openFolder,
     closeFolder,
     toggleFolder,
+    createFolderOptimistic,
   } = useFolderCreation();
 
   const [renaming, setRenaming] = useState(false);
@@ -516,13 +625,7 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
   const open = isOpen(folder.id);
   const isCreatingChild = activeParentId === folder.id;
 
-  const { mutate: createChild, isPending: creating } = useMutation({
-    mutationFn: async (vars: { name: string }) =>
-      await createFolder({ data: { name: vars.name, parentId: folder.id } }),
-    onSuccess: () => {
-      cancel();
-    },
-  });
+  const creating = false; // (Optional) you can pass loading={false} or track global pending if you want to disable input:
 
   const startFolderRename = () => setRenaming(true);
 
@@ -591,9 +694,10 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
             <FolderInputInline
               loading={creating}
               onCancel={cancel}
-              onCreate={(name) => createChild({ name })}
+              onCreate={(name) => createFolderOptimistic(name, folder.id)}
               parentId={folder.id}
               parentOpen={open}
+              siblingNames={folders.map((f) => f.name)}
             />
           )}
 
@@ -613,19 +717,32 @@ const FolderInputInline = ({
   onCancel,
   loading,
   parentOpen = true,
+  siblingNames = [],
 }: {
   parentId: string;
   onCreate: (name: string, parentId: string) => void;
   onCancel: () => void;
   loading: boolean;
   parentOpen?: boolean;
+  siblingNames?: string[];
 }) => {
   const [name, setName] = useState("Untitled");
   const inputRef = useRef<HTMLInputElement>(null);
   const itemRef = useClickAway<HTMLLIElement>(() => onCancel());
   useHotkeys("esc", onCancel, { enableOnFormTags: true });
 
-  // Replaces earlier complex effect
+  const isMobileViewport = useIsMobile(768);
+  const popoverSide = isMobileViewport ? "top" : "right";
+  const popoverAlign: "start" | "center" = isMobileViewport
+    ? "center"
+    : "start";
+  const popoverWidthClass = isMobileViewport
+    ? "w-(--radix-popover-trigger-width)"
+    : "w-64";
+
+  const trimmed = name.trim();
+  const isDuplicate = trimmed.length > 0 && siblingNames.includes(trimmed);
+
   usePersistentFocus(inputRef, {
     enabled: parentOpen && !loading,
     select: true,
@@ -633,35 +750,58 @@ const FolderInputInline = ({
 
   return (
     <SidebarMenuItem ref={itemRef}>
-      <SidebarMenuButton
-        className="disabled:opacity-50"
-        disabled={loading}
-        onClick={(e) => e.stopPropagation()}
-        size={SIDEBAR_BTN_SIZE}
-        variant="input"
-      >
-        {/* Visible, non-interactive chevron to indicate a folder row shape */}
-        <TbChevronRight
-          aria-hidden="true"
-          className="pointer-events-none shrink-0 text-muted-foreground/60"
-        />
-        <input
-          className="w-full bg-transparent focus-visible:outline-none"
-          disabled={loading}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") onCreate(name, parentId);
-            else if (e.key === "Escape") onCancel();
-          }}
-          ref={inputRef}
-          value={name}
-        />
-      </SidebarMenuButton>
+      <Popover open={isDuplicate}>
+        <PopoverTrigger asChild>
+          <SidebarMenuButton
+            className="disabled:opacity-50"
+            disabled={loading}
+            onClick={(e) => e.stopPropagation()}
+            size={SIDEBAR_BTN_SIZE}
+            variant="input"
+          >
+            <TbChevronRight
+              aria-hidden="true"
+              className="pointer-events-none shrink-0 text-muted-foreground/60"
+            />
+            <input
+              className="w-full bg-transparent focus-visible:outline-none"
+              disabled={loading}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.stopPropagation(); // Prevent collapsing parent
+                  e.preventDefault();
+                  if (isDuplicate) return;
+                  onCreate(trimmed, parentId);
+                } else if (e.key === "Escape") {
+                  e.stopPropagation();
+                  onCancel();
+                }
+              }}
+              ref={inputRef}
+              value={name}
+            />
+          </SidebarMenuButton>
+        </PopoverTrigger>
+        <PopoverContent
+          align={popoverAlign}
+          className={`${popoverWidthClass} p-3`}
+          side={popoverSide}
+          sideOffset={6}
+        >
+          <div className="space-y-2">
+            <p className="font-medium text-sm">Name already exists</p>
+            <p className="text-muted-foreground text-xs">
+              Another folder here already has this name. Enter a different one.
+            </p>
+          </div>
+        </PopoverContent>
+      </Popover>
     </SidebarMenuItem>
   );
 };
 
-/* ---------- FolderNodeDropdown updated to expose startNewFolder ---------- */
+/* ---------- FolderNodeDropdown ---------- */
 const FolderNodeDropdown = ({
   folderId,
   startFolderRename,

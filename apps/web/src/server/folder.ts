@@ -50,15 +50,17 @@ export const $createFolder = createServerFn()
   .handler(async ({ context, data }) => {
     const rootFolder = await $getFolder();
 
+    const payload = {
+      parentFolderId: data.parentId ?? rootFolder?.id,
+      name: data.name,
+    };
+
     const response = await axiosClient.post<ApiSuccessResponse<Folder>>(
       "/folders",
+      payload,
       {
         headers: {
           Authorization: `Bearer ${context.session.token}`,
-        },
-        data: {
-          parentFolderId: data.parentId ?? rootFolder?.id,
-          name: data.name,
         },
       },
     );
