@@ -333,19 +333,20 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       }
     }
 
-    let encryptedData: EncryptedNote = {
-      contentEncrypted: "",
-      contentIv: "",
-      contentTag: "",
-    };
-
-    if (noteData.content) {
-      const { encrypted, iv, tag } = encryptContent(noteData.content);
-      encryptedData = {
-        contentEncrypted: encrypted,
-        contentIv: iv,
-        contentTag: tag,
-      };
+    // Only build encrypted fields if new raw content is provided.
+    let encryptedData: Partial<EncryptedNote> = {};
+    if (Object.hasOwn(noteData, "content")) {
+      if (noteData.content && noteData.content.length > 0) {
+        const { encrypted, iv, tag } = encryptContent(noteData.content);
+        encryptedData = {
+          contentEncrypted: encrypted,
+          contentIv: iv,
+          contentTag: tag,
+        };
+      } else {
+        // If content explicitly passed as empty string, keep previous encrypted content
+        // (no overwrite) so user doesn't lose data by sending blank title-only update.
+      }
     }
 
     let newTitle = title;
@@ -353,15 +354,16 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       newTitle = await generateUniqueNoteTitle(title, user.id, folderId);
     }
 
+    const updatePayload = {
+      folderId,
+      title: newTitle,
+      isFavorite,
+      tags,
+      ...encryptedData,
+    };
+
     const updatedNote = await db.note.update({
-      data: {
-        ...noteData,
-        ...encryptedData,
-        folderId,
-        title: newTitle,
-        isFavorite,
-        tags,
-      },
+      data: updatePayload,
       where: { id },
     });
 
@@ -380,7 +382,10 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       updatedAt: updatedNote.updatedAt,
     };
 
-    decryptedUpdatedNote.content = noteData.content || "";
+    // Only return provided content (if any) – otherwise leave as empty string (editor can lazy load)
+    if (noteData.content && encryptedData.contentEncrypted) {
+      decryptedUpdatedNote.content = noteData.content;
+    }
 
     return c.json(
       successResponse(decryptedUpdatedNote, "Note updated successfully"),

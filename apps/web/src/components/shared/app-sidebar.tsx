@@ -1,6 +1,6 @@
 import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useClickAway } from "@uidotdev/usehooks";
@@ -36,7 +36,9 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
+import { useFolderMutations } from "@/hooks/use-folder-mutations";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNoteMutations } from "@/hooks/use-note-mutations";
 import { usePersistentFocus } from "@/hooks/use-persistent-focus";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
@@ -49,14 +51,7 @@ import {
   sortFolderItems,
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
-import {
-  $createFolder,
-  $deleteFolder,
-  $getFolder,
-  $renameFolder,
-  folderQueryOptions,
-} from "@/server/folder";
-import { $createNote } from "@/server/note";
+import { $getFolder, folderQueryOptions } from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -110,13 +105,11 @@ type FolderCreationCtx = {
 
   createFolderOptimistic: (name: string, parentId: string) => void;
   deleteFolderOptimistic: (folderId: string) => void;
-  renameFolderOptimistic: (
-    folderId: string,
-    parentId: string,
-    name: string,
-  ) => void;
+  renameFolderOptimistic: (folderId: string, name: string) => void;
 
   createNoteOptimistic: (title: string, parentId: string) => void;
+  deleteNoteOptimistic: (noteId: string) => void;
+  renameNoteOptimistic: (noteId: string, title: string) => void; // NEW
   createNotePending: boolean;
 };
 
@@ -135,16 +128,12 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const { queryClient } = mainRoute.useRouteContext();
   const signOut = useServerFn($signOut);
   const getFolder = useServerFn($getFolder);
-  const createFolder = useServerFn($createFolder);
-  const deleteFolder = useServerFn($deleteFolder);
-  const renameFolder = useServerFn($renameFolder); // NEW
-  const createNote = useServerFn($createNote); // NEW
   const navigate = useNavigate();
 
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
   const [activeNoteParentId, setActiveNoteParentId] = useState<string | null>(
     null,
-  ); // NEW
+  );
 
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
@@ -210,443 +199,30 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   const isOpen = (id: string) => openFolderIds.has(id);
 
-  const createFolderMutation = useMutation({
-    mutationKey: ["create-folder"],
-    mutationFn: async (vars: { name: string; parentId?: string }) =>
-      await createFolder({
-        data: { name: vars.name, parentId: vars.parentId },
-      }),
-    // Optimistic update
-    onMutate: async (vars) => {
-      const parentId = vars.parentId ?? rootFolder?.id;
-      if (!parentId || !rootFolder) {
-        return { previous: null as FolderWithItems | null };
-      }
-
-      await queryClient.cancelQueries({
-        queryKey: folderQueryOptions.queryKey,
-      });
-
-      const previous = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!previous) return { previous: null as FolderWithItems | null };
-
-      const tempId = `temp-${Date.now()}`;
-
-      // Deep clone preserving structure
-      const clone = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        folders: node.folders.map(clone),
-        notes: [...node.notes],
-      });
-
-      const draft = clone(previous);
-
-      const insert = (node: FolderWithItems): boolean => {
-        if (node.id === parentId) {
-          node.folders = [
-            ...node.folders,
-            {
-              id: tempId,
-              name: vars.name,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              parentFolderId: parentId,
-              isRoot: false,
-              userId: user.id,
-              folders: [],
-              notes: [],
-            },
-          ];
-          return true;
-        }
-        for (const f of node.folders) {
-          if (insert(f)) return true;
-        }
-        return false;
-      };
-
-      insert(draft);
-
-      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
-
-      // hide input
-      setActiveParentId(null);
-
-      return { previous, tempId, parentId };
-    },
-    onError: (error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
-      }
-      const apiError = apiErrorHandler(error, {
-        defaultMessage: "Failed to create folder.",
-      });
-      toast.error(apiError.details, cancelToastEl);
-    },
-    onSuccess: (data, _vars, context) => {
-      if (!context?.tempId) return;
-      const serverFolder = data.data;
-      const current = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!current) return;
-
-      const replace = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        folders: node.folders.map((f) => {
-          if (f.id === context.tempId) {
-            return {
-              ...f,
-              id: serverFolder.id,
-              name: serverFolder.name,
-              createdAt: serverFolder.createdAt,
-              updatedAt: serverFolder.updatedAt,
-              parentFolderId: serverFolder.parentFolderId,
-              isRoot: serverFolder.isRoot,
-              userId: serverFolder.userId,
-              folders: f.folders, // preserve (should be empty)
-              notes: f.notes,
-              // omit __optimistic
-            };
-          }
-          return replace(f);
-        }),
-      });
-
-      const patched = replace(current);
-      queryClient.setQueryData(folderQueryOptions.queryKey, patched);
-    },
-    onSettled: () => {
-      // light refetch to ensure deep consistency
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-    },
+  const {
+    createFolderOptimistic,
+    deleteFolderOptimistic,
+    renameFolderOptimistic,
+    creatingFolderPending,
+  } = useFolderMutations({
+    queryClient,
+    rootFolder,
+    user,
+    setActiveParentId,
+    setOpenFolderIds,
   });
 
-  const deleteFolderMutation = useMutation({
-    mutationKey: ["delete-folder"],
-    mutationFn: async (vars: { folderId: string }) =>
-      deleteFolder({ data: { folderId: vars.folderId } }),
-    onMutate: async ({ folderId }) => {
-      // Protect root folder
-      if (rootFolder && folderId === rootFolder.id) {
-        return { previous: null as FolderWithItems | null };
-      }
-
-      await queryClient.cancelQueries({
-        queryKey: folderQueryOptions.queryKey,
-      });
-
-      const previous = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!previous) return { previous: null as FolderWithItems | null };
-
-      // Deep clone
-      const clone = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        folders: node.folders.map(clone),
-        notes: [...node.notes],
-      });
-      const draft = clone(previous);
-
-      let removedNode: FolderWithItems | null = null;
-
-      const remove = (node: FolderWithItems): boolean => {
-        const idx = node.folders.findIndex((f) => f.id === folderId);
-        if (idx !== -1) {
-          removedNode = node.folders[idx];
-          node.folders = [
-            ...node.folders.slice(0, idx),
-            ...node.folders.slice(idx + 1),
-          ];
-          return true;
-        }
-        for (const f of node.folders) {
-          if (remove(f)) return true;
-        }
-        return false;
-      };
-
-      remove(draft);
-
-      // If nothing removed, bail (e.g. stale)
-      if (!removedNode) return { previous };
-
-      // Gather all folder ids in removed subtree to clean open state & active creation
-      const removedIds: string[] = [];
-      const gather = (n: FolderWithItems) => {
-        removedIds.push(n.id);
-        n.folders.forEach(gather);
-      };
-      gather(removedNode);
-
-      // Update openFolderIds (remove any removed ids)
-      setOpenFolderIds((prev) => {
-        if (prev.size === 0) return prev;
-        const next = new Set(prev);
-        removedIds.forEach((id) => {
-          next.delete(id);
-        });
-        return next;
-      });
-
-      // Cancel creation input if it was inside deleted subtree
-      setActiveParentId((prev) =>
-        prev && removedIds.includes(prev) ? null : prev,
-      );
-
-      // Optimistically set new tree
-      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
-
-      return { previous, removedNode };
-    },
-    onError: (error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
-      }
-      const apiError = apiErrorHandler(error, {
-        defaultMessage: "Failed to delete folder.",
-      });
-      toast.error(apiError.details, cancelToastEl);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-    },
+  const {
+    createNoteOptimistic,
+    deleteNoteOptimistic,
+    renameNoteOptimistic, // NEW
+    createNotePending,
+  } = useNoteMutations({
+    queryClient,
+    rootFolder,
+    user,
+    setActiveNoteParentId,
   });
-
-  // RENAME mutation (optimistic)
-  const renameFolderMutation = useMutation({
-    mutationKey: ["rename-folder"],
-    mutationFn: async (vars: {
-      folderId: string;
-      parentId: string;
-      name: string;
-    }) =>
-      await renameFolder({
-        data: {
-          folderId: vars.folderId,
-          parentId: vars.parentId,
-          name: vars.name,
-        },
-      }),
-    onMutate: async ({ folderId, name }) => {
-      if (!rootFolder) return { previous: null as FolderWithItems | null };
-      await queryClient.cancelQueries({
-        queryKey: folderQueryOptions.queryKey,
-      });
-
-      const previous = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!previous) return { previous: null as FolderWithItems | null };
-
-      const clone = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        folders: node.folders.map(clone),
-        notes: [...node.notes],
-      });
-      const draft = clone(previous);
-
-      const update = (node: FolderWithItems): boolean => {
-        if (node.id === folderId) {
-          node.name = name;
-          node.updatedAt = new Date();
-          return true;
-        }
-        for (const f of node.folders) {
-          if (update(f)) return true;
-        }
-        return false;
-      };
-      update(draft);
-
-      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
-
-      return { previous };
-    },
-    onError: (error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
-      }
-      const apiError = apiErrorHandler(error, {
-        defaultMessage: "Failed to rename folder.",
-      });
-      toast.error(apiError.details, cancelToastEl);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-    },
-  });
-
-  const createNoteMutation = useMutation({
-    mutationKey: ["create-note"],
-    mutationFn: async (vars: { title: string; parentId?: string }) =>
-      await createNote({
-        data: { title: vars.title, folderId: vars.parentId },
-      }),
-    onMutate: async (vars) => {
-      const parentId = vars.parentId ?? rootFolder?.id;
-      if (!parentId || !rootFolder)
-        return { previous: null as FolderWithItems | null };
-
-      await queryClient.cancelQueries({
-        queryKey: folderQueryOptions.queryKey,
-      });
-
-      const previous = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!previous) return { previous: null as FolderWithItems | null };
-
-      const tempId = `temp-note-${Date.now()}`;
-
-      const clone = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        folders: node.folders.map(clone),
-        notes: [...node.notes],
-      });
-      const draft = clone(previous);
-
-      const insert = (node: FolderWithItems): boolean => {
-        if (node.id === parentId) {
-          node.notes = [
-            ...node.notes,
-            {
-              id: tempId,
-              title: vars.title,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              userId: user.id,
-              contentEncrypted: "",
-              contentIv: "",
-              contentTag: "",
-              folderId: parentId,
-              isFavorite: false,
-              tags: [],
-            } satisfies Note,
-          ];
-          return true;
-        }
-        for (const f of node.folders) {
-          if (insert(f)) return true;
-        }
-        return false;
-      };
-
-      insert(draft);
-      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
-      setActiveNoteParentId(null);
-      return { previous, tempId };
-    },
-    onError: (error, _vars, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
-      }
-      const apiError = apiErrorHandler(error, {
-        defaultMessage: "Failed to create note.",
-      });
-      toast.error(apiError.details, cancelToastEl);
-    },
-    onSuccess: (data, _vars, context) => {
-      if (!context?.tempId) return;
-      const serverNote = data.data as Note;
-      const current = queryClient.getQueryData<FolderWithItems | null>(
-        folderQueryOptions.queryKey,
-      );
-      if (!current) return;
-
-      const replace = (node: FolderWithItems): FolderWithItems => ({
-        ...node,
-        notes: node.notes.map((n) =>
-          n.id === context.tempId
-            ? {
-                ...n,
-                id: serverNote.id,
-                title: serverNote.title,
-                createdAt: serverNote.createdAt,
-                updatedAt: serverNote.updatedAt,
-                userId: serverNote.userId,
-                contentEncrypted: serverNote.contentEncrypted,
-                contentIv: serverNote.contentIv,
-                contentTag: serverNote.contentTag,
-                folderId: serverNote.folderId,
-                isFavorite: serverNote.isFavorite,
-                tags: serverNote.tags,
-              }
-            : n,
-        ),
-        folders: node.folders.map(replace),
-      });
-
-      const patched = replace(current);
-      queryClient.setQueryData(folderQueryOptions.queryKey, patched);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-    },
-  });
-
-  const startCreation = (parentId: string) => {
-    // ensure folder is open before input mounts
-    openFolder(parentId);
-    // then set active parent to show folder input node
-    setActiveParentId(parentId);
-  };
-  const cancelCreation = () => setActiveParentId(null);
-
-  const startNote = (parentId: string) => {
-    openFolder(parentId);
-    setActiveNoteParentId(parentId);
-  };
-  const cancelNote = () => setActiveNoteParentId(null);
-
-  const submitCreation = (name: string, parentId: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    createFolderMutation.mutate({ name: trimmed, parentId });
-  };
-
-  const createFolderOptimistic = (name: string, parentId: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    createFolderMutation.mutate({ name: trimmed, parentId });
-  };
-
-  const deleteFolderOptimistic = (folderId: string) => {
-    deleteFolderMutation.mutate({ folderId });
-  };
-
-  const renameFolderOptimistic = (
-    folderId: string,
-    parentId: string,
-    name: string,
-  ) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    renameFolderMutation.mutate({ folderId, parentId, name: trimmed });
-  };
-
-  const createNoteOptimistic = (title: string, parentId: string) => {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    createNoteMutation.mutate({ title: trimmed, parentId });
-  };
-
-  // actions
-  const actions = [
-    {
-      title: "Create new folder",
-      icon: TbFolderPlus,
-      onClick: () => rootFolder && startCreation(rootFolder.id),
-    },
-    {
-      title: "Create new note",
-      icon: TbFilePlus,
-      onClick: () => rootFolder && startNote(rootFolder.id), // NEW
-    },
-  ];
 
   const signOutUser = async () => {
     toast.promise(signOut, {
@@ -671,6 +247,44 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
 
+  // ADD MISSING HELPERS (were removed during refactor)
+  const startCreation = (parentId: string) => {
+    openFolder(parentId);
+    setActiveParentId(parentId);
+  };
+
+  const cancelCreation = () => {
+    setActiveParentId(null);
+  };
+
+  const startNote = (parentId: string) => {
+    openFolder(parentId);
+    setActiveNoteParentId(parentId);
+  };
+
+  const cancelNote = () => {
+    setActiveNoteParentId(null);
+  };
+
+  // Folder creation submit wrapper
+  const submitCreation = (name: string, parentId: string) => {
+    createFolderOptimistic(name, parentId);
+  };
+
+  // Actions list (was missing)
+  const actions = [
+    {
+      title: "Create new folder",
+      icon: TbFolderPlus,
+      onClick: () => rootFolder && startCreation(rootFolder.id),
+    },
+    {
+      title: "Create new note",
+      icon: TbFilePlus,
+      onClick: () => rootFolder && startNote(rootFolder.id),
+    },
+  ];
+
   return (
     <FolderCreationContext.Provider
       value={{
@@ -688,7 +302,9 @@ export const AppSidebar = ({ user }: { user: User }) => {
         deleteFolderOptimistic,
         renameFolderOptimistic,
         createNoteOptimistic,
-        createNotePending: createNoteMutation.isPending, // NEW
+        deleteNoteOptimistic,
+        renameNoteOptimistic,
+        createNotePending,
       }}
     >
       <Sidebar variant="inset">
@@ -750,7 +366,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
               <SidebarMenu>
                 {rootFolder && (
                   <RootFolderSection
-                    creating={createFolderMutation.isPending}
+                    creating={creatingFolderPending}
                     isCreating={activeParentId === rootFolder.id}
                     onCancel={cancelCreation}
                     onSubmit={submitCreation}
@@ -922,7 +538,11 @@ const RootFolderSection = ({
       )}
 
       {notes.map((n) => (
-        <NoteItem key={n.id} note={n} />
+        <NoteItem
+          key={n.id}
+          note={n}
+          siblingTitles={notes.filter((x) => x.id !== n.id).map((x) => x.title)}
+        />
       ))}
 
       {creatingNoteHere && (
@@ -1028,11 +648,7 @@ const FolderNode = ({
                           trimmedRename === folder.name
                         )
                           return;
-                        renameFolderOptimistic(
-                          folder.id,
-                          folder.parentFolderId,
-                          trimmedRename,
-                        );
+                        renameFolderOptimistic(folder.id, trimmedRename);
                         setRenaming(false);
                       } else if (e.key === "Escape") {
                         setFolderName(folder.name);
@@ -1109,7 +725,13 @@ const FolderNode = ({
           )}
 
           {notes.map((n) => (
-            <NoteItem key={n.id} note={n} />
+            <NoteItem
+              key={n.id}
+              note={n}
+              siblingTitles={notes
+                .filter((x) => x.id !== n.id)
+                .map((x) => x.title)}
+            />
           ))}
         </SidebarMenu>
       </CollapsibleContent>
@@ -1288,19 +910,29 @@ const FolderNodeDropdown = ({
   );
 };
 
-const NoteItem = ({ note }: { note: Note }) => {
+const NoteItem = ({
+  note,
+  siblingTitles = [],
+}: {
+  note: Note;
+  siblingTitles?: string[];
+}) => {
+  const { renameNoteOptimistic } = useFolderCreation();
   const [renaming, setRenaming] = useState(false);
   const [noteTitle, setNoteTitle] = useState(note.title);
 
-  // Disable editing mode when clicking outside the input.
   const inputRef = useClickAway<HTMLInputElement>(() => {
     setRenaming(false);
+    setNoteTitle(note.title);
   });
-
-  // Disable editing mode by pressing "Esc" even if the input is not focused.
-  useHotkeys("esc", () => setRenaming(false), {
-    enableOnFormTags: true,
-  });
+  useHotkeys(
+    "esc",
+    () => {
+      setRenaming(false);
+      setNoteTitle(note.title);
+    },
+    { enableOnFormTags: true },
+  );
 
   useEffect(() => {
     if (renaming && inputRef.current) {
@@ -1309,50 +941,90 @@ const NoteItem = ({ note }: { note: Note }) => {
     }
   }, [renaming, inputRef]);
 
-  const startNoteRename = () => {
-    setRenaming(true);
-  };
+  const trimmed = noteTitle.trim();
+  const isDuplicate =
+    renaming &&
+    trimmed.length > 0 &&
+    siblingTitles.includes(trimmed) &&
+    trimmed !== note.title;
+
+  const isMobileViewport = useIsMobile(768);
+  const popoverSide = isMobileViewport ? "top" : "right";
+  const popoverAlign: "start" | "center" = isMobileViewport
+    ? "center"
+    : "start";
+  const popoverWidthClass = isMobileViewport
+    ? "w-(--radix-popover-trigger-width)"
+    : "w-64";
+
+  const startNoteRename = () => setRenaming(true);
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton
-        onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
-        size={SIDEBAR_BTN_SIZE}
-        variant={renaming ? "input" : "default"}
-      >
-        <TbFile />
-        {renaming ? (
-          <input
-            className="w-full bg-transparent focus-visible:outline-none"
-            onChange={(e) => setNoteTitle(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                setRenaming(false);
-                // TODO: trigger rename mutation here.
-              } else if (e.key === "Escape") {
-                setNoteTitle(note.title);
-                setRenaming(false);
-              }
-            }}
-            ref={inputRef}
-            value={noteTitle}
-          />
-        ) : (
-          <span>{note.title}</span>
-        )}
-      </SidebarMenuButton>
-      {renaming ? null : <NoteItemDropdown startNoteRename={startNoteRename} />}
+      <Popover open={isDuplicate}>
+        <PopoverTrigger asChild>
+          <SidebarMenuButton
+            onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
+            size={SIDEBAR_BTN_SIZE}
+            variant={renaming ? "input" : "default"}
+          >
+            <TbFile />
+            {renaming ? (
+              <input
+                className="w-full bg-transparent focus-visible:outline-none"
+                onChange={(e) => setNoteTitle(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!trimmed || isDuplicate || trimmed === note.title)
+                      return;
+                    renameNoteOptimistic(note.id, trimmed);
+                    setRenaming(false);
+                  } else if (e.key === "Escape") {
+                    setNoteTitle(note.title);
+                    setRenaming(false);
+                  }
+                }}
+                ref={inputRef}
+                value={noteTitle}
+              />
+            ) : (
+              <span>{note.title}</span>
+            )}
+          </SidebarMenuButton>
+        </PopoverTrigger>
+        <PopoverContent
+          align={popoverAlign}
+          className={`${popoverWidthClass} p-3`}
+          side={popoverSide}
+          sideOffset={6}
+        >
+          <div className="space-y-2">
+            <p className="font-medium text-sm">Title already exists</p>
+            <p className="text-muted-foreground text-xs">
+              Another note here already has this title.
+            </p>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {renaming ? null : (
+        <NoteItemDropdown noteId={note.id} startNoteRename={startNoteRename} />
+      )}
     </SidebarMenuItem>
   );
 };
 
 const NoteItemDropdown = ({
   startNoteRename,
+  noteId,
 }: {
   startNoteRename: () => void;
+  noteId: string;
 }) => {
   const { isMobile } = useSidebar();
+  const { deleteNoteOptimistic } = useFolderCreation(); // NEW
 
   return (
     <DropdownMenu>
@@ -1395,7 +1067,13 @@ const NoteItemDropdown = ({
           <span>Rename note</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            deleteNoteOptimistic(noteId);
+          }}
+          variant="destructive"
+        >
           <TbTrash className="text-muted-foreground" />
           <span>Delete note</span>
         </DropdownMenuItem>

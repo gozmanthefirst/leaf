@@ -76,12 +76,10 @@ export const $renameFolder = createServerFn()
     z.object({
       name: z.string().min(1),
       folderId: z.string().min(1),
-      parentId: z.string().min(1),
     }),
   )
   .handler(async ({ context, data }) => {
     const payload = {
-      parentFolderId: data.parentId,
       name: data.name,
     };
 

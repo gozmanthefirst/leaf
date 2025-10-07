@@ -70,6 +70,32 @@ export const $createNote = createServerFn()
     return response.data;
   });
 
+//* RENAME NOTE
+// rename note server fn
+export const $renameNote = createServerFn()
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      title: z.string().min(1),
+      noteId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      title: data.title,
+    };
+
+    await axiosClient.put<ApiSuccessResponse<Note>>(
+      `/notes/${data.noteId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+  });
+
 //* DELETE NOTE
 // delete note server fn
 export const $deleteNote = createServerFn()
