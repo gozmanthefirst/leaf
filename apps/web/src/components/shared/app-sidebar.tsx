@@ -56,6 +56,7 @@ import {
   $renameFolder,
   folderQueryOptions,
 } from "@/server/folder";
+import { $createNote } from "@/server/note";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -98,17 +99,25 @@ type FolderCreationCtx = {
   activeParentId: string | null;
   start: (parentId: string) => void;
   cancel: () => void;
+  activeNoteParentId: string | null;
+  startNote: (parentId: string) => void;
+  cancelNote: () => void;
+
   isOpen: (folderId: string) => boolean;
   openFolder: (folderId: string) => void;
   closeFolder: (folderId: string) => void;
   toggleFolder: (folderId: string) => void;
+
   createFolderOptimistic: (name: string, parentId: string) => void;
   deleteFolderOptimistic: (folderId: string) => void;
   renameFolderOptimistic: (
     folderId: string,
     parentId: string,
     name: string,
-  ) => void; // NEW
+  ) => void;
+
+  createNoteOptimistic: (title: string, parentId: string) => void;
+  createNotePending: boolean;
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -129,9 +138,13 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const createFolder = useServerFn($createFolder);
   const deleteFolder = useServerFn($deleteFolder);
   const renameFolder = useServerFn($renameFolder); // NEW
+  const createNote = useServerFn($createNote); // NEW
   const navigate = useNavigate();
 
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
+  const [activeNoteParentId, setActiveNoteParentId] = useState<string | null>(
+    null,
+  ); // NEW
 
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
@@ -467,6 +480,114 @@ export const AppSidebar = ({ user }: { user: User }) => {
     },
   });
 
+  const createNoteMutation = useMutation({
+    mutationKey: ["create-note"],
+    mutationFn: async (vars: { title: string; parentId?: string }) =>
+      await createNote({
+        data: { title: vars.title, folderId: vars.parentId },
+      }),
+    onMutate: async (vars) => {
+      const parentId = vars.parentId ?? rootFolder?.id;
+      if (!parentId || !rootFolder)
+        return { previous: null as FolderWithItems | null };
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      const tempId = `temp-note-${Date.now()}`;
+
+      const clone = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map(clone),
+        notes: [...node.notes],
+      });
+      const draft = clone(previous);
+
+      const insert = (node: FolderWithItems): boolean => {
+        if (node.id === parentId) {
+          node.notes = [
+            ...node.notes,
+            {
+              id: tempId,
+              title: vars.title,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              userId: user.id,
+              contentEncrypted: "",
+              contentIv: "",
+              contentTag: "",
+              folderId: parentId,
+              isFavorite: false,
+              tags: [],
+            } satisfies Note,
+          ];
+          return true;
+        }
+        for (const f of node.folders) {
+          if (insert(f)) return true;
+        }
+        return false;
+      };
+
+      insert(draft);
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+      setActiveNoteParentId(null);
+      return { previous, tempId };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to create note.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSuccess: (data, _vars, context) => {
+      if (!context?.tempId) return;
+      const serverNote = data.data as Note;
+      const current = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!current) return;
+
+      const replace = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        notes: node.notes.map((n) =>
+          n.id === context.tempId
+            ? {
+                ...n,
+                id: serverNote.id,
+                title: serverNote.title,
+                createdAt: serverNote.createdAt,
+                updatedAt: serverNote.updatedAt,
+                userId: serverNote.userId,
+                contentEncrypted: serverNote.contentEncrypted,
+                contentIv: serverNote.contentIv,
+                contentTag: serverNote.contentTag,
+                folderId: serverNote.folderId,
+                isFavorite: serverNote.isFavorite,
+                tags: serverNote.tags,
+              }
+            : n,
+        ),
+        folders: node.folders.map(replace),
+      });
+
+      const patched = replace(current);
+      queryClient.setQueryData(folderQueryOptions.queryKey, patched);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+    },
+  });
+
   const startCreation = (parentId: string) => {
     // ensure folder is open before input mounts
     openFolder(parentId);
@@ -474,6 +595,12 @@ export const AppSidebar = ({ user }: { user: User }) => {
     setActiveParentId(parentId);
   };
   const cancelCreation = () => setActiveParentId(null);
+
+  const startNote = (parentId: string) => {
+    openFolder(parentId);
+    setActiveNoteParentId(parentId);
+  };
+  const cancelNote = () => setActiveNoteParentId(null);
 
   const submitCreation = (name: string, parentId: string) => {
     const trimmed = name.trim();
@@ -501,6 +628,12 @@ export const AppSidebar = ({ user }: { user: User }) => {
     renameFolderMutation.mutate({ folderId, parentId, name: trimmed });
   };
 
+  const createNoteOptimistic = (title: string, parentId: string) => {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    createNoteMutation.mutate({ title: trimmed, parentId });
+  };
+
   // actions
   const actions = [
     {
@@ -511,9 +644,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
     {
       title: "Create new note",
       icon: TbFilePlus,
-      onClick: () => {
-        /* TODO note creation */
-      },
+      onClick: () => rootFolder && startNote(rootFolder.id), // NEW
     },
   ];
 
@@ -546,13 +677,18 @@ export const AppSidebar = ({ user }: { user: User }) => {
         activeParentId,
         start: startCreation,
         cancel: cancelCreation,
+        activeNoteParentId,
+        startNote,
+        cancelNote,
         isOpen,
         openFolder,
         closeFolder,
         toggleFolder,
         createFolderOptimistic,
         deleteFolderOptimistic,
-        renameFolderOptimistic, // NEW
+        renameFolderOptimistic,
+        createNoteOptimistic,
+        createNotePending: createNoteMutation.isPending, // NEW
       }}
     >
       <Sidebar variant="inset">
@@ -743,16 +879,23 @@ const RootFolderSection = ({
   onCancel: () => void;
 }) => {
   const { folders, notes } = sortFolderItems(rootFolder);
-  const empty = folders.length === 0 && notes.length === 0;
+  const {
+    activeNoteParentId,
+    startNote,
+    cancelNote,
+    createNoteOptimistic,
+    createNotePending, // NEW
+  } = useFolderCreation();
+  const creatingNoteHere = activeNoteParentId === rootFolder.id;
 
   return (
     <>
-      {empty && (
+      {folders.length === 0 && notes.length === 0 && (
         <div className="flex flex-col gap-4 px-2 py-2">
           <p className="text-muted-foreground text-xs">
             You have no notes or folders. Create one to get started.
           </p>
-          <Button size="xs">
+          <Button onClick={() => startNote(rootFolder.id)} size="xs">
             <TbFilePlus className="size-4" />
             <span className="text-xs">Create your first note</span>
           </Button>
@@ -781,6 +924,17 @@ const RootFolderSection = ({
       {notes.map((n) => (
         <NoteItem key={n.id} note={n} />
       ))}
+
+      {creatingNoteHere && (
+        <NoteInputInline
+          loading={createNotePending}
+          onCancel={cancelNote}
+          onCreate={(title) => createNoteOptimistic(title, rootFolder.id)}
+          parentId={rootFolder.id}
+          parentOpen={true}
+          siblingTitles={notes.map((n) => n.title)}
+        />
+      )}
     </>
   );
 };
@@ -795,14 +949,18 @@ const FolderNode = ({
 }) => {
   const {
     activeParentId,
-    start,
+    activeNoteParentId,
+    start, // kept (folder start)
     cancel,
+    cancelNote,
     isOpen,
     openFolder,
     closeFolder,
     toggleFolder,
     createFolderOptimistic,
-    renameFolderOptimistic, // NEW
+    createNoteOptimistic,
+    renameFolderOptimistic,
+    createNotePending,
   } = useFolderCreation();
 
   const [renaming, setRenaming] = useState(false);
@@ -820,7 +978,8 @@ const FolderNode = ({
 
   const { folders, notes } = sortFolderItems(folder);
   const open = isOpen(folder.id);
-  const isCreatingChild = activeParentId === folder.id;
+  const isCreatingChildFolder = activeParentId === folder.id;
+  const isCreatingChildNote = activeNoteParentId === folder.id;
 
   const trimmedRename = folderName.trim();
   const isDuplicateRename =
@@ -828,8 +987,6 @@ const FolderNode = ({
     trimmedRename.length > 0 &&
     siblingNames.includes(trimmedRename) &&
     trimmedRename !== folder.name;
-
-  const creating = false;
 
   const startFolderRename = () => setRenaming(true);
 
@@ -929,14 +1086,25 @@ const FolderNode = ({
             />
           ))}
 
-          {isCreatingChild && (
+          {isCreatingChildFolder && (
             <FolderInputInline
-              loading={creating}
+              loading={false}
               onCancel={cancel}
               onCreate={(name) => createFolderOptimistic(name, folder.id)}
               parentId={folder.id}
               parentOpen={open}
               siblingNames={folders.map((f) => f.name)}
+            />
+          )}
+
+          {isCreatingChildNote && (
+            <NoteInputInline
+              loading={createNotePending}
+              onCancel={cancelNote}
+              onCreate={(title) => createNoteOptimistic(title, folder.id)}
+              parentId={folder.id}
+              parentOpen={open}
+              siblingTitles={notes.map((n) => n.title)}
             />
           )}
 
@@ -1051,7 +1219,12 @@ const FolderNodeDropdown = ({
   startNewFolder: () => void;
 }) => {
   const { isMobile } = useSidebar();
-  const { activeParentId, deleteFolderOptimistic } = useFolderCreation();
+  const {
+    activeParentId,
+    activeNoteParentId,
+    startNote,
+    deleteFolderOptimistic,
+  } = useFolderCreation();
 
   return (
     <DropdownMenu>
@@ -1065,7 +1238,10 @@ const FolderNodeDropdown = ({
         align={isMobile ? "end" : "start"}
         className="w-56"
         onCloseAutoFocus={(e) => {
-          if (activeParentId === folderId) e.preventDefault();
+          // Prevent focus from returning to trigger when spawning either folder or note input
+          if (activeParentId === folderId || activeNoteParentId === folderId) {
+            e.preventDefault();
+          }
         }}
         side={isMobile ? "bottom" : "right"}
       >
@@ -1077,7 +1253,11 @@ const FolderNodeDropdown = ({
           <TbFolderPlus className="text-muted-foreground" />
           <span>New folder</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            startNote(folderId);
+          }}
+        >
           <TbFilePlus className="text-muted-foreground" />
           <span>New note</span>
         </DropdownMenuItem>
@@ -1221,6 +1401,97 @@ const NoteItemDropdown = ({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+};
+
+// -------------------- NEW NoteInputInline Component --------------------
+const NoteInputInline = ({
+  parentId,
+  onCreate,
+  onCancel,
+  loading,
+  parentOpen = true,
+  siblingTitles = [],
+}: {
+  parentId: string;
+  onCreate: (title: string, parentId: string) => void;
+  onCancel: () => void;
+  loading: boolean;
+  parentOpen?: boolean;
+  siblingTitles?: string[];
+}) => {
+  const [title, setTitle] = useState("Untitled");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const itemRef = useClickAway<HTMLLIElement>(() => onCancel());
+  useHotkeys("esc", onCancel, { enableOnFormTags: true });
+
+  const isMobileViewport = useIsMobile(768);
+  const popoverSide = isMobileViewport ? "top" : "right";
+  const popoverAlign: "start" | "center" = isMobileViewport
+    ? "center"
+    : "start";
+  const popoverWidthClass = isMobileViewport
+    ? "w-(--radix-popover-trigger-width)"
+    : "w-64";
+
+  const trimmed = title.trim();
+  const isDuplicate = trimmed.length > 0 && siblingTitles.includes(trimmed);
+
+  usePersistentFocus(inputRef, {
+    enabled: parentOpen && !loading,
+    select: true,
+  });
+
+  return (
+    <SidebarMenuItem ref={itemRef}>
+      <Popover open={isDuplicate}>
+        <PopoverTrigger asChild>
+          <SidebarMenuButton
+            className="disabled:opacity-50"
+            disabled={loading}
+            onClick={(e) => e.stopPropagation()}
+            size={SIDEBAR_BTN_SIZE}
+            variant="input"
+          >
+            <TbFile
+              aria-hidden="true"
+              className="pointer-events-none shrink-0 text-muted-foreground/60"
+            />
+            <input
+              className="w-full bg-transparent focus-visible:outline-none"
+              disabled={loading}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (isDuplicate) return;
+                  onCreate(trimmed, parentId);
+                } else if (e.key === "Escape") {
+                  e.stopPropagation();
+                  onCancel();
+                }
+              }}
+              ref={inputRef}
+              value={title}
+            />
+          </SidebarMenuButton>
+        </PopoverTrigger>
+        <PopoverContent
+          align={popoverAlign}
+          className={`${popoverWidthClass} p-3`}
+          side={popoverSide}
+          sideOffset={6}
+        >
+          <div className="space-y-2">
+            <p className="font-medium text-sm">Title already exists</p>
+            <p className="text-muted-foreground text-xs">
+              Another note here already has this title. Enter a different one.
+            </p>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </SidebarMenuItem>
   );
 };
 

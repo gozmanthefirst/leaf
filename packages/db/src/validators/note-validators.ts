@@ -18,7 +18,7 @@ export const NoteInsertSchema = NoteInputSchema.pick({
   isFavorite: true,
   folderId: true,
 }).extend({
-  title: z.string().min(1).default("untitled"),
+  title: z.string().min(1).default("Untitled"),
   content: z.string().default(""),
   tags: z.array(z.string().min(1)).default([]),
   isFavorite: z.boolean().default(false),
