@@ -53,6 +53,7 @@ import {
   $createFolder,
   $deleteFolder,
   $getFolder,
+  $renameFolder,
   folderQueryOptions,
 } from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
@@ -102,7 +103,12 @@ type FolderCreationCtx = {
   closeFolder: (folderId: string) => void;
   toggleFolder: (folderId: string) => void;
   createFolderOptimistic: (name: string, parentId: string) => void;
-  deleteFolderOptimistic: (folderId: string) => void; // NEW
+  deleteFolderOptimistic: (folderId: string) => void;
+  renameFolderOptimistic: (
+    folderId: string,
+    parentId: string,
+    name: string,
+  ) => void; // NEW
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -122,6 +128,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const getFolder = useServerFn($getFolder);
   const createFolder = useServerFn($createFolder);
   const deleteFolder = useServerFn($deleteFolder);
+  const renameFolder = useServerFn($renameFolder); // NEW
   const navigate = useNavigate();
 
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
@@ -396,6 +403,70 @@ export const AppSidebar = ({ user }: { user: User }) => {
     },
   });
 
+  // RENAME mutation (optimistic)
+  const renameFolderMutation = useMutation({
+    mutationKey: ["rename-folder"],
+    mutationFn: async (vars: {
+      folderId: string;
+      parentId: string;
+      name: string;
+    }) =>
+      await renameFolder({
+        data: {
+          folderId: vars.folderId,
+          parentId: vars.parentId,
+          name: vars.name,
+        },
+      }),
+    onMutate: async ({ folderId, name }) => {
+      if (!rootFolder) return { previous: null as FolderWithItems | null };
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      const clone = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map(clone),
+        notes: [...node.notes],
+      });
+      const draft = clone(previous);
+
+      const update = (node: FolderWithItems): boolean => {
+        if (node.id === folderId) {
+          node.name = name;
+          node.updatedAt = new Date();
+          return true;
+        }
+        for (const f of node.folders) {
+          if (update(f)) return true;
+        }
+        return false;
+      };
+      update(draft);
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      return { previous };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to rename folder.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+    },
+  });
+
   const startCreation = (parentId: string) => {
     // ensure folder is open before input mounts
     openFolder(parentId);
@@ -418,6 +489,16 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   const deleteFolderOptimistic = (folderId: string) => {
     deleteFolderMutation.mutate({ folderId });
+  };
+
+  const renameFolderOptimistic = (
+    folderId: string,
+    parentId: string,
+    name: string,
+  ) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    renameFolderMutation.mutate({ folderId, parentId, name: trimmed });
   };
 
   // actions
@@ -470,7 +551,8 @@ export const AppSidebar = ({ user }: { user: User }) => {
         closeFolder,
         toggleFolder,
         createFolderOptimistic,
-        deleteFolderOptimistic, // NEW
+        deleteFolderOptimistic,
+        renameFolderOptimistic, // NEW
       }}
     >
       <Sidebar variant="inset">
@@ -678,7 +760,11 @@ const RootFolderSection = ({
       )}
 
       {folders.map((f) => (
-        <FolderNode folder={f} key={f.id} />
+        <FolderNode
+          folder={f}
+          key={f.id}
+          siblingNames={folders.filter((x) => x.id !== f.id).map((x) => x.name)}
+        />
       ))}
 
       {isCreating && (
@@ -700,7 +786,13 @@ const RootFolderSection = ({
 };
 
 /* ---------- Folder Node ---------- */
-const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
+const FolderNode = ({
+  folder,
+  siblingNames = [],
+}: {
+  folder: FolderWithItems;
+  siblingNames?: string[];
+}) => {
   const {
     activeParentId,
     start,
@@ -710,6 +802,7 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
     closeFolder,
     toggleFolder,
     createFolderOptimistic,
+    renameFolderOptimistic, // NEW
   } = useFolderCreation();
 
   const [renaming, setRenaming] = useState(false);
@@ -729,7 +822,14 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
   const open = isOpen(folder.id);
   const isCreatingChild = activeParentId === folder.id;
 
-  const creating = false; // (Optional) you can pass loading={false} or track global pending if you want to disable input:
+  const trimmedRename = folderName.trim();
+  const isDuplicateRename =
+    renaming &&
+    trimmedRename.length > 0 &&
+    siblingNames.includes(trimmedRename) &&
+    trimmedRename !== folder.name;
+
+  const creating = false;
 
   const startFolderRename = () => setRenaming(true);
 
@@ -740,42 +840,71 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
       open={open}
     >
       <SidebarMenuItem ref={itemRef}>
-        <CollapsibleTrigger
-          asChild
-          onClick={() => {
-            if (!renaming) toggleFolder(folder.id);
-          }}
-        >
-          <SidebarMenuButton
-            onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
-            size={SIDEBAR_BTN_SIZE}
-            variant={renaming ? "input" : "default"}
+        <Popover open={isDuplicateRename}>
+          <PopoverTrigger asChild>
+            <CollapsibleTrigger
+              asChild
+              onClick={() => {
+                if (!renaming) toggleFolder(folder.id);
+              }}
+            >
+              <SidebarMenuButton
+                onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
+                size={SIDEBAR_BTN_SIZE}
+                variant={renaming ? "input" : "default"}
+              >
+                <TbChevronRight
+                  className={`transition-transform ${open ? "rotate-90" : ""}`}
+                />
+                {renaming ? (
+                  <input
+                    className="w-full bg-transparent focus-visible:outline-none"
+                    onChange={(e) => setFolderName(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (
+                          !trimmedRename ||
+                          isDuplicateRename ||
+                          trimmedRename === folder.name
+                        )
+                          return;
+                        renameFolderOptimistic(
+                          folder.id,
+                          folder.parentFolderId,
+                          trimmedRename,
+                        );
+                        setRenaming(false);
+                      } else if (e.key === "Escape") {
+                        setFolderName(folder.name);
+                        setRenaming(false);
+                      }
+                    }}
+                    ref={inputRef}
+                    value={folderName}
+                  />
+                ) : (
+                  <span>{folder.name}</span>
+                )}
+              </SidebarMenuButton>
+            </CollapsibleTrigger>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-64 p-3"
+            side="right"
+            sideOffset={6}
           >
-            <TbChevronRight
-              className={`transition-transform ${open ? "rotate-90" : ""}`}
-            />
-            {renaming ? (
-              <input
-                className="w-full bg-transparent focus-visible:outline-none"
-                onChange={(e) => setFolderName(e.target.value)}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setRenaming(false);
-                    // TODO: rename mutation
-                  } else if (e.key === "Escape") {
-                    setFolderName(folder.name);
-                    setRenaming(false);
-                  }
-                }}
-                ref={inputRef}
-                value={folderName}
-              />
-            ) : (
-              <span>{folder.name}</span>
-            )}
-          </SidebarMenuButton>
-        </CollapsibleTrigger>
+            <div className="space-y-2">
+              <p className="font-medium text-sm">Name already exists</p>
+              <p className="text-muted-foreground text-xs">
+                Another folder here already has this name.
+              </p>
+            </div>
+          </PopoverContent>
+        </Popover>
         {!renaming && (
           <FolderNodeDropdown
             folderId={folder.id}
@@ -791,7 +920,13 @@ const FolderNode = ({ folder }: { folder: FolderWithItems }) => {
       <CollapsibleContent className="ml-4 border-muted border-l pl-2">
         <SidebarMenu>
           {folders.map((f) => (
-            <FolderNode folder={f} key={f.id} />
+            <FolderNode
+              folder={f}
+              key={f.id}
+              siblingNames={folders
+                .filter((x) => x.id !== f.id)
+                .map((x) => x.name)}
+            />
           ))}
 
           {isCreatingChild && (

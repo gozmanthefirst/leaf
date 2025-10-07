@@ -68,6 +68,36 @@ export const $createFolder = createServerFn()
     return response.data;
   });
 
+//* RENAME FOLDER
+// rename folder server fn
+export const $renameFolder = createServerFn()
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      name: z.string().min(1),
+      folderId: z.string().min(1),
+      parentId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      parentFolderId: data.parentId,
+      name: data.name,
+    };
+
+    const response = await axiosClient.put<ApiSuccessResponse<Folder>>(
+      `/folders/${data.folderId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data;
+  });
+
 //* DELETE FOLDER
 // delete folder server fn
 export const $deleteFolder = createServerFn()
