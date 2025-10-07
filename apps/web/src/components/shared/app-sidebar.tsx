@@ -16,7 +16,6 @@ import {
 } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
-  TbAppWindow,
   TbChevronRight,
   TbDeviceDesktop,
   TbDotsVertical,
@@ -92,11 +91,13 @@ import { cancelToastEl } from "../ui/toaster";
 /* ---------- Folder Creation Context ---------- */
 type FolderCreationCtx = {
   activeParentId: string | null;
-  start: (parentId: string) => void;
-  cancel: () => void;
+
+  startFolderCreation: (parentId: string) => void;
+  cancelFolderCreation: () => void;
+
   activeNoteParentId: string | null;
-  startNote: (parentId: string) => void;
-  cancelNote: () => void;
+  startNoteCreation: (parentId: string) => void;
+  cancelNoteCreation: () => void;
 
   isOpen: (folderId: string) => boolean;
   openFolder: (folderId: string) => void;
@@ -110,7 +111,7 @@ type FolderCreationCtx = {
   createNoteOptimistic: (title: string, parentId: string) => void;
   deleteNoteOptimistic: (noteId: string) => void;
   renameNoteOptimistic: (noteId: string, title: string) => void;
-  copyNoteOptimistic: (noteId: string) => void; // NEW
+  copyNoteOptimistic: (noteId: string) => void;
   createNotePending: boolean;
 };
 
@@ -122,7 +123,7 @@ const useFolderCreation = () => {
 };
 // ------------------------------------------------
 
-const SIDEBAR_BTN_SIZE: "sm" | "default" | "lg" = "sm";
+const SIDEBAR_BTN_SIZE: "sm" | "default" | "lg" = "default";
 
 export const AppSidebar = ({ user }: { user: User }) => {
   const mainRoute = getRouteApi("/_main");
@@ -139,14 +140,14 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const { isMobile } = useSidebar();
   const { setTheme, theme } = useTheme();
 
+  // Get the root folder
   const folderQuery = useQuery({
     ...folderQueryOptions,
     queryFn: () => getFolder(),
   });
-
   const rootFolder = folderQuery.data;
 
-  // INITIAL open folder ids (latest note path)
+  // Initial open folder ids (depends on the most recently updated note)
   const initialOpenFolderIds = useMemo(
     () =>
       rootFolder
@@ -155,13 +156,16 @@ export const AppSidebar = ({ user }: { user: User }) => {
     [rootFolder],
   );
 
-  // Controlled open state
+  // Controlled folder open state
   const [openFolderIds, setOpenFolderIds] = useState<Set<string>>(
     () => initialOpenFolderIds,
   );
 
-  // FIX: Do NOT overwrite previously opened folders whenever rootFolder data changes.
-  // Instead, only add any newly required ids (e.g. latest note path) once data refreshes.
+  // useEffect to update openFolderIds when rootFolder changes since the effect depends
+  // on initialOpenFolderIds, and this is turn is a memoized value that depends on rootFolder.
+  // The openFolderIds state is initialized with initialOpenFolderIds only once on mount.
+  // Then on sunsequent updates to the rootFolder, we merge the existing openFolderIds with
+  // any new ids from the updated initialOpenFolderIds instead of overwriting it.
   useEffect(() => {
     setOpenFolderIds((prev) => {
       // If first load (prev empty) just take initial set.
@@ -197,7 +201,6 @@ export const AppSidebar = ({ user }: { user: User }) => {
       else next.add(id);
       return next;
     });
-
   const isOpen = (id: string) => openFolderIds.has(id);
 
   const {
@@ -217,7 +220,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
     createNoteOptimistic,
     deleteNoteOptimistic,
     renameNoteOptimistic,
-    copyNoteOptimistic, // NEW
+    copyNoteOptimistic,
     createNotePending,
   } = useNoteMutations({
     queryClient,
@@ -249,41 +252,34 @@ export const AppSidebar = ({ user }: { user: User }) => {
 
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
 
-  // ADD MISSING HELPERS (were removed during refactor)
-  const startCreation = (parentId: string) => {
+  // Creation handlers
+  const startFolderCreation = (parentId: string) => {
     openFolder(parentId);
     setActiveParentId(parentId);
   };
-
-  const cancelCreation = () => {
-    setActiveParentId(null);
-  };
-
-  const startNote = (parentId: string) => {
+  const cancelFolderCreation = () => setActiveParentId(null);
+  const startNoteCreation = (parentId: string) => {
     openFolder(parentId);
     setActiveNoteParentId(parentId);
   };
-
-  const cancelNote = () => {
-    setActiveNoteParentId(null);
-  };
+  const cancelNoteCreation = () => setActiveNoteParentId(null);
 
   // Folder creation submit wrapper
   const submitCreation = (name: string, parentId: string) => {
     createFolderOptimistic(name, parentId);
   };
 
-  // Actions list (was missing)
+  // Actions list
   const actions = [
     {
       title: "Create new folder",
       icon: TbFolderPlus,
-      onClick: () => rootFolder && startCreation(rootFolder.id),
+      onClick: () => rootFolder && startFolderCreation(rootFolder.id),
     },
     {
       title: "Create new note",
       icon: TbFilePlus,
-      onClick: () => rootFolder && startNote(rootFolder.id),
+      onClick: () => rootFolder && startNoteCreation(rootFolder.id),
     },
   ];
 
@@ -291,11 +287,11 @@ export const AppSidebar = ({ user }: { user: User }) => {
     <FolderCreationContext.Provider
       value={{
         activeParentId,
-        start: startCreation,
-        cancel: cancelCreation,
+        startFolderCreation,
+        cancelFolderCreation,
         activeNoteParentId,
-        startNote,
-        cancelNote,
+        startNoteCreation,
+        cancelNoteCreation,
         isOpen,
         openFolder,
         closeFolder,
@@ -371,7 +367,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
                   <RootFolderSection
                     creating={creatingFolderPending}
                     isCreating={activeParentId === rootFolder.id}
-                    onCancel={cancelCreation}
+                    onCancel={cancelFolderCreation}
                     onSubmit={submitCreation}
                     rootFolder={rootFolder}
                   />
@@ -500,10 +496,10 @@ const RootFolderSection = ({
   const { folders, notes } = sortFolderItems(rootFolder);
   const {
     activeNoteParentId,
-    startNote,
-    cancelNote,
+    startNoteCreation,
+    cancelNoteCreation,
     createNoteOptimistic,
-    createNotePending, // NEW
+    createNotePending,
   } = useFolderCreation();
   const creatingNoteHere = activeNoteParentId === rootFolder.id;
 
@@ -514,7 +510,7 @@ const RootFolderSection = ({
           <p className="text-muted-foreground text-xs">
             You have no notes or folders. Create one to get started.
           </p>
-          <Button onClick={() => startNote(rootFolder.id)} size="xs">
+          <Button onClick={() => startNoteCreation(rootFolder.id)} size="xs">
             <TbFilePlus className="size-4" />
             <span className="text-xs">Create your first note</span>
           </Button>
@@ -551,7 +547,7 @@ const RootFolderSection = ({
       {creatingNoteHere && (
         <NoteInputInline
           loading={createNotePending}
-          onCancel={cancelNote}
+          onCancel={cancelNoteCreation}
           onCreate={(title) => createNoteOptimistic(title, rootFolder.id)}
           parentId={rootFolder.id}
           parentOpen={true}
@@ -573,9 +569,9 @@ const FolderNode = ({
   const {
     activeParentId,
     activeNoteParentId,
-    start, // kept (folder start)
-    cancel,
-    cancelNote,
+    startFolderCreation,
+    cancelFolderCreation,
+    cancelNoteCreation,
     isOpen,
     openFolder,
     closeFolder,
@@ -687,7 +683,7 @@ const FolderNode = ({
             startFolderRename={startFolderRename}
             startNewFolder={() => {
               openFolder(folder.id);
-              start(folder.id);
+              startFolderCreation(folder.id);
             }}
           />
         )}
@@ -708,7 +704,7 @@ const FolderNode = ({
           {isCreatingChildFolder && (
             <FolderInputInline
               loading={false}
-              onCancel={cancel}
+              onCancel={cancelFolderCreation}
               onCreate={(name) => createFolderOptimistic(name, folder.id)}
               parentId={folder.id}
               parentOpen={open}
@@ -719,7 +715,7 @@ const FolderNode = ({
           {isCreatingChildNote && (
             <NoteInputInline
               loading={createNotePending}
-              onCancel={cancelNote}
+              onCancel={cancelNoteCreation}
               onCreate={(title) => createNoteOptimistic(title, folder.id)}
               parentId={folder.id}
               parentOpen={open}
@@ -847,7 +843,7 @@ const FolderNodeDropdown = ({
   const {
     activeParentId,
     activeNoteParentId,
-    startNote,
+    startNoteCreation,
     deleteFolderOptimistic,
   } = useFolderCreation();
 
@@ -870,17 +866,13 @@ const FolderNodeDropdown = ({
         }}
         side={isMobile ? "bottom" : "right"}
       >
-        <DropdownMenuItem
-          onSelect={() => {
-            startNewFolder();
-          }}
-        >
-          <TbFolderPlus className="text-muted-foreground" />
-          <span>New folder</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => startNote(folderId)}>
+        <DropdownMenuItem onSelect={() => startNoteCreation(folderId)}>
           <TbFilePlus className="text-muted-foreground" />
           <span>New note</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => startNewFolder()}>
+          <TbFolderPlus className="text-muted-foreground" />
+          <span>New folder</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
@@ -1020,7 +1012,7 @@ const NoteItemDropdown = ({
   noteId: string;
 }) => {
   const { isMobile } = useSidebar();
-  const { deleteNoteOptimistic, copyNoteOptimistic } = useFolderCreation(); // UPDATED
+  const { deleteNoteOptimistic, copyNoteOptimistic } = useFolderCreation();
 
   return (
     <DropdownMenu>
@@ -1038,10 +1030,6 @@ const NoteItemDropdown = ({
         <DropdownMenuItem>
           <TbFile className="text-muted-foreground" />
           <span>Open</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <TbAppWindow className="text-muted-foreground" />
-          <span>Open in new window</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

@@ -3,10 +3,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { $delSessionToken } from "@/lib/server-utils";
-import {
-  folderQueryOptions,
-  foldersInFolderQueryOptions,
-} from "@/server/folder";
+import { folderQueryOptions } from "@/server/folder";
 import { userQueryOptions } from "@/server/user";
 
 export const Route = createFileRoute("/_main")({
@@ -29,7 +26,6 @@ export const Route = createFileRoute("/_main")({
     }
 
     await context.queryClient.prefetchQuery(folderQueryOptions);
-    await context.queryClient.prefetchQuery(foldersInFolderQueryOptions);
 
     return { user };
   },

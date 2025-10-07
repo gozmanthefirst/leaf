@@ -33,14 +33,17 @@ export function useFolderMutations({
   const deleteFolderFn = useServerFn($deleteFolder);
   const renameFolderFn = useServerFn($renameFolder);
 
-  // Shared deep clone helper
+  // A shared deep clone helper needed to avoid mutating the existing state
+  // directly when performing optimistic updates. This is a recursive function
+  // because FolderWithItems is a nested structure with folders containing
+  // more folders recursively.
   const clone = (node: FolderWithItems): FolderWithItems => ({
     ...node,
     folders: node.folders.map(clone),
     notes: [...node.notes],
   });
 
-  /* CREATE */
+  /* CREATE FOLDER */
   const createFolderMutation = useMutation({
     mutationKey: ["create-folder"],
     mutationFn: async (vars: { name: string; parentId?: string }) =>
@@ -50,6 +53,7 @@ export function useFolderMutations({
       if (!parentId || !rootFolder)
         return { previous: null as FolderWithItems | null };
 
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -59,9 +63,12 @@ export function useFolderMutations({
       );
       if (!previous) return { previous: null as FolderWithItems | null };
 
+      // Create a temporary ID for the optimistic new folder and clone the current
+      // folder structure
       const tempId = `temp-${Date.now()}`;
       const draft = clone(previous);
 
+      // Insert the new folder into the correct parent folder in the cloned structure
       const insert = (node: FolderWithItems): boolean => {
         if (node.id === parentId) {
           node.folders = [
@@ -85,12 +92,15 @@ export function useFolderMutations({
       };
       insert(draft);
 
+      // Update the query cache with the folder structure including the new folder
+      // and remove the creation input UI by clearing activeParentId
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       setActiveParentId(null);
 
       return { previous, tempId };
     },
     onError: (error, _vars, ctx) => {
+      // Revert to the previous folder structure on error
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -101,12 +111,15 @@ export function useFolderMutations({
     },
     onSuccess: (data, _vars, ctx) => {
       if (!ctx?.tempId) return;
+
+      // If mutation succeeds, get the real new folder from the server response
       const serverFolder = data.data;
       const current = queryClient.getQueryData<FolderWithItems | null>(
         folderQueryOptions.queryKey,
       );
       if (!current) return;
 
+      // Replace the temporary folder in the cached structure with the real one
       const replace = (node: FolderWithItems): FolderWithItems => ({
         ...node,
         folders: node.folders.map((f) =>
@@ -129,20 +142,25 @@ export function useFolderMutations({
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 
-  /* DELETE */
+  /* DELETE FOLDER */
   const deleteFolderMutation = useMutation({
     mutationKey: ["delete-folder"],
     mutationFn: async (vars: { folderId: string }) =>
       deleteFolderFn({ data: { folderId: vars.folderId } }),
     onMutate: async ({ folderId }) => {
+      // Prevent deleting the root folder
       if (rootFolder && folderId === rootFolder.id) {
         return { previous: null as FolderWithItems | null };
       }
 
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -155,6 +173,7 @@ export function useFolderMutations({
       const draft = clone(previous);
       let removedNode: FolderWithItems | null = null;
 
+      // Remove the folder from the cloned structure
       const remove = (node: FolderWithItems): boolean => {
         const idx = node.folders.findIndex((f) => f.id === folderId);
         if (idx !== -1) {
@@ -171,6 +190,7 @@ export function useFolderMutations({
       remove(draft);
       if (!removedNode) return { previous };
 
+      // Get the ids of the removed folder and all its descendant folders
       const removedIds: string[] = [];
       const gather = (n: FolderWithItems) => {
         removedIds.push(n.id);
@@ -178,6 +198,8 @@ export function useFolderMutations({
       };
       gather(removedNode);
 
+      // Update openFolderIds and activeParentId to remove the ids of deleted folder
+      // and its descendants
       setOpenFolderIds((prev) => {
         if (prev.size === 0) return prev;
         const next = new Set(prev);
@@ -186,15 +208,16 @@ export function useFolderMutations({
         });
         return next;
       });
-
       setActiveParentId((prev) =>
         prev && removedIds.includes(prev) ? null : prev,
       );
 
+      // Update the query cache with the folder structure excluding the deleted folder
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       return { previous };
     },
     onError: (error, _vars, ctx) => {
+      // Revert to the previous folder structure on error
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -204,11 +227,14 @@ export function useFolderMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 
-  /* RENAME */
+  /* RENAME FOLDER */
   const renameFolderMutation = useMutation({
     mutationKey: ["rename-folder"],
     mutationFn: async (vars: { folderId: string; name: string }) =>
@@ -220,6 +246,8 @@ export function useFolderMutations({
       }),
     onMutate: async ({ folderId, name }) => {
       if (!rootFolder) return { previous: null as FolderWithItems | null };
+
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -231,6 +259,7 @@ export function useFolderMutations({
 
       const draft = clone(previous);
 
+      // Update the name of the folder in the cloned structure
       const update = (node: FolderWithItems): boolean => {
         if (node.id === folderId) {
           node.name = name;
@@ -242,10 +271,12 @@ export function useFolderMutations({
       };
       update(draft);
 
+      // Update the query cache with the folder structure including the renamed folder
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       return { previous };
     },
     onError: (error, _vars, ctx) => {
+      // Revert to the previous folder structure on error
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -255,7 +286,10 @@ export function useFolderMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 

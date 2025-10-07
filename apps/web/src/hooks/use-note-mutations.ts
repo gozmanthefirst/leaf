@@ -33,6 +33,10 @@ export function useNoteMutations({
   const renameNoteFn = useServerFn($renameNote);
   const copyNoteFn = useServerFn($makeNoteCopy);
 
+  // A shared deep clone helper needed to avoid mutating the existing state
+  // directly when performing optimistic updates. This is a recursive function
+  // because FolderWithItems is a nested structure with folders containing
+  // more folders recursively.
   const clone = (node: FolderWithItems): FolderWithItems => ({
     ...node,
     folders: node.folders.map(clone),
@@ -55,6 +59,7 @@ export function useNoteMutations({
     return `${intended} ${max + 1}`;
   };
 
+  // A recursive function to find a note and its parent folder by note ID.
   const findNoteAndParent = (
     root: FolderWithItems,
     noteId: string,
@@ -82,6 +87,7 @@ export function useNoteMutations({
       if (!parentId || !rootFolder)
         return { previous: null as FolderWithItems | null };
 
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -91,9 +97,12 @@ export function useNoteMutations({
       );
       if (!previous) return { previous: null as FolderWithItems | null };
 
+      // Create a temporary ID for the optimistic new note and clone the current
+      // folder structure
       const tempId = `temp-note-${Date.now()}`;
       const draft = clone(previous);
 
+      // Insert the new note into the correct folder in the cloned structure
       const insert = (node: FolderWithItems): boolean => {
         if (node.id === parentId) {
           node.notes = [
@@ -119,12 +128,15 @@ export function useNoteMutations({
       };
       insert(draft);
 
+      // Update the query cache with the folder structure including the new note
+      // and remove the creation input UI by clearing activeParentId
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       setActiveNoteParentId(null);
 
       return { previous, tempId };
     },
     onError: (error, _vars, ctx) => {
+      // On error, roll back to the previous folder structure
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -135,12 +147,15 @@ export function useNoteMutations({
     },
     onSuccess: (data, _vars, ctx) => {
       if (!ctx?.tempId) return;
+
+      // If mutation succeeds, get the real new note from the server response
       const serverNote = data.data as Note;
       const current = queryClient.getQueryData<FolderWithItems | null>(
         folderQueryOptions.queryKey,
       );
       if (!current) return;
 
+      // Replace the temporary note in the folder structure with the real one
       const replace = (node: FolderWithItems): FolderWithItems => ({
         ...node,
         notes: node.notes.map((n) =>
@@ -166,7 +181,10 @@ export function useNoteMutations({
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 
@@ -176,6 +194,7 @@ export function useNoteMutations({
     mutationFn: async (vars: { noteId: string }) =>
       deleteNoteFn({ data: { noteId: vars.noteId } }),
     onMutate: async ({ noteId }) => {
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -188,6 +207,7 @@ export function useNoteMutations({
       const draft = clone(previous);
       let removed = false;
 
+      // A recursive function to find and remove the note from the folder structure
       const removeNote = (node: FolderWithItems): boolean => {
         const idx = node.notes.findIndex((n) => n.id === noteId);
         if (idx !== -1) {
@@ -201,14 +221,15 @@ export function useNoteMutations({
         for (const f of node.folders) if (removeNote(f)) return true;
         return false;
       };
-
       removeNote(draft);
       if (!removed) return { previous };
 
+      // Update the query cache with the folder structure minus the deleted note
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       return { previous };
     },
     onError: (error, _vars, ctx) => {
+      // On error, roll back to the previous folder structure
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -218,7 +239,10 @@ export function useNoteMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 
@@ -229,6 +253,8 @@ export function useNoteMutations({
       renameNoteFn({ data: { noteId: vars.noteId, title: vars.title } }),
     onMutate: async ({ noteId, title }) => {
       if (!rootFolder) return { previous: null as FolderWithItems | null };
+
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -240,6 +266,7 @@ export function useNoteMutations({
 
       const draft = clone(previous);
 
+      // A recursive function to find and update the note's title in the folder structure
       const update = (node: FolderWithItems): boolean => {
         const idx = node.notes.findIndex((n) => n.id === noteId);
         if (idx !== -1) {
@@ -255,10 +282,12 @@ export function useNoteMutations({
       };
       update(draft);
 
+      // Update the query cache with the folder structure including the renamed note
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       return { previous };
     },
     onError: (error, _vars, ctx) => {
+      // On error, roll back to the previous folder structure
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -268,11 +297,14 @@ export function useNoteMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 
-  /* COPY NOTE (optimistic) */
+  /* COPY NOTE */
   const copyNoteMutation = useMutation({
     mutationKey: ["copy-note"],
     mutationFn: async (vars: { noteId: string }) =>
@@ -284,6 +316,7 @@ export function useNoteMutations({
           tempId: null as string | null,
         };
 
+      // Cancel any outgoing refetches (so they don't overwrite the optimistic update)
       await queryClient.cancelQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -306,6 +339,7 @@ export function useNoteMutations({
       const uniqueTitle = suggestUniqueTitle(note.title, existingTitles);
       const tempId = `temp-copy-${Date.now()}`;
 
+      // Insert the copied note into the same folder as the original note
       parent.notes = [
         ...parent.notes,
         {
@@ -323,11 +357,13 @@ export function useNoteMutations({
         } as Note,
       ];
 
+      // Update the query cache with the folder structure including the copied note
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
 
       return { previous, tempId };
     },
     onError: (error, _vars, ctx) => {
+      // On error, roll back to the previous folder structure
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
@@ -338,12 +374,15 @@ export function useNoteMutations({
     },
     onSuccess: (data, _vars, ctx) => {
       if (!ctx?.tempId) return;
+
+      // If mutation succeeds, get the real copied note from the server response
       const serverNote = data.data as Note;
       const current = queryClient.getQueryData<FolderWithItems | null>(
         folderQueryOptions.queryKey,
       );
       if (!current) return;
 
+      // Replace the temporary copied note in the folder structure with the real one
       const replace = (node: FolderWithItems): FolderWithItems => ({
         ...node,
         notes: node.notes.map((n) =>
@@ -367,10 +406,14 @@ export function useNoteMutations({
         folders: node.folders.map(replace),
       });
 
+      // Update the query cache with the folder structure including the real copied note
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      // Invalidate queries to ensure fresh data is fetched
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
     },
   });
 

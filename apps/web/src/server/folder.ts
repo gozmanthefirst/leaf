@@ -1,4 +1,4 @@
-import { db, type Folder } from "@repo/db";
+import type { Folder } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
@@ -8,7 +8,6 @@ import { axiosClient } from "@/lib/axios";
 import { queryKeys } from "@/lib/query";
 import type { ApiSuccessResponse } from "@/lib/types";
 import { sessionMiddleware } from "@/middleware/auth-middleware";
-import { $getUser } from "./user";
 
 //* GET FOLDER
 // get folder server fn
@@ -115,29 +114,3 @@ export const $deleteFolder = createServerFn()
       },
     );
   });
-
-//* GET FOLDERS IN A FOLDER
-// get folders in folder server fn
-export const $getFoldersInFolder = createServerFn()
-  .inputValidator(z.string().min(1).optional())
-  .handler(async ({ data: folderId }) => {
-    try {
-      const user = await $getUser();
-      const rootFolder = await $getFolder();
-
-      if (!user || !rootFolder) return null;
-
-      const foldersInFolder = await db.folder.findMany({
-        where: { parentFolderId: folderId ?? rootFolder.id, userId: user.id },
-      });
-
-      return foldersInFolder;
-    } catch (_error) {
-      return null;
-    }
-  });
-// get folders in folder query options
-export const foldersInFolderQueryOptions = queryOptions({
-  queryKey: queryKeys.foldersInFolder(),
-  queryFn: $getFoldersInFolder,
-});
