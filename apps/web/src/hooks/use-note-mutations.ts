@@ -8,7 +8,12 @@ import { toast } from "sonner";
 import { cancelToastEl } from "@/components/ui/toaster";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { folderQueryOptions } from "@/server/folder";
-import { $createNote, $deleteNote, $renameNote } from "@/server/note";
+import {
+  $createNote,
+  $deleteNote,
+  $makeNoteCopy,
+  $renameNote,
+} from "@/server/note";
 
 type Params = {
   queryClient: QueryClient;
@@ -26,12 +31,46 @@ export function useNoteMutations({
   const createNoteFn = useServerFn($createNote);
   const deleteNoteFn = useServerFn($deleteNote);
   const renameNoteFn = useServerFn($renameNote);
+  const copyNoteFn = useServerFn($makeNoteCopy);
 
   const clone = (node: FolderWithItems): FolderWithItems => ({
     ...node,
     folders: node.folders.map(clone),
     notes: [...node.notes],
   });
+
+  // Helper: generate unique title (client-side mirror of server logic)
+  const suggestUniqueTitle = (intended: string, existing: string[]) => {
+    if (!existing.includes(intended)) return intended;
+    let max = 0;
+    for (const t of existing) {
+      if (t === intended) {
+        max = Math.max(max, 0);
+      } else if (t.startsWith(`${intended} `)) {
+        const suffix = t.slice(intended.length + 1);
+        const n = parseInt(suffix, 10);
+        if (!Number.isNaN(n)) max = Math.max(max, n);
+      }
+    }
+    return `${intended} ${max + 1}`;
+  };
+
+  const findNoteAndParent = (
+    root: FolderWithItems,
+    noteId: string,
+  ): { parent: FolderWithItems; note: Note } | null => {
+    // Direct match in current folder
+    const direct = root.notes.find((n) => n.id === noteId);
+    if (direct) {
+      return { parent: root, note: direct };
+    }
+    // Recurse into child folders
+    for (const f of root.folders) {
+      const found = findNoteAndParent(f, noteId);
+      if (found) return found;
+    }
+    return null;
+  };
 
   /* CREATE NOTE */
   const createNoteMutation = useMutation({
@@ -233,6 +272,108 @@ export function useNoteMutations({
     },
   });
 
+  /* COPY NOTE (optimistic) */
+  const copyNoteMutation = useMutation({
+    mutationKey: ["copy-note"],
+    mutationFn: async (vars: { noteId: string }) =>
+      copyNoteFn({ data: { noteId: vars.noteId } }),
+    onMutate: async ({ noteId }) => {
+      if (!rootFolder)
+        return {
+          previous: null as FolderWithItems | null,
+          tempId: null as string | null,
+        };
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous)
+        return {
+          previous: null as FolderWithItems | null,
+          tempId: null as string | null,
+        };
+
+      const draft = clone(previous);
+      const found = findNoteAndParent(draft, noteId);
+      if (!found) return { previous, tempId: null as string | null };
+
+      const { parent, note } = found;
+      const existingTitles = parent.notes.map((n) => n.title);
+      const uniqueTitle = suggestUniqueTitle(note.title, existingTitles);
+      const tempId = `temp-copy-${Date.now()}`;
+
+      parent.notes = [
+        ...parent.notes,
+        {
+          id: tempId,
+          title: uniqueTitle,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          userId: note.userId,
+          contentEncrypted: "",
+          contentIv: "",
+          contentTag: "",
+          folderId: parent.id,
+          isFavorite: false,
+          tags: [],
+        } as Note,
+      ];
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      return { previous, tempId };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to copy note.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSuccess: (data, _vars, ctx) => {
+      if (!ctx?.tempId) return;
+      const serverNote = data.data as Note;
+      const current = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!current) return;
+
+      const replace = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        notes: node.notes.map((n) =>
+          n.id === ctx.tempId
+            ? {
+                ...n,
+                id: serverNote.id,
+                title: serverNote.title,
+                createdAt: serverNote.createdAt,
+                updatedAt: serverNote.updatedAt,
+                userId: serverNote.userId,
+                contentEncrypted: serverNote.contentEncrypted,
+                contentIv: serverNote.contentIv,
+                contentTag: serverNote.contentTag,
+                folderId: serverNote.folderId,
+                isFavorite: serverNote.isFavorite,
+                tags: serverNote.tags,
+              }
+            : n,
+        ),
+        folders: node.folders.map(replace),
+      });
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+    },
+  });
+
   const createNoteOptimistic = (title: string, parentId: string) => {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -250,10 +391,16 @@ export function useNoteMutations({
     renameNoteMutation.mutate({ noteId, title: trimmed });
   };
 
+  const copyNoteOptimistic = (noteId: string) => {
+    if (!noteId) return;
+    copyNoteMutation.mutate({ noteId });
+  };
+
   return {
     createNoteOptimistic,
     deleteNoteOptimistic,
     renameNoteOptimistic,
+    copyNoteOptimistic,
     createNotePending: createNoteMutation.isPending,
   };
 }

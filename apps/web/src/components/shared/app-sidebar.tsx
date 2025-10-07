@@ -109,7 +109,8 @@ type FolderCreationCtx = {
 
   createNoteOptimistic: (title: string, parentId: string) => void;
   deleteNoteOptimistic: (noteId: string) => void;
-  renameNoteOptimistic: (noteId: string, title: string) => void; // NEW
+  renameNoteOptimistic: (noteId: string, title: string) => void;
+  copyNoteOptimistic: (noteId: string) => void; // NEW
   createNotePending: boolean;
 };
 
@@ -215,7 +216,8 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const {
     createNoteOptimistic,
     deleteNoteOptimistic,
-    renameNoteOptimistic, // NEW
+    renameNoteOptimistic,
+    copyNoteOptimistic, // NEW
     createNotePending,
   } = useNoteMutations({
     queryClient,
@@ -304,6 +306,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
         createNoteOptimistic,
         deleteNoteOptimistic,
         renameNoteOptimistic,
+        copyNoteOptimistic,
         createNotePending,
       }}
     >
@@ -875,11 +878,7 @@ const FolderNodeDropdown = ({
           <TbFolderPlus className="text-muted-foreground" />
           <span>New folder</span>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          onSelect={() => {
-            startNote(folderId);
-          }}
-        >
+        <DropdownMenuItem onSelect={() => startNote(folderId)}>
           <TbFilePlus className="text-muted-foreground" />
           <span>New note</span>
         </DropdownMenuItem>
@@ -896,10 +895,7 @@ const FolderNodeDropdown = ({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            deleteFolderOptimistic(folderId);
-          }}
+          onSelect={() => deleteFolderOptimistic(folderId)}
           variant="destructive"
         >
           <TbTrash className="text-muted-foreground" />
@@ -1024,7 +1020,7 @@ const NoteItemDropdown = ({
   noteId: string;
 }) => {
   const { isMobile } = useSidebar();
-  const { deleteNoteOptimistic } = useFolderCreation(); // NEW
+  const { deleteNoteOptimistic, copyNoteOptimistic } = useFolderCreation(); // UPDATED
 
   return (
     <DropdownMenu>
@@ -1050,7 +1046,7 @@ const NoteItemDropdown = ({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => copyNoteOptimistic(noteId)}>
           <TbFiles className="text-muted-foreground" />
           <span>Make a copy</span>
         </DropdownMenuItem>
@@ -1068,10 +1064,7 @@ const NoteItemDropdown = ({
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
-          onSelect={(e) => {
-            e.preventDefault();
-            deleteNoteOptimistic(noteId);
-          }}
+          onSelect={() => deleteNoteOptimistic(noteId)}
           variant="destructive"
         >
           <TbTrash className="text-muted-foreground" />
@@ -1082,7 +1075,7 @@ const NoteItemDropdown = ({
   );
 };
 
-// -------------------- NEW NoteInputInline Component --------------------
+// -------------------- NoteInputInline Component --------------------
 const NoteInputInline = ({
   parentId,
   onCreate,

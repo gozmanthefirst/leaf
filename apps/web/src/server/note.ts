@@ -70,6 +70,28 @@ export const $createNote = createServerFn()
     return response.data;
   });
 
+//* MAKE NOTE COPY
+// make note copy server fn
+export const $makeNoteCopy = createServerFn()
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      noteId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const response = await axiosClient.get<ApiSuccessResponse<Note>>(
+      `/notes/${data.noteId}/copy`,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data;
+  });
+
 //* RENAME NOTE
 // rename note server fn
 export const $renameNote = createServerFn()
