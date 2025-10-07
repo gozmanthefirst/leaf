@@ -49,7 +49,12 @@ import {
   sortFolderItems,
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
-import { $createFolder, $getFolder, folderQueryOptions } from "@/server/folder";
+import {
+  $createFolder,
+  $deleteFolder,
+  $getFolder,
+  folderQueryOptions,
+} from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
 import {
@@ -97,6 +102,7 @@ type FolderCreationCtx = {
   closeFolder: (folderId: string) => void;
   toggleFolder: (folderId: string) => void;
   createFolderOptimistic: (name: string, parentId: string) => void;
+  deleteFolderOptimistic: (folderId: string) => void; // NEW
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -115,6 +121,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
   const signOut = useServerFn($signOut);
   const getFolder = useServerFn($getFolder);
   const createFolder = useServerFn($createFolder);
+  const deleteFolder = useServerFn($deleteFolder);
   const navigate = useNavigate();
 
   const [activeParentId, setActiveParentId] = useState<string | null>(null);
@@ -297,6 +304,98 @@ export const AppSidebar = ({ user }: { user: User }) => {
     },
   });
 
+  const deleteFolderMutation = useMutation({
+    mutationKey: ["delete-folder"],
+    mutationFn: async (vars: { folderId: string }) =>
+      deleteFolder({ data: { folderId: vars.folderId } }),
+    onMutate: async ({ folderId }) => {
+      // Protect root folder
+      if (rootFolder && folderId === rootFolder.id) {
+        return { previous: null as FolderWithItems | null };
+      }
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      // Deep clone
+      const clone = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map(clone),
+        notes: [...node.notes],
+      });
+      const draft = clone(previous);
+
+      let removedNode: FolderWithItems | null = null;
+
+      const remove = (node: FolderWithItems): boolean => {
+        const idx = node.folders.findIndex((f) => f.id === folderId);
+        if (idx !== -1) {
+          removedNode = node.folders[idx];
+          node.folders = [
+            ...node.folders.slice(0, idx),
+            ...node.folders.slice(idx + 1),
+          ];
+          return true;
+        }
+        for (const f of node.folders) {
+          if (remove(f)) return true;
+        }
+        return false;
+      };
+
+      remove(draft);
+
+      // If nothing removed, bail (e.g. stale)
+      if (!removedNode) return { previous };
+
+      // Gather all folder ids in removed subtree to clean open state & active creation
+      const removedIds: string[] = [];
+      const gather = (n: FolderWithItems) => {
+        removedIds.push(n.id);
+        n.folders.forEach(gather);
+      };
+      gather(removedNode);
+
+      // Update openFolderIds (remove any removed ids)
+      setOpenFolderIds((prev) => {
+        if (prev.size === 0) return prev;
+        const next = new Set(prev);
+        removedIds.forEach((id) => {
+          next.delete(id);
+        });
+        return next;
+      });
+
+      // Cancel creation input if it was inside deleted subtree
+      setActiveParentId((prev) =>
+        prev && removedIds.includes(prev) ? null : prev,
+      );
+
+      // Optimistically set new tree
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      return { previous, removedNode };
+    },
+    onError: (error, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, context.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to delete folder.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+    },
+  });
+
   const startCreation = (parentId: string) => {
     // ensure folder is open before input mounts
     openFolder(parentId);
@@ -315,6 +414,10 @@ export const AppSidebar = ({ user }: { user: User }) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     createFolderMutation.mutate({ name: trimmed, parentId });
+  };
+
+  const deleteFolderOptimistic = (folderId: string) => {
+    deleteFolderMutation.mutate({ folderId });
   };
 
   // actions
@@ -367,6 +470,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
         closeFolder,
         toggleFolder,
         createFolderOptimistic,
+        deleteFolderOptimistic, // NEW
       }}
     >
       <Sidebar variant="inset">
@@ -812,7 +916,7 @@ const FolderNodeDropdown = ({
   startNewFolder: () => void;
 }) => {
   const { isMobile } = useSidebar();
-  const { activeParentId } = useFolderCreation();
+  const { activeParentId, deleteFolderOptimistic } = useFolderCreation();
 
   return (
     <DropdownMenu>
@@ -826,16 +930,12 @@ const FolderNodeDropdown = ({
         align={isMobile ? "end" : "start"}
         className="w-56"
         onCloseAutoFocus={(e) => {
-          // Prevent Radix from restoring focus to trigger when we just spawned a creation input
-          if (activeParentId === folderId) {
-            e.preventDefault();
-          }
+          if (activeParentId === folderId) e.preventDefault();
         }}
         side={isMobile ? "bottom" : "right"}
       >
         <DropdownMenuItem
           onSelect={() => {
-            // Let menu close, then start creation (slight delay optional)
             startNewFolder();
           }}
         >
@@ -858,7 +958,13 @@ const FolderNodeDropdown = ({
           <span>Rename folder</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            deleteFolderOptimistic(folderId);
+          }}
+          variant="destructive"
+        >
           <TbTrash className="text-muted-foreground" />
           <span>Delete folder</span>
         </DropdownMenuItem>

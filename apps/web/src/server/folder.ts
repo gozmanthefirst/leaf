@@ -68,6 +68,26 @@ export const $createFolder = createServerFn()
     return response.data;
   });
 
+//* DELETE FOLDER
+// delete folder server fn
+export const $deleteFolder = createServerFn()
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      folderId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    await axiosClient.delete<ApiSuccessResponse<Folder>>(
+      `/folders/${data.folderId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+  });
+
 //* GET FOLDERS IN A FOLDER
 // get folders in folder server fn
 export const $getFoldersInFolder = createServerFn()
