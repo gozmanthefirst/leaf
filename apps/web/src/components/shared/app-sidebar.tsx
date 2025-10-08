@@ -35,6 +35,7 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
+import { Spinner } from "@/components/ui/spinner";
 import { useFolderMutations } from "@/hooks/use-folder-mutations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNoteMutations } from "@/hooks/use-note-mutations";
@@ -113,6 +114,7 @@ type FolderCreationCtx = {
   renameNoteOptimistic: (noteId: string, title: string) => void;
   copyNoteOptimistic: (noteId: string) => void;
   createNotePending: boolean;
+  isNotePending: (noteId: string) => boolean;
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -222,6 +224,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
     renameNoteOptimistic,
     copyNoteOptimistic,
     createNotePending,
+    isNotePending,
   } = useNoteMutations({
     queryClient,
     rootFolder,
@@ -304,6 +307,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
         renameNoteOptimistic,
         copyNoteOptimistic,
         createNotePending,
+        isNotePending,
       }}
     >
       <Sidebar variant="inset">
@@ -905,7 +909,9 @@ const NoteItem = ({
   note: Note;
   siblingTitles?: string[];
 }) => {
-  const { renameNoteOptimistic } = useFolderCreation();
+  const { renameNoteOptimistic, isNotePending } = useFolderCreation();
+  const pending = isNotePending(note.id);
+
   const [renaming, setRenaming] = useState(false);
   const [noteTitle, setNoteTitle] = useState(note.title);
 
@@ -952,14 +958,17 @@ const NoteItem = ({
       <Popover open={isDuplicate}>
         <PopoverTrigger asChild>
           <SidebarMenuButton
+            className={`${pending ? "cursor-not-allowed opacity-50" : ""}`}
+            disabled={pending}
             onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
             size={SIDEBAR_BTN_SIZE}
             variant={renaming ? "input" : "default"}
           >
-            <TbFile />
+            {pending ? <Spinner /> : <TbFile />}
             {renaming ? (
               <input
                 className="w-full bg-transparent focus-visible:outline-none"
+                disabled={pending}
                 onChange={(e) => setNoteTitle(e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
@@ -997,7 +1006,7 @@ const NoteItem = ({
           </div>
         </PopoverContent>
       </Popover>
-      {renaming ? null : (
+      {renaming || pending ? null : (
         <NoteItemDropdown noteId={note.id} startNoteRename={startNoteRename} />
       )}
     </SidebarMenuItem>
@@ -1012,13 +1021,19 @@ const NoteItemDropdown = ({
   noteId: string;
 }) => {
   const { isMobile } = useSidebar();
-  const { deleteNoteOptimistic, copyNoteOptimistic } = useFolderCreation();
+  const { deleteNoteOptimistic, copyNoteOptimistic, isNotePending } =
+    useFolderCreation();
+  const pending = isNotePending(noteId);
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <SidebarMenuAction showOnHover>
-          <TbDotsVertical className="size-4 text-muted-foreground" />
+        <SidebarMenuAction disabled={pending} showOnHover>
+          <TbDotsVertical
+            className={`size-4 text-muted-foreground ${
+              pending ? "opacity-40" : ""
+            }`}
+          />
           <span className="sr-only">More</span>
         </SidebarMenuAction>
       </DropdownMenuTrigger>
@@ -1034,24 +1049,28 @@ const NoteItemDropdown = ({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onSelect={() => copyNoteOptimistic(noteId)}>
+        <DropdownMenuItem
+          disabled={pending}
+          onSelect={() => copyNoteOptimistic(noteId)}
+        >
           <TbFiles className="text-muted-foreground" />
           <span>Make a copy</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled={pending}>
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move note to...</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled={pending}>
           <TbStar className="text-muted-foreground" />
           <span>Favorite note</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={startNoteRename}>
+        <DropdownMenuItem disabled={pending} onSelect={startNoteRename}>
           <TbEdit className="text-muted-foreground" />
           <span>Rename note</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
+          disabled={pending}
           onSelect={() => deleteNoteOptimistic(noteId)}
           variant="destructive"
         >

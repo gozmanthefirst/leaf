@@ -3,6 +3,7 @@ import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { cancelToastEl } from "@/components/ui/toaster";
@@ -28,6 +29,27 @@ export function useNoteMutations({
   user,
   setActiveNoteParentId,
 }: Params) {
+  const [pendingNoteIds, setPendingNoteIds] = useState<Set<string>>(new Set());
+
+  // Helpers to manage pending note IDs for optimistic updates that are still
+  // awaiting server confirmation. This allows the UI to disable interactions
+  // with these notes until the server responds.
+  const markPending = (id: string) =>
+    setPendingNoteIds((prev) => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  const unmarkPending = (id: string) =>
+    setPendingNoteIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  const isNotePending = (id: string) => pendingNoteIds.has(id);
+
   const createNoteFn = useServerFn($createNote);
   const deleteNoteFn = useServerFn($deleteNote);
   const renameNoteFn = useServerFn($renameNote);
@@ -119,7 +141,10 @@ export function useNoteMutations({
               folderId: parentId,
               isFavorite: false,
               tags: [],
-            } satisfies Note,
+              // __optimistic is used to identify optimistic updates where the added UI is
+              // disabled to show that the real data is still pending from the server
+              __optimistic: true,
+            } as unknown as Note,
           ];
           return true;
         }
@@ -127,6 +152,9 @@ export function useNoteMutations({
         return false;
       };
       insert(draft);
+
+      // Add the temp ID to the pending set to disable interactions
+      markPending(tempId);
 
       // Update the query cache with the folder structure including the new note
       // and remove the creation input UI by clearing activeParentId
@@ -140,6 +168,9 @@ export function useNoteMutations({
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
+      // Also remove the temp ID from the pending set to re-enable interactions
+      if (ctx?.tempId) unmarkPending(ctx.tempId);
+
       const apiError = apiErrorHandler(error, {
         defaultMessage: "Failed to create note.",
       });
@@ -178,7 +209,12 @@ export function useNoteMutations({
         ),
         folders: node.folders.map(replace),
       });
+
+      // Update the query cache with the folder structure including the real new note
+      // and remove the temp ID from the pending set to re-enable interactions
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
+      unmarkPending(ctx.tempId);
+      // TODO: navigate({ to: `/notes/${serverNote.id}` })
     },
     onSettled: () => {
       // Invalidate queries to ensure fresh data is fetched
@@ -354,8 +390,12 @@ export function useNoteMutations({
           folderId: parent.id,
           isFavorite: false,
           tags: [],
-        } as Note,
+          __optimistic: true,
+        } as unknown as Note,
       ];
+
+      // Add the temp ID to the pending set to disable interactions
+      markPending(tempId);
 
       // Update the query cache with the folder structure including the copied note
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
@@ -367,6 +407,10 @@ export function useNoteMutations({
       if (ctx?.previous) {
         queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
       }
+
+      // Also remove the temp ID from the pending set to re-enable interactions
+      if (ctx?.tempId) unmarkPending(ctx.tempId);
+
       const apiError = apiErrorHandler(error, {
         defaultMessage: "Failed to copy note.",
       });
@@ -408,6 +452,8 @@ export function useNoteMutations({
 
       // Update the query cache with the folder structure including the real copied note
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
+      unmarkPending(ctx.tempId); // NEW
+      // Optionally navigate here
     },
     onSettled: () => {
       // Invalidate queries to ensure fresh data is fetched
@@ -417,33 +463,26 @@ export function useNoteMutations({
     },
   });
 
-  const createNoteOptimistic = (title: string, parentId: string) => {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    createNoteMutation.mutate({ title: trimmed, parentId });
-  };
-
-  const deleteNoteOptimistic = (noteId: string) => {
-    if (!noteId) return;
-    deleteNoteMutation.mutate({ noteId });
-  };
-
-  const renameNoteOptimistic = (noteId: string, title: string) => {
-    const trimmed = title.trim();
-    if (!trimmed) return;
-    renameNoteMutation.mutate({ noteId, title: trimmed });
-  };
-
-  const copyNoteOptimistic = (noteId: string) => {
-    if (!noteId) return;
-    copyNoteMutation.mutate({ noteId });
-  };
-
   return {
-    createNoteOptimistic,
-    deleteNoteOptimistic,
-    renameNoteOptimistic,
-    copyNoteOptimistic,
+    createNoteOptimistic: (title: string, parentId: string) => {
+      const trimmed = title.trim();
+      if (!trimmed) return;
+      createNoteMutation.mutate({ title: trimmed, parentId });
+    },
+    deleteNoteOptimistic: (noteId: string) => {
+      if (!noteId) return;
+      deleteNoteMutation.mutate({ noteId });
+    },
+    renameNoteOptimistic: (noteId: string, title: string) => {
+      const trimmed = title.trim();
+      if (!trimmed) return;
+      renameNoteMutation.mutate({ noteId, title: trimmed });
+    },
+    copyNoteOptimistic: (noteId: string) => {
+      if (!noteId) return;
+      copyNoteMutation.mutate({ noteId });
+    },
     createNotePending: createNoteMutation.isPending,
+    isNotePending,
   };
 }
