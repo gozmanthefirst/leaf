@@ -138,7 +138,7 @@ export const sortFolderItems = (folder: FolderWithItems) => {
  * folder that contains the most recently updated note anywhere in the tree.
  * Used to auto-open only that branch on initial render.
  */
-export function findLatestNoteFolderPath(root: FolderWithItems): string[] {
+export const findLatestNoteFolderPath = (root: FolderWithItems): string[] => {
   let bestTime = -Infinity;
   let bestPath: string[] = [];
 
@@ -158,4 +158,68 @@ export function findLatestNoteFolderPath(root: FolderWithItems): string[] {
 
   dfs(root, []);
   return bestPath;
-}
+};
+
+/**
+ * Finds the most recently updated note anywhere in the folder tree.
+ * Traverses all descendant folders depth-first.
+ * @param root Root folder to search.
+ * @returns The note with the greatest updatedAt timestamp, or null
+ * if no notes exist.
+ */
+export const getMostRecentlyUpdatedNote = (
+  root: FolderWithItems,
+): FolderWithItems["notes"][number] | null => {
+  let latest: FolderWithItems["notes"][number] | undefined;
+  let latestTime = -Infinity;
+
+  const visit = (folder: FolderWithItems) => {
+    for (const note of folder.notes ?? []) {
+      const t = note?.updatedAt ? new Date(note.updatedAt).getTime() : NaN;
+      if (!Number.isNaN(t) && t > latestTime) {
+        latestTime = t;
+        latest = note;
+      }
+    }
+    for (const sub of folder.folders ?? []) {
+      visit(sub);
+    }
+  };
+
+  visit(root);
+  return latest ?? null;
+};
+
+/**
+ * Extracts the note ID from a path like "/notes/<id>".
+ * Accepts paths or full URLs, and ignores query/hash (e.g., "/notes/uuid?x=1#hash").
+ * Returns null if no note segment is found.
+ * @param input Path or URL possibly containing a /notes/{id} segment.
+ * @returns The extracted note ID string, or null.
+ */
+export const parseNoteIdFromPath = (input: string): string | null => {
+  if (!input) return null;
+
+  // Strip protocol/domain if a full URL
+  let path = input;
+  try {
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(input)) {
+      path = new URL(input).pathname;
+    }
+  } catch {
+    // Ignore URL parse errors; fall back to raw input
+  }
+
+  // Remove query/hash
+  path = path.split(/[?#]/)[0];
+
+  // Tokenize
+  const parts = path.split("/").filter(Boolean);
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (parts[i] === "notes") {
+      const candidate = parts[i + 1];
+      if (candidate) return candidate;
+    }
+  }
+  return null;
+};

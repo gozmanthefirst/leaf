@@ -2,12 +2,15 @@ import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { cancelToastEl } from "@/components/ui/toaster";
 import { apiErrorHandler } from "@/lib/handle-api-error";
+import { queryKeys } from "@/lib/query";
+import { getMostRecentlyUpdatedNote, parseNoteIdFromPath } from "@/lib/utils";
 import { folderQueryOptions } from "@/server/folder";
 import {
   $createNote,
@@ -29,6 +32,8 @@ export function useNoteMutations({
   user,
   setActiveNoteParentId,
 }: Params) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [pendingNoteIds, setPendingNoteIds] = useState<Set<string>>(new Set());
 
   // Helpers to manage pending note IDs for optimistic updates that are still
@@ -214,12 +219,20 @@ export function useNoteMutations({
       // and remove the temp ID from the pending set to re-enable interactions
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
       unmarkPending(ctx.tempId);
-      // TODO: navigate({ to: `/notes/${serverNote.id}` })
+
+      // Navigate to the new note's page
+      navigate({
+        to: "/notes/$noteId",
+        params: { noteId: serverNote.id },
+      });
     },
-    onSettled: () => {
+    onSettled: (data) => {
       // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.note(data?.data.id ?? ""),
       });
     },
   });
@@ -262,6 +275,27 @@ export function useNoteMutations({
 
       // Update the query cache with the folder structure minus the deleted note
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      const currentOpenNoteId = parseNoteIdFromPath(location.pathname);
+
+      // If the deleted note is currently open, navigate away to the home page
+      if (currentOpenNoteId === noteId) {
+        const optimisticRF = queryClient.getQueryData<FolderWithItems | null>(
+          folderQueryOptions.queryKey,
+        );
+
+        if (optimisticRF) {
+          const note = getMostRecentlyUpdatedNote(optimisticRF);
+
+          if (note) {
+            navigate({
+              to: "/notes/$noteId",
+              params: { noteId: note.id },
+            });
+          }
+        }
+      }
+
       return { previous };
     },
     onError: (error, _vars, ctx) => {
@@ -332,10 +366,13 @@ export function useNoteMutations({
       });
       toast.error(apiError.details, cancelToastEl);
     },
-    onSettled: () => {
+    onSettled: (data) => {
       // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.note(data?.data.id ?? ""),
       });
     },
   });
@@ -452,13 +489,21 @@ export function useNoteMutations({
 
       // Update the query cache with the folder structure including the real copied note
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
-      unmarkPending(ctx.tempId); // NEW
-      // Optionally navigate here
+      unmarkPending(ctx.tempId);
+
+      // Navigate to the new note's page
+      navigate({
+        to: "/notes/$noteId",
+        params: { noteId: serverNote.id },
+      });
     },
-    onSettled: () => {
+    onSettled: (data) => {
       // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.note(data?.data.id ?? ""),
       });
     },
   });

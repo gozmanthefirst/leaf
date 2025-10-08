@@ -275,14 +275,14 @@ export const AppSidebar = ({ user }: { user: User }) => {
   // Actions list
   const actions = [
     {
-      title: "Create new folder",
-      icon: TbFolderPlus,
-      onClick: () => rootFolder && startFolderCreation(rootFolder.id),
-    },
-    {
       title: "Create new note",
       icon: TbFilePlus,
       onClick: () => rootFolder && startNoteCreation(rootFolder.id),
+    },
+    {
+      title: "Create new folder",
+      icon: TbFolderPlus,
+      onClick: () => rootFolder && startFolderCreation(rootFolder.id),
     },
   ];
 
@@ -909,6 +909,10 @@ const NoteItem = ({
   note: Note;
   siblingTitles?: string[];
 }) => {
+  const navigate = useNavigate();
+
+  const { setOpenMobile } = useSidebar();
+
   const { renameNoteOptimistic, isNotePending } = useFolderCreation();
   const pending = isNotePending(note.id);
 
@@ -954,7 +958,12 @@ const NoteItem = ({
   const startNoteRename = () => setRenaming(true);
 
   return (
-    <SidebarMenuItem>
+    <SidebarMenuItem
+      onClick={() => {
+        navigate({ to: `/notes/$noteId`, params: { noteId: note.id } });
+        setOpenMobile(false);
+      }}
+    >
       <Popover open={isDuplicate}>
         <PopoverTrigger asChild>
           <SidebarMenuButton
@@ -1020,7 +1029,9 @@ const NoteItemDropdown = ({
   startNoteRename: () => void;
   noteId: string;
 }) => {
-  const { isMobile } = useSidebar();
+  const navigate = useNavigate();
+
+  const { isMobile, setOpenMobile } = useSidebar();
   const { deleteNoteOptimistic, copyNoteOptimistic, isNotePending } =
     useFolderCreation();
   const pending = isNotePending(noteId);
@@ -1040,9 +1051,15 @@ const NoteItemDropdown = ({
       <DropdownMenuContent
         align={isMobile ? "end" : "start"}
         className="w-56"
+        onClick={(e) => e.stopPropagation()}
         side={isMobile ? "bottom" : "right"}
       >
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            navigate({ to: `/notes/$noteId`, params: { noteId } });
+            // setOpenMobile(false);
+          }}
+        >
           <TbFile className="text-muted-foreground" />
           <span>Open</span>
         </DropdownMenuItem>
@@ -1051,7 +1068,10 @@ const NoteItemDropdown = ({
 
         <DropdownMenuItem
           disabled={pending}
-          onSelect={() => copyNoteOptimistic(noteId)}
+          onSelect={() => {
+            copyNoteOptimistic(noteId);
+            setOpenMobile(false);
+          }}
         >
           <TbFiles className="text-muted-foreground" />
           <span>Make a copy</span>

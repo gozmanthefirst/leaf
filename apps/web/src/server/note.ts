@@ -38,7 +38,7 @@ export const notesQueryOptions = queryOptions({
 
 //* GET SINGLE NOTE
 // get single note server fn
-export const $getNote = createServerFn()
+export const $getSingleNote = createServerFn()
   .middleware([sessionMiddleware])
   .inputValidator(z.string().min(1))
   .handler(async ({ context, data: noteId }) => {
@@ -58,10 +58,11 @@ export const $getNote = createServerFn()
     }
   });
 // get single note query options
-export const singleNoteQueryOptions = queryOptions({
-  queryKey: queryKeys.note(""),
-  queryFn: () => $getNote({ data: "" }),
-});
+export const singleNoteQueryOptions = (noteId: string) =>
+  queryOptions({
+    queryKey: queryKeys.note(noteId),
+    queryFn: () => $getSingleNote({ data: noteId }),
+  });
 
 //* CREATE NOTE
 // create note server fn
@@ -131,7 +132,7 @@ export const $renameNote = createServerFn()
       title: data.title,
     };
 
-    await axiosClient.put<ApiSuccessResponse<Note>>(
+    const response = await axiosClient.put<ApiSuccessResponse<Note>>(
       `/notes/${data.noteId}`,
       payload,
       {
@@ -140,6 +141,8 @@ export const $renameNote = createServerFn()
         },
       },
     );
+
+    return response.data;
   });
 
 //* DELETE NOTE
