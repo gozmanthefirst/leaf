@@ -19,6 +19,7 @@ import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
 import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as MainNotesNoteIdRouteImport } from './routes/_main/notes/$noteId'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/auth',
@@ -69,6 +70,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MainNotesNoteIdRoute = MainNotesNoteIdRouteImport.update({
+  id: '/notes/$noteId',
+  path: '/notes/$noteId',
+  getParentRoute: () => MainRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteRouteWithChildren
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/': typeof MainIndexRoute
   '/auth/': typeof AuthIndexRoute
+  '/notes/$noteId': typeof MainNotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/': typeof MainIndexRoute
   '/auth': typeof AuthIndexRoute
+  '/notes/$noteId': typeof MainNotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/_main/': typeof MainIndexRoute
   '/auth/': typeof AuthIndexRoute
+  '/_main/notes/$noteId': typeof MainNotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth/verify-email'
     | '/'
     | '/auth/'
+    | '/notes/$noteId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth/verify-email'
     | '/'
     | '/auth'
+    | '/notes/$noteId'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth/verify-email'
     | '/_main/'
     | '/auth/'
+    | '/_main/notes/$noteId'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -218,15 +230,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_main/notes/$noteId': {
+      id: '/_main/notes/$noteId'
+      path: '/notes/$noteId'
+      fullPath: '/notes/$noteId'
+      preLoaderRoute: typeof MainNotesNoteIdRouteImport
+      parentRoute: typeof MainRouteRoute
+    }
   }
 }
 
 interface MainRouteRouteChildren {
   MainIndexRoute: typeof MainIndexRoute
+  MainNotesNoteIdRoute: typeof MainNotesNoteIdRoute
 }
 
 const MainRouteRouteChildren: MainRouteRouteChildren = {
   MainIndexRoute: MainIndexRoute,
+  MainNotesNoteIdRoute: MainNotesNoteIdRoute,
 }
 
 const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
