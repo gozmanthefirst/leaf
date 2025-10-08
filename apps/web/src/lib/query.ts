@@ -3,4 +3,5 @@ export const queryKeys = {
   folder: (id: string) => ["folder", id] as const,
   foldersInFolder: () => ["foldersInFolder"] as const,
   note: (id: string) => ["note", id] as const,
+  notes: () => ["notes"] as const,
 };

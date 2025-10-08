@@ -10,11 +10,35 @@ import type { ApiSuccessResponse } from "@/lib/types";
 import { sessionMiddleware } from "@/middleware/auth-middleware";
 import { $getFolder } from "@/server/folder";
 
+//* GET NOTES
+// get notes server fn
+export const $getNotes = createServerFn()
+  .middleware([sessionMiddleware])
+  .handler(async ({ context }) => {
+    try {
+      const response = await axiosClient.get<ApiSuccessResponse<Note[]>>(
+        `/notes`,
+        {
+          headers: {
+            Authorization: `Bearer ${context.session.token}`,
+          },
+        },
+      );
+
+      return response.data.data;
+    } catch (_error) {
+      return null;
+    }
+  });
+// get notes query options
+export const notesQueryOptions = queryOptions({
+  queryKey: queryKeys.notes(),
+  queryFn: $getNotes,
+});
+
 //* GET SINGLE NOTE
 // get single note server fn
-export const $getNote = createServerFn({
-  method: "GET",
-})
+export const $getNote = createServerFn()
   .middleware([sessionMiddleware])
   .inputValidator(z.string().min(1))
   .handler(async ({ context, data: noteId }) => {
@@ -34,8 +58,8 @@ export const $getNote = createServerFn({
     }
   });
 // get single note query options
-export const noteQueryOptions = queryOptions({
-  queryKey: [queryKeys.note],
+export const singleNoteQueryOptions = queryOptions({
+  queryKey: queryKeys.note(""),
   queryFn: () => $getNote({ data: "" }),
 });
 

@@ -1,3 +1,4 @@
+import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, getRouteApi } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -38,14 +39,23 @@ export const Route = createFileRoute("/_main/")({
 });
 
 function HomePage() {
-  const mainRoute = getRouteApi("/_main");
-  const { user } = mainRoute.useLoaderData();
+  const _mainRoute = getRouteApi("/_main");
   const getFolder = useServerFn($getFolder);
 
   const folderQuery = useQuery({
     ...folderQueryOptions,
     queryFn: () => getFolder(),
   });
+
+  const checkForNotes = (folder: FolderWithItems): boolean => {
+    if (folder.notes.length > 0) return true;
+
+    for (const subFolder of folder.folders) {
+      if (checkForNotes(subFolder)) return true;
+    }
+
+    return false;
+  };
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
@@ -59,7 +69,7 @@ function HomePage() {
             {(rf) => {
               if (!rf) return null;
 
-              if (rf.notes.length === 0) {
+              if (!checkForNotes(rf)) {
                 return (
                   <Empty>
                     <EmptyHeader>
