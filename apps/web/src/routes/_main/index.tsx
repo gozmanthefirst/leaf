@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { TbFile } from "react-icons/tb";
 
@@ -13,10 +13,25 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { countFolderStats } from "@/lib/utils";
+import { countFolderStats, getMostRecentlyUpdatedNote } from "@/lib/utils";
 import { $getFolder, folderQueryOptions } from "@/server/folder";
 
 export const Route = createFileRoute("/_main/")({
+  beforeLoad: async ({ context }) => {
+    const rootFolder =
+      await context.queryClient.ensureQueryData(folderQueryOptions);
+
+    if (rootFolder) {
+      const mostRecentNote = getMostRecentlyUpdatedNote(rootFolder);
+
+      if (mostRecentNote) {
+        throw redirect({
+          to: "/notes/$noteId",
+          params: { noteId: mostRecentNote.id },
+        });
+      }
+    }
+  },
   component: HomePage,
 });
 
