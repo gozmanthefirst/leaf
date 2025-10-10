@@ -7,10 +7,15 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useSidebar } from "@/components/ui/sidebar";
 import { cancelToastEl } from "@/components/ui/toaster";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
-import { getMostRecentlyUpdatedNote, parseNoteIdFromPath } from "@/lib/utils";
+import {
+  getMostRecentlyUpdatedNote,
+  parseNoteIdFromPath,
+  suggestUniqueTitle,
+} from "@/lib/utils";
 import { folderQueryOptions } from "@/server/folder";
 import {
   $createNote,
@@ -34,7 +39,10 @@ export function useNoteMutations({
 }: Params) {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [pendingNoteIds, setPendingNoteIds] = useState<Set<string>>(new Set());
+
+  const { setOpenMobile } = useSidebar();
 
   // Helpers to manage pending note IDs for optimistic updates that are still
   // awaiting server confirmation. This allows the UI to disable interactions
@@ -69,22 +77,6 @@ export function useNoteMutations({
     folders: node.folders.map(clone),
     notes: [...node.notes],
   });
-
-  // Helper: generate unique title (client-side mirror of server logic)
-  const suggestUniqueTitle = (intended: string, existing: string[]) => {
-    if (!existing.includes(intended)) return intended;
-    let max = 0;
-    for (const t of existing) {
-      if (t === intended) {
-        max = Math.max(max, 0);
-      } else if (t.startsWith(`${intended} `)) {
-        const suffix = t.slice(intended.length + 1);
-        const n = parseInt(suffix, 10);
-        if (!Number.isNaN(n)) max = Math.max(max, n);
-      }
-    }
-    return `${intended} ${max + 1}`;
-  };
 
   // A recursive function to find a note and its parent folder by note ID.
   const findNoteAndParent = (
@@ -225,6 +217,9 @@ export function useNoteMutations({
         to: "/notes/$noteId",
         params: { noteId: serverNote.id },
       });
+
+      // Close the sidebar on mobile to show the new note
+      setOpenMobile(false);
     },
     onSettled: (data) => {
       // Invalidate queries to ensure fresh data is fetched
@@ -278,7 +273,8 @@ export function useNoteMutations({
 
       const currentOpenNoteId = parseNoteIdFromPath(location.pathname);
 
-      // If the deleted note is currently open, navigate away to the home page
+      // If the deleted note is currently open, navigate away to the most recently
+      // updated note, or home if no notes remain
       if (currentOpenNoteId === noteId) {
         const optimisticRF = queryClient.getQueryData<FolderWithItems | null>(
           folderQueryOptions.queryKey,
@@ -292,7 +288,11 @@ export function useNoteMutations({
               to: "/notes/$noteId",
               params: { noteId: note.id },
             });
+          } else {
+            navigate({ to: "/" });
           }
+        } else {
+          navigate({ to: "/" });
         }
       }
 
@@ -496,6 +496,9 @@ export function useNoteMutations({
         to: "/notes/$noteId",
         params: { noteId: serverNote.id },
       });
+
+      // Close the sidebar on mobile to show the copied note
+      setOpenMobile(false);
     },
     onSettled: (data) => {
       // Invalidate queries to ensure fresh data is fetched

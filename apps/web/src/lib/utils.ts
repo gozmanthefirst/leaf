@@ -223,3 +223,21 @@ export const parseNoteIdFromPath = (input: string): string | null => {
   }
   return null;
 };
+
+/**
+ * Suggest a unique title like "Untitled", "Untitled 1", "Untitled 2", ...
+ */
+export const suggestUniqueTitle = (intended: string, existing: string[]) => {
+  if (!existing.includes(intended)) return intended;
+  let max = 0;
+  for (const t of existing) {
+    if (t === intended) {
+      max = Math.max(max, 0);
+    } else if (t.startsWith(`${intended} `)) {
+      const suffix = t.slice(intended.length + 1);
+      const n = parseInt(suffix, 10);
+      if (!Number.isNaN(n)) max = Math.max(max, n);
+    }
+  }
+  return `${intended} ${max + 1}`;
+};

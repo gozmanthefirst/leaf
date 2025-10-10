@@ -49,6 +49,7 @@ import {
   initialsFromName,
   maskEmail,
   sortFolderItems,
+  suggestUniqueTitle,
 } from "@/lib/utils";
 import { $signOut } from "@/server/auth";
 import { $getFolder, folderQueryOptions } from "@/server/folder";
@@ -881,7 +882,7 @@ const FolderNodeDropdown = ({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem>
+        <DropdownMenuItem disabled>
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move folder to...</span>
         </DropdownMenuItem>
@@ -1057,7 +1058,7 @@ const NoteItemDropdown = ({
         <DropdownMenuItem
           onSelect={() => {
             navigate({ to: `/notes/$noteId`, params: { noteId } });
-            // setOpenMobile(false);
+            setOpenMobile(false);
           }}
         >
           <TbFile className="text-muted-foreground" />
@@ -1070,17 +1071,16 @@ const NoteItemDropdown = ({
           disabled={pending}
           onSelect={() => {
             copyNoteOptimistic(noteId);
-            setOpenMobile(false);
           }}
         >
           <TbFiles className="text-muted-foreground" />
           <span>Make a copy</span>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={pending}>
+        <DropdownMenuItem disabled={pending || true}>
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move note to...</span>
         </DropdownMenuItem>
-        <DropdownMenuItem disabled={pending}>
+        <DropdownMenuItem disabled={pending || true}>
           <TbStar className="text-muted-foreground" />
           <span>Favorite note</span>
         </DropdownMenuItem>
@@ -1118,7 +1118,12 @@ const NoteInputInline = ({
   parentOpen?: boolean;
   siblingTitles?: string[];
 }) => {
-  const [title, setTitle] = useState("Untitled");
+  // Use a unique default title based on siblings
+  const initialTitle = useMemo(
+    () => suggestUniqueTitle("Untitled", siblingTitles),
+    [siblingTitles],
+  );
+  const [title, setTitle] = useState(initialTitle);
   const inputRef = useRef<HTMLInputElement>(null);
   const itemRef = useClickAway<HTMLLIElement>(() => onCancel());
   useHotkeys("esc", onCancel, { enableOnFormTags: true });
