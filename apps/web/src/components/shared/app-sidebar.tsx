@@ -1,7 +1,12 @@
 import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
-import { getRouteApi, useNavigate } from "@tanstack/react-router";
+import {
+  getRouteApi,
+  Link,
+  useMatchRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useClickAway } from "@uidotdev/usehooks";
 import { Image } from "@unpic/react";
@@ -910,7 +915,7 @@ const NoteItem = ({
   note: Note;
   siblingTitles?: string[];
 }) => {
-  const navigate = useNavigate();
+  const matchRoute = useMatchRoute();
 
   const { setOpenMobile } = useSidebar();
 
@@ -961,21 +966,18 @@ const NoteItem = ({
   return (
     <SidebarMenuItem
       onClick={() => {
-        navigate({ to: `/notes/$noteId`, params: { noteId: note.id } });
         setOpenMobile(false);
       }}
     >
       <Popover open={isDuplicate}>
         <PopoverTrigger asChild>
-          <SidebarMenuButton
-            className={`${pending ? "cursor-not-allowed opacity-50" : ""}`}
-            disabled={pending}
-            onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
-            size={SIDEBAR_BTN_SIZE}
-            variant={renaming ? "input" : "default"}
-          >
-            {pending ? <Spinner /> : <TbFile />}
-            {renaming ? (
+          {renaming ? (
+            <SidebarMenuButton
+              onClick={(e) => e.stopPropagation()}
+              size={SIDEBAR_BTN_SIZE}
+              variant="input"
+            >
+              {pending ? <Spinner /> : <TbFile />}
               <input
                 className="w-full bg-transparent focus-visible:outline-none"
                 disabled={pending}
@@ -997,10 +999,32 @@ const NoteItem = ({
                 ref={inputRef}
                 value={noteTitle}
               />
-            ) : (
-              <span>{note.title}</span>
-            )}
-          </SidebarMenuButton>
+            </SidebarMenuButton>
+          ) : (
+            <SidebarMenuButton
+              asChild
+              className={`${pending ? "cursor-not-allowed opacity-50" : ""}`}
+              isActive={
+                !!matchRoute({
+                  to: `/notes/$noteId`,
+                  params: { noteId: note.id },
+                })
+              }
+              size={SIDEBAR_BTN_SIZE}
+              // no nested button, render as a single anchor
+            >
+              <Link
+                onClick={(e) => {
+                  if (pending) e.preventDefault();
+                }}
+                params={{ noteId: note.id }}
+                to="/notes/$noteId"
+              >
+                {pending ? <Spinner /> : <TbFile />}
+                <span>{note.title}</span>
+              </Link>
+            </SidebarMenuButton>
+          )}
         </PopoverTrigger>
         <PopoverContent
           align={popoverAlign}

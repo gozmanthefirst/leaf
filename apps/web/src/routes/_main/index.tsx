@@ -70,7 +70,7 @@ function HomePage() {
               );
             }
 
-            return <p>This is a note</p>;
+            return null;
           }}
         </WithState>
       </div>
