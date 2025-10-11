@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 import { AppSidebar } from "@/components/shared/app-sidebar";
-import { NotePageHeader } from "@/components/shared/note-page";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { $delSessionToken } from "@/lib/server-utils";
 import { folderQueryOptions } from "@/server/folder";
@@ -41,10 +40,7 @@ function MainLayout() {
       <AppSidebar user={user} />
       <SidebarInset className="overflow-hidden">
         <div className="relative flex-1">
-          <main className="absolute inset-0 flex h-full flex-col">
-            <NotePageHeader />
-            <Outlet />
-          </main>
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>

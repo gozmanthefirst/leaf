@@ -44,36 +44,39 @@ function HomePage() {
   });
 
   return (
-    <div className="flex flex-1 overflow-auto pt-4">
-      <div className="container flex flex-1">
-        <WithState state={folderQuery}>
-          {(rf) => {
-            if (!rf) return null;
-            const stats = countFolderStats(rf);
+    <main className="absolute inset-0 flex h-full flex-col">
+      <div className="flex flex-1 overflow-auto pt-4">
+        <div className="container flex flex-1">
+          <WithState state={folderQuery}>
+            {(rf) => {
+              if (!rf) return null;
+              const stats = countFolderStats(rf);
 
-            if (stats.notes === 0) {
-              return (
-                <Empty>
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <TbFile />
-                    </EmptyMedia>
-                    <EmptyTitle>No Notes Yet</EmptyTitle>
-                    <EmptyDescription>
-                      You do not have any notes yet. Create one to get started.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                  <EmptyContent>
-                    <Button size={"default"}>Create your first note</Button>
-                  </EmptyContent>
-                </Empty>
-              );
-            }
+              if (stats.notes === 0) {
+                return (
+                  <Empty>
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <TbFile />
+                      </EmptyMedia>
+                      <EmptyTitle>No Notes Yet</EmptyTitle>
+                      <EmptyDescription>
+                        You do not have any notes yet. Create one to get
+                        started.
+                      </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                      <Button size={"default"}>Create your first note</Button>
+                    </EmptyContent>
+                  </Empty>
+                );
+              }
 
-            return null;
-          }}
-        </WithState>
+              return null;
+            }}
+          </WithState>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -925,6 +925,13 @@ const NoteItem = ({
   const [renaming, setRenaming] = useState(false);
   const [noteTitle, setNoteTitle] = useState(note.title);
 
+  // Keep local state in sync with latest server title when not renaming
+  useEffect(() => {
+    if (!renaming) {
+      setNoteTitle(note.title);
+    }
+  }, [note.title, renaming]);
+
   const inputRef = useClickAway<HTMLInputElement>(() => {
     setRenaming(false);
     setNoteTitle(note.title);
@@ -961,7 +968,11 @@ const NoteItem = ({
     ? "w-(--radix-popover-trigger-width)"
     : "w-64";
 
-  const startNoteRename = () => setRenaming(true);
+  const startNoteRename = () => {
+    // Ensure input starts with the latest title from props
+    setNoteTitle(note.title);
+    setRenaming(true);
+  };
 
   return (
     <SidebarMenuItem
