@@ -179,8 +179,9 @@ function NotePage() {
   return (
     <main className="absolute inset-0 flex h-full flex-col">
       <NotePageHeader state={combinedState} />
+      {/* let the editor manage its own scroll */}
       <div className="flex flex-1 overflow-auto pt-4">
-        <div className="container flex flex-1">
+        <div className="container flex min-h-0 flex-1">
           <WithState state={singleNoteQuery}>
             {(note) =>
               note ? (
@@ -207,67 +208,6 @@ const NotePageHeader = ({ state }: { state: SyncState }) => {
         <NotePageDropdown />
       </div>
     </header>
-  );
-};
-
-const NoteView = ({
-  note,
-  setTitleState,
-  setContentState,
-}: {
-  note: DecryptedNote;
-  setTitleState: (s: SyncState) => void;
-  setContentState: (s: SyncState) => void;
-}) => {
-  const titleRef = useRef<HTMLTextAreaElement>(null);
-
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: note.content,
-    onUpdate: () => {
-      setContentState("dirty");
-      // when you add a debounced save, set "saving" → "savedRecently"/"error"
-    },
-    editorProps: {
-      attributes: { class: "outline-none w-full" },
-      handleKeyDown: (view, event) => {
-        if (
-          event.key === "ArrowUp" &&
-          !event.shiftKey &&
-          !event.altKey &&
-          !event.metaKey &&
-          !event.ctrlKey
-        ) {
-          const { from, empty } = view.state.selection;
-          // At very start of the document
-          if (empty && from <= 1) {
-            event.preventDefault();
-            const el = titleRef.current;
-            if (el) {
-              el.focus();
-              // place caret at end of title
-              const end = el.value.length;
-              el.setSelectionRange(end, end);
-            }
-            return true;
-          }
-        }
-        return false;
-      },
-    },
-  });
-
-  return (
-    <div className="flex w-full flex-col">
-      <TitleTextarea
-        noteId={note.id}
-        onEnter={() => editor?.chain().focus().run()}
-        onStatusChange={setTitleState}
-        ref={titleRef}
-        title={note.title}
-      />
-      <EditorContent className="mt-4 w-full flex-1" editor={editor} />
-    </div>
   );
 };
 
@@ -383,6 +323,69 @@ const TitleTextarea = ({
       spellCheck={false}
       value={value}
     />
+  );
+};
+
+const NoteView = ({
+  note,
+  setTitleState,
+  setContentState,
+}: {
+  note: DecryptedNote;
+  setTitleState: (s: SyncState) => void;
+  setContentState: (s: SyncState) => void;
+}) => {
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: note.content,
+    onUpdate: () => {
+      setContentState("dirty");
+    },
+    editorProps: {
+      attributes: { class: "outline-none w-full h-full" },
+      handleKeyDown: (view, event) => {
+        if (
+          event.key === "ArrowUp" &&
+          !event.shiftKey &&
+          !event.altKey &&
+          !event.metaKey &&
+          !event.ctrlKey
+        ) {
+          const { from, empty } = view.state.selection;
+          // At very start of the document, move focus to title
+          if (empty && from === 1) {
+            event.preventDefault();
+            const el = titleRef.current;
+            if (el) {
+              el.focus();
+              const end = el.value.length;
+              el.setSelectionRange(end, end);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+    },
+  });
+
+  return (
+    // allow children to grow and scroll
+    <div className="flex min-h-0 w-full flex-1 flex-col">
+      <TitleTextarea
+        noteId={note.id}
+        onEnter={() => editor?.chain().focus().run()}
+        onStatusChange={setTitleState}
+        ref={titleRef}
+        title={note.title}
+      />
+      {/* wrapper provides height; EditorContent fills and scrolls */}
+      <div className="mt-4 min-h-0 flex-1">
+        <EditorContent className="tiptap h-full w-full" editor={editor} />
+      </div>
+    </div>
   );
 };
 

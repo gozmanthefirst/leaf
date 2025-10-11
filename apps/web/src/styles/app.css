@@ -199,3 +199,89 @@ input[type="number"] {
     @apply bg-background text-foreground;
   }
 }
+
+/* TipTap content styling */
+.tiptap {
+  @apply w-full h-full;
+}
+
+/* Spacing between direct block nodes */
+.tiptap > * {
+  @apply my-3;
+}
+.tiptap > :first-child {
+  @apply mt-0;
+}
+.tiptap > :last-child {
+  @apply mb-0;
+}
+
+/* Headings: h1 matches the title size */
+.tiptap h1 {
+  @apply font-semibold text-2xl md:text-3xl leading-tight;
+}
+.tiptap h2 {
+  @apply font-semibold text-xl md:text-2xl leading-tight mt-6 mb-2;
+}
+.tiptap h3 {
+  @apply font-semibold text-lg md:text-xl leading-snug mt-5 mb-2;
+}
+.tiptap h4 {
+  @apply font-semibold text-base md:text-lg leading-snug mt-4 mb-2;
+}
+.tiptap h5 {
+  @apply font-medium text-base leading-snug mt-3 mb-1.5;
+}
+.tiptap h6 {
+  @apply font-medium text-sm uppercase tracking-wide text-muted-foreground mt-3 mb-1.5;
+}
+
+/* Paragraphs */
+.tiptap p {
+  @apply leading-relaxed;
+}
+
+/* Emphasis */
+.tiptap strong {
+  @apply font-semibold;
+}
+.tiptap em {
+  @apply italic;
+}
+
+/* Links */
+.tiptap a {
+  @apply underline text-blue-600 dark:text-blue-400 hover:opacity-80;
+}
+
+/* Lists */
+.tiptap ul {
+  @apply list-disc pl-6 my-3;
+}
+.tiptap ol {
+  @apply list-decimal pl-6 my-3;
+}
+.tiptap li > p {
+  @apply my-1; /* tighter spacing inside list items */
+}
+
+/* Blockquotes */
+.tiptap blockquote {
+  @apply border-l-2 pl-4 italic text-muted-foreground my-4;
+}
+
+/* Horizontal rule */
+.tiptap hr {
+  @apply my-6 border-t;
+}
+
+/* Inline code and code blocks */
+.tiptap code {
+  @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
+}
+.tiptap pre {
+  @apply my-4 overflow-x-auto rounded-md bg-muted p-3;
+}
+.tiptap pre code {
+  @apply bg-transparent p-0 text-sm;
+}
