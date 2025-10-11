@@ -8,6 +8,7 @@ import { useDebounce } from "@uidotdev/usehooks";
 import {
   type ComponentProps,
   type RefObject,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -45,10 +46,12 @@ import { folderQueryOptions } from "@/server/folder";
 import {
   $getSingleNote,
   $renameNote,
+  $updateNoteContent,
   singleNoteQueryOptions,
 } from "@/server/note";
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
+  ssr: "data-only",
   beforeLoad: async ({ context, params }) => {
     const note = await context.queryClient.ensureQueryData(
       singleNoteQueryOptions(params.noteId),
@@ -229,6 +232,9 @@ const TitleTextarea = ({
   const [value, setValue] = useState(title);
   const [dirty, setDirty] = useState(false);
   const innerRef = useRef<HTMLTextAreaElement>(null);
+  const titleSeqRef = useRef(0);
+
+  const debounced = useDebounce(value.trim(), 750);
 
   // expose the inner ref to parent
   useEffect(() => {
@@ -238,32 +244,36 @@ const TitleTextarea = ({
       (ref as RefObject<HTMLTextAreaElement | null>).current = innerRef.current;
   }, [ref]);
 
-  const debounced = useDebounce(value.trim(), 750);
-
   // Keep in sync if title prop changes (external updates) and clear dirty
   useEffect(() => {
+    // Don't clobber local edits while focused
+    if (innerRef.current === document.activeElement && dirty) return;
     setValue(title);
     setDirty(false);
     onStatusChange("idle");
-  }, [title, onStatusChange]);
+  }, [title, onStatusChange, dirty]);
 
   const { mutate: saveTitle } = useMutation({
     mutationKey: ["rename-note-inline", noteId],
     mutationFn: async (newTitle: string) =>
       renameNote({ data: { noteId, title: newTitle } }),
-    onMutate: () => onStatusChange("saving"),
-    onSuccess: () => {
+    onMutate: () => {
+      const seq = ++titleSeqRef.current;
+      onStatusChange("saving");
+      return { seq };
+    },
+    onSuccess: (_res, newTitle, ctx) => {
+      if (ctx?.seq !== titleSeqRef.current) return; // stale response
       onStatusChange("savedRecently");
-      // fall back to idle after a short flash
       setTimeout(() => onStatusChange("idle"), 1000);
-      // Refresh caches so sidebar and note query reflect the new title
+      queryClient.setQueryData<DecryptedNote>(queryKeys.note(noteId), (prev) =>
+        prev ? { ...prev, title: newTitle, updatedAt: new Date() } : prev,
+      );
       queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-      queryClient.invalidateQueries({ queryKey: queryKeys.note(noteId) });
       setDirty(false);
     },
     onError: () => {
       onStatusChange("error");
-      // Keep user's input so they can retry; surface a retry action
       toast.error(
         "Failed to rename note. Check your connection and try again.",
         cancelToastEl,
@@ -279,7 +289,8 @@ const TitleTextarea = ({
     saveTitle(debounced);
   }, [debounced, title, dirty, saveTitle]);
 
-  const flushIfChanged = () => {
+  // Make flush stable and capture latest deps
+  const flushIfChanged = useCallback(() => {
     const t = value.trim();
     if (!dirty) return;
     if (t && t !== title.trim()) {
@@ -287,7 +298,27 @@ const TitleTextarea = ({
     } else {
       setDirty(false);
     }
-  };
+  }, [dirty, value, title, saveTitle]);
+
+  // TitleTextarea beforeunload
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) flushIfChanged();
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      flushIfChanged();
+      e.preventDefault();
+      // Required by browsers to trigger the confirmation dialog
+      (e as unknown as { returnValue: string }).returnValue = "";
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [dirty, flushIfChanged]);
 
   return (
     <textarea
@@ -335,13 +366,25 @@ const NoteView = ({
   setTitleState: (s: SyncState) => void;
   setContentState: (s: SyncState) => void;
 }) => {
+  const { queryClient } = Route.useRouteContext();
+  const updateNoteContent = useServerFn($updateNoteContent);
+
   const titleRef = useRef<HTMLTextAreaElement>(null);
+
+  const [contentValue, setContentValue] = useState(note.content);
+  const [contentDirty, setContentDirty] = useState(false);
+  const contentSeqRef = useRef(0);
+
+  const debouncedContent = useDebounce(contentValue, 750);
 
   const editor = useEditor({
     extensions: [StarterKit],
     content: note.content,
-    onUpdate: () => {
+    immediatelyRender: true,
+    onUpdate: ({ editor }) => {
+      setContentDirty(true);
       setContentState("dirty");
+      setContentValue(editor.getHTML());
     },
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
@@ -371,6 +414,137 @@ const NoteView = ({
     },
   });
 
+  // Keep local content in sync when navigating or server updates
+  // biome-ignore lint/correctness/useExhaustiveDependencies: required
+  useEffect(() => {
+    // If the user is editing, don't apply external content
+    if (editor?.isFocused || contentDirty) return;
+
+    setContentValue(note.content);
+    setContentDirty(false);
+    setContentState("idle");
+
+    if (editor) {
+      // Only sync if different (and not editing) to avoid flicker/clobbering
+      if (note.content !== editor.getHTML()) {
+        editor.commands.setContent(note.content, { emitUpdate: false });
+      }
+    }
+  }, [note.id, note.content, editor]); // contentDirty comes from closure
+
+  // Helper: read the latest title from cache to avoid overwriting a recent rename
+  const getCurrentTitle = () => {
+    const cached = queryClient.getQueryData<DecryptedNote>(
+      queryKeys.note(note.id),
+    );
+    return cached?.title ?? note.title;
+  };
+
+  const { mutate: saveContent } = useMutation({
+    mutationKey: ["update-note-content", note.id],
+    mutationFn: async (html: string) =>
+      updateNoteContent({
+        data: { noteId: note.id, title: getCurrentTitle(), content: html },
+      }),
+    onMutate: () => {
+      const seq = ++contentSeqRef.current;
+      setContentState("saving");
+      return { seq };
+    },
+    onSuccess: (_res, html, ctx) => {
+      if (ctx?.seq !== contentSeqRef.current) return; // stale response
+      setContentState("savedRecently");
+      setTimeout(() => setContentState("idle"), 1000);
+      queryClient.setQueryData<DecryptedNote>(
+        queryKeys.note(note.id),
+        (prev) =>
+          prev
+            ? {
+                ...prev,
+                title: getCurrentTitle(),
+                content: html,
+                updatedAt: new Date(),
+              }
+            : prev,
+      );
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+      setContentDirty(false);
+    },
+    onError: () => {
+      setContentState("error");
+      toast.error(
+        "Failed to save content. Check your connection and try again.",
+        cancelToastEl,
+      );
+    },
+  });
+
+  // Flush on editor blur
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      if (!contentDirty) return;
+      const html = editor.getHTML();
+      const cached = queryClient.getQueryData<DecryptedNote>(
+        queryKeys.note(note.id),
+      );
+      if (html !== (cached?.content ?? note.content)) {
+        saveContent(html);
+      } else {
+        setContentDirty(false);
+      }
+    };
+    editor.on("blur", handler);
+    return () => {
+      editor.off("blur", handler);
+    };
+  }, [editor, contentDirty, note.id, note.content, queryClient, saveContent]);
+
+  // Debounced save after user stops typing
+  useEffect(() => {
+    if (!contentDirty) return;
+    const cached = queryClient.getQueryData<DecryptedNote>(
+      queryKeys.note(note.id),
+    );
+    const lastSaved = cached?.content ?? note.content;
+    if (debouncedContent !== lastSaved) {
+      saveContent(debouncedContent);
+    }
+  }, [
+    debouncedContent,
+    contentDirty,
+    note.id,
+    note.content,
+    queryClient,
+    saveContent,
+  ]);
+
+  // NoteView beforeunload
+  useEffect(() => {
+    if (!editor) return;
+    const flush = () => {
+      if (!editor || !contentDirty) return;
+      const html = editor.getHTML();
+      saveContent(html);
+    };
+    const onVis = () => {
+      if (document.hidden) flush();
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!contentDirty) return;
+      flush();
+      e.preventDefault();
+      // Required by browsers to trigger the confirmation dialog
+      (e as unknown as { returnValue: string }).returnValue = "";
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [editor, contentDirty, saveContent]);
+
   return (
     // allow children to grow and scroll
     <div className="flex min-h-0 w-full flex-1 flex-col">
@@ -381,7 +555,7 @@ const NoteView = ({
         ref={titleRef}
         title={note.title}
       />
-      {/* wrapper provides height; EditorContent fills and scrolls */}
+      {/* wrapper provides height; EditorContent fills and page scrolls */}
       <div className="mt-4 min-h-0 flex-1">
         <EditorContent className="tiptap h-full w-full" editor={editor} />
       </div>

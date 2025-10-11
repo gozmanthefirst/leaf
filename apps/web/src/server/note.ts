@@ -119,7 +119,9 @@ export const $makeNoteCopy = createServerFn()
 
 //* RENAME NOTE
 // rename note server fn
-export const $renameNote = createServerFn()
+export const $renameNote = createServerFn({
+  method: "POST",
+})
   .middleware([sessionMiddleware])
   .inputValidator(
     z.object({
@@ -130,6 +132,38 @@ export const $renameNote = createServerFn()
   .handler(async ({ context, data }) => {
     const payload = {
       title: data.title,
+    };
+
+    const response = await axiosClient.put<ApiSuccessResponse<Note>>(
+      `/notes/${data.noteId}`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data;
+  });
+
+//* UPDATE NOTE CONTENT
+// update note content server fn
+export const $updateNoteContent = createServerFn({
+  method: "POST",
+})
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      title: z.string().min(1),
+      noteId: z.string().min(1),
+      content: z.string(),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      title: data.title,
+      content: data.content,
     };
 
     const response = await axiosClient.put<ApiSuccessResponse<Note>>(
