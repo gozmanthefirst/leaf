@@ -40,6 +40,11 @@ export function useNoteMutations({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const createNoteFn = useServerFn($createNote);
+  const deleteNoteFn = useServerFn($deleteNote);
+  const renameNoteFn = useServerFn($renameNote);
+  const copyNoteFn = useServerFn($makeNoteCopy);
+
   const [pendingNoteIds, setPendingNoteIds] = useState<Set<string>>(new Set());
 
   const { setOpenMobile } = useSidebar();
@@ -62,11 +67,6 @@ export function useNoteMutations({
       return next;
     });
   const isNotePending = (id: string) => pendingNoteIds.has(id);
-
-  const createNoteFn = useServerFn($createNote);
-  const deleteNoteFn = useServerFn($deleteNote);
-  const renameNoteFn = useServerFn($renameNote);
-  const copyNoteFn = useServerFn($makeNoteCopy);
 
   // A shared deep clone helper needed to avoid mutating the existing state
   // directly when performing optimistic updates. This is a recursive function

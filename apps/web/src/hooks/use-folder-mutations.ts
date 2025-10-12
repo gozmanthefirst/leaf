@@ -2,11 +2,13 @@ import type { User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
 import { cancelToastEl } from "@/components/ui/toaster";
 import { apiErrorHandler } from "@/lib/handle-api-error";
+import { getMostRecentlyUpdatedNote, parseNoteIdFromPath } from "@/lib/utils";
 import {
   $createFolder,
   $deleteFolder,
@@ -29,6 +31,9 @@ export function useFolderMutations({
   setActiveParentId,
   setOpenFolderIds,
 }: Params) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const createFolderFn = useServerFn($createFolder);
   const deleteFolderFn = useServerFn($deleteFolder);
   const renameFolderFn = useServerFn($renameFolder);
@@ -214,6 +219,31 @@ export function useFolderMutations({
 
       // Update the query cache with the folder structure excluding the deleted folder
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      const currentOpenNoteId = parseNoteIdFromPath(location.pathname);
+
+      // If the currently open note is inside the deleted folder subtree, redirect
+      if (currentOpenNoteId && removedNode) {
+        const containsNote = (
+          node: FolderWithItems,
+          noteId: string,
+        ): boolean => {
+          if (node.notes.some((n) => n.id === noteId)) return true;
+          for (const f of node.folders)
+            if (containsNote(f, noteId)) return true;
+          return false;
+        };
+
+        if (containsNote(removedNode, currentOpenNoteId)) {
+          const nextNote = getMostRecentlyUpdatedNote(draft);
+          if (nextNote) {
+            navigate({ to: "/notes/$noteId", params: { noteId: nextNote.id } });
+          } else {
+            navigate({ to: "/" });
+          }
+        }
+      }
+
       return { previous };
     },
     onError: (error, _vars, ctx) => {

@@ -86,71 +86,6 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
   component: NotePage,
 });
 
-type SyncState =
-  | "idle"
-  | "dirty"
-  | "saving"
-  | "error"
-  | "offline"
-  | "savedRecently";
-
-function StatusIcon({
-  state,
-  labelPrefix,
-}: {
-  state: SyncState;
-  labelPrefix: string;
-}) {
-  const common = "size-4";
-  const map: Record<
-    SyncState,
-    { icon: React.ReactNode; label: string; className?: string }
-  > = {
-    idle: {
-      icon: <TbCheck className={common} />,
-      label: "Synced",
-      className: "text-green-600 dark:text-green-500",
-    },
-    dirty: {
-      icon: <TbPencil className={common} />,
-      label: "Edited",
-      className: "text-amber-600 dark:text-amber-500",
-    },
-    saving: {
-      icon: <TbLoader2 className={`${common} animate-spin`} />,
-      label: "Saving…",
-      className: "text-blue-600 dark:text-blue-500",
-    },
-    error: {
-      icon: <TbAlertTriangle className={common} />,
-      label: "Save failed",
-      className: "text-red-600 dark:text-red-500",
-    },
-    offline: {
-      icon: <TbCloudOff className={common} />,
-      label: "Offline",
-      className: "text-zinc-500",
-    },
-    savedRecently: {
-      icon: <TbCircleCheck className={common} />,
-      label: "Saved",
-      className: "text-green-600 dark:text-green-500",
-    },
-  };
-
-  const s = map[state];
-  return (
-    <div
-      aria-label={`${labelPrefix}: ${s.label}`}
-      className={cn("mr-4", s.className)}
-      role="img"
-      title={`${labelPrefix}: ${s.label}`}
-    >
-      {s.icon}
-    </div>
-  );
-}
-
 // Lift state to the page so header can render it
 function NotePage() {
   const { noteId } = Route.useLoaderData();
@@ -597,3 +532,68 @@ const NotePageDropdown = () => {
     </DropdownMenu>
   );
 };
+
+type SyncState =
+  | "idle"
+  | "dirty"
+  | "saving"
+  | "error"
+  | "offline"
+  | "savedRecently";
+
+function StatusIcon({
+  state,
+  labelPrefix,
+}: {
+  state: SyncState;
+  labelPrefix: string;
+}) {
+  const common = "size-4";
+  const map: Record<
+    SyncState,
+    { icon: React.ReactNode; label: string; className?: string }
+  > = {
+    idle: {
+      icon: <TbCheck className={common} />,
+      label: "Synced",
+      className: "text-green-600 dark:text-green-500",
+    },
+    dirty: {
+      icon: <TbPencil className={common} />,
+      label: "Edited",
+      className: "text-amber-600 dark:text-amber-500",
+    },
+    saving: {
+      icon: <TbLoader2 className={`${common} animate-spin`} />,
+      label: "Saving…",
+      className: "text-blue-600 dark:text-blue-500",
+    },
+    error: {
+      icon: <TbAlertTriangle className={common} />,
+      label: "Save failed",
+      className: "text-red-600 dark:text-red-500",
+    },
+    offline: {
+      icon: <TbCloudOff className={common} />,
+      label: "Offline",
+      className: "text-zinc-500",
+    },
+    savedRecently: {
+      icon: <TbCircleCheck className={common} />,
+      label: "Saved",
+      className: "text-green-600 dark:text-green-500",
+    },
+  };
+
+  const s = map[state];
+  return (
+    <div
+      aria-label={`${labelPrefix}: ${s.label}`}
+      className={cn("mr-4", s.className)}
+      role="img"
+      title={`${labelPrefix}: ${s.label}`}
+    >
+      {s.icon}
+    </div>
+  );
+}
