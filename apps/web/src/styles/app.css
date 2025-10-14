@@ -286,5 +286,10 @@ input[type="number"] {
   .tiptap pre code {
     @apply bg-transparent p-0 text-sm;
   }
+
+  /* Add extra padding to the last block */
+  .tiptap .ProseMirror > :last-child {
+    padding-bottom: 40svh;
+  }
 }
 
