@@ -21,10 +21,8 @@ import {
   TbDotsVertical,
   TbEdit,
   TbFileArrowRight,
-  TbFiles,
   TbLoader2,
   TbPencil,
-  TbStar,
   TbTrash,
 } from "react-icons/tb";
 import { toast } from "sonner";
@@ -86,7 +84,6 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
   component: NotePage,
 });
 
-// Lift state to the page so header can render it
 function NotePage() {
   const { noteId } = Route.useLoaderData();
   const getSingleNote = useServerFn($getSingleNote);
@@ -99,8 +96,9 @@ function NotePage() {
     queryFn: () => getSingleNote({ data: noteId }),
   });
 
-  // Combine title/content states into a single status with precedence
-  const combinedState: SyncState = (() => {
+  // Merge title/content states into a single "Note" state for the header
+  // Precedence: error > offline > saving > dirty > savedRecently > idle
+  const noteState: SyncState = (() => {
     const order: SyncState[] = [
       "error",
       "offline",
@@ -109,15 +107,16 @@ function NotePage() {
       "savedRecently",
       "idle",
     ];
+
     const has = (s: SyncState) => titleState === s || contentState === s;
+
     for (const s of order) if (has(s)) return s;
     return "idle";
   })();
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
-      <NotePageHeader state={combinedState} />
-      {/* let the editor manage its own scroll */}
+      <NotePageHeader state={noteState} />
       <div className="flex flex-1 overflow-auto pt-4">
         <div className="container flex min-h-0 flex-1">
           <WithState state={singleNoteQuery}>
@@ -166,12 +165,16 @@ const TitleTextarea = ({
 
   const [value, setValue] = useState(title);
   const [dirty, setDirty] = useState(false);
+
+  // DOM ref for focus checks and caret placement; expose to parent via "ref" prop
   const innerRef = useRef<HTMLTextAreaElement>(null);
+
+  // Increasing number used to ignore older (stale) responses
   const titleSeqRef = useRef(0);
 
   const debounced = useDebounce(value.trim(), 750);
 
-  // expose the inner ref to parent
+  // Expose the internal ref to the parent (so editor can focus us on ArrowUp)
   useEffect(() => {
     if (!ref) return;
     if (typeof ref === "function") ref(innerRef.current);
@@ -179,32 +182,43 @@ const TitleTextarea = ({
       (ref as RefObject<HTMLTextAreaElement | null>).current = innerRef.current;
   }, [ref]);
 
-  // Keep in sync if title prop changes (external updates) and clear dirty
+  // Sync down external title updates unless the user is actively editing here
   useEffect(() => {
-    // Don't clobber local edits while focused
+    // If currently focused and dirty, don't overwrite the user's in-progress edit
     if (innerRef.current === document.activeElement && dirty) return;
     setValue(title);
     setDirty(false);
     onStatusChange("idle");
   }, [title, onStatusChange, dirty]);
 
+  // Non-optimistic rename mutation (server is source of truth)
+  // We still patch the local note cache on success to keep the UI consistent without refetch
   const { mutate: saveTitle } = useMutation({
     mutationKey: ["rename-note-inline", noteId],
     mutationFn: async (newTitle: string) =>
       renameNote({ data: { noteId, title: newTitle } }),
     onMutate: () => {
+      // Bump sequence; any earlier response becomes stale
       const seq = ++titleSeqRef.current;
       onStatusChange("saving");
+
       return { seq };
     },
     onSuccess: (_res, newTitle, ctx) => {
-      if (ctx?.seq !== titleSeqRef.current) return; // stale response
+      // Drop stale responses (race condition guard)
+      if (ctx?.seq !== titleSeqRef.current) return;
+
       onStatusChange("savedRecently");
       setTimeout(() => onStatusChange("idle"), 1000);
+
+      // Patch active note in cache (no refetch) so the page stays consistent
       queryClient.setQueryData<DecryptedNote>(queryKeys.note(noteId), (prev) =>
         prev ? { ...prev, title: newTitle, updatedAt: new Date() } : prev,
       );
+
+      // Sidebar needs updatedAt to re-sort items
       queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+
       setDirty(false);
     },
     onError: () => {
@@ -216,18 +230,21 @@ const TitleTextarea = ({
     },
   });
 
-  // Fire mutation when user stops typing and value changed (non-optimistic). Only runs if user typed (dirty).
+  // Debounced save: only fire if the user actually typed (dirty) and title changed
   useEffect(() => {
     if (!dirty) return;
     if (!debounced) return;
     if (debounced === title.trim()) return;
+
     saveTitle(debounced);
   }, [debounced, title, dirty, saveTitle]);
 
-  // Make flush stable and capture latest deps
+  // Stable "flush if changed" used on blur/Enter/ArrowDown/exit events
   const flushIfChanged = useCallback(() => {
     const t = value.trim();
+
     if (!dirty) return;
+
     if (t && t !== title.trim()) {
       saveTitle(t);
     } else {
@@ -235,20 +252,25 @@ const TitleTextarea = ({
     }
   }, [dirty, value, title, saveTitle]);
 
-  // TitleTextarea beforeunload
+  // Best-effort flush when the tab is hidden or the page is closing
   useEffect(() => {
+    // If the tab is hidden or the page is unloading, attempt a final save
     const onVis = () => {
       if (document.hidden) flushIfChanged();
     };
+
+    // If the page is being unloaded, show a confirmation dialog to let the user save
+    // unsaved changes
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!dirty) return;
       flushIfChanged();
       e.preventDefault();
-      // Required by browsers to trigger the confirmation dialog
       (e as unknown as { returnValue: string }).returnValue = "";
     };
+
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("beforeunload", onBeforeUnload);
+
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("beforeunload", onBeforeUnload);
@@ -266,12 +288,15 @@ const TitleTextarea = ({
         onStatusChange("dirty");
       }}
       onKeyDown={(e) => {
-        if (e.key === "Enter") {
+        // Enter: save immediately and move focus to the editor
+        if (e.key === "Enter" || e.key === "Escape") {
           e.preventDefault();
           if (dirty) onStatusChange("saving");
           flushIfChanged();
           onEnter();
-        } else if (
+        }
+        // ArrowDown: same as Enter for quick handoff to the editor
+        else if (
           e.key === "ArrowDown" &&
           !e.shiftKey &&
           !e.altKey &&
@@ -292,6 +317,15 @@ const TitleTextarea = ({
   );
 };
 
+/**
+ * NoteView: renders the title + TipTap editor and implements content autosave.
+ * Content saving mirrors the title behavior:
+ * - Debounced, non-optimistic save ($updateNoteContent via POST).
+ * - Sequence guard to avoid out-of-order overwrites.
+ * - No active-note refetch; we patch cache on success.
+ * - Flush on editor blur and on exit (visibilitychange/beforeunload).
+ * - ArrowUp at doc start focuses the title (nice keyboard UX).
+ */
 const NoteView = ({
   note,
   setTitleState,
@@ -304,10 +338,13 @@ const NoteView = ({
   const { queryClient } = Route.useRouteContext();
   const updateNoteContent = useServerFn($updateNoteContent);
 
+  // Ref to focus the title from the editor (ArrowUp at doc start)
   const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const [contentValue, setContentValue] = useState(note.content);
   const [contentDirty, setContentDirty] = useState(false);
+
+  // Increasing number used to ignore older (stale) responses
   const contentSeqRef = useRef(0);
 
   const debouncedContent = useDebounce(contentValue, 750);
@@ -315,7 +352,6 @@ const NoteView = ({
   const editor = useEditor({
     extensions: [StarterKit],
     content: note.content,
-    immediatelyRender: true,
     onUpdate: ({ editor }) => {
       setContentDirty(true);
       setContentState("dirty");
@@ -324,6 +360,7 @@ const NoteView = ({
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
       handleKeyDown: (view, event) => {
+        // Move focus to the title when the caret is at the very start and the user presses ArrowUp
         if (
           event.key === "ArrowUp" &&
           !event.shiftKey &&
@@ -332,12 +369,12 @@ const NoteView = ({
           !event.ctrlKey
         ) {
           const { from, empty } = view.state.selection;
-          // At very start of the document, move focus to title
           if (empty && from === 1) {
             event.preventDefault();
             const el = titleRef.current;
             if (el) {
               el.focus();
+              // Place caret at end of the title
               const end = el.value.length;
               el.setSelectionRange(end, end);
             }
@@ -349,10 +386,9 @@ const NoteView = ({
     },
   });
 
-  // Keep local content in sync when navigating or server updates
-  // biome-ignore lint/correctness/useExhaustiveDependencies: required
+  // This syncs down server content on navigation or external updates
+  // biome-ignore lint/correctness/useExhaustiveDependencies: syncing rule intentionally limited
   useEffect(() => {
-    // If the user is editing, don't apply external content
     if (editor?.isFocused || contentDirty) return;
 
     setContentValue(note.content);
@@ -360,14 +396,14 @@ const NoteView = ({
     setContentState("idle");
 
     if (editor) {
-      // Only sync if different (and not editing) to avoid flicker/clobbering
       if (note.content !== editor.getHTML()) {
         editor.commands.setContent(note.content, { emitUpdate: false });
       }
     }
-  }, [note.id, note.content, editor]); // contentDirty comes from closure
+  }, [note.id, note.content, editor]);
 
-  // Helper: read the latest title from cache to avoid overwriting a recent rename
+  // Read the latest title from the cache to avoid overwriting a rename
+  // that may have landed since the NoteView was rendered
   const getCurrentTitle = () => {
     const cached = queryClient.getQueryData<DecryptedNote>(
       queryKeys.note(note.id),
@@ -387,9 +423,12 @@ const NoteView = ({
       return { seq };
     },
     onSuccess: (_res, html, ctx) => {
-      if (ctx?.seq !== contentSeqRef.current) return; // stale response
+      // Drop stale responses (race condition guard)
+      if (ctx?.seq !== contentSeqRef.current) return;
       setContentState("savedRecently");
       setTimeout(() => setContentState("idle"), 1000);
+
+      // Patch the active note in cache with exactly what we saved
       queryClient.setQueryData<DecryptedNote>(
         queryKeys.note(note.id),
         (prev) =>
@@ -402,7 +441,10 @@ const NoteView = ({
               }
             : prev,
       );
+
+      // Sidebar ordering depends on updatedAt, so refresh the folder tree
       queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+
       setContentDirty(false);
     },
     onError: () => {
@@ -414,30 +456,36 @@ const NoteView = ({
     },
   });
 
-  // Flush on editor blur
+  // Saves immediately if the current HTML differs from the last saved value
   useEffect(() => {
     if (!editor) return;
+
     const handler = () => {
       if (!contentDirty) return;
+
       const html = editor.getHTML();
       const cached = queryClient.getQueryData<DecryptedNote>(
         queryKeys.note(note.id),
       );
+
       if (html !== (cached?.content ?? note.content)) {
         saveContent(html);
       } else {
         setContentDirty(false);
       }
     };
+
     editor.on("blur", handler);
+
     return () => {
       editor.off("blur", handler);
     };
   }, [editor, contentDirty, note.id, note.content, queryClient, saveContent]);
 
-  // Debounced save after user stops typing
+  // Save the changes made to the note content after debouncing
   useEffect(() => {
     if (!contentDirty) return;
+
     const cached = queryClient.getQueryData<DecryptedNote>(
       queryKeys.note(note.id),
     );
@@ -454,26 +502,32 @@ const NoteView = ({
     saveContent,
   ]);
 
-  // NoteView beforeunload
+  // Best-effort flush when the tab is hidden or the page is closing
   useEffect(() => {
     if (!editor) return;
+
     const flush = () => {
       if (!editor || !contentDirty) return;
       const html = editor.getHTML();
       saveContent(html);
     };
+
+    // If the tab is hidden or the page is unloading, attempt a final save
     const onVis = () => {
       if (document.hidden) flush();
     };
+
+    // If the page is being unloaded, show a confirmation dialog to let the user save
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       if (!contentDirty) return;
       flush();
       e.preventDefault();
-      // Required by browsers to trigger the confirmation dialog
       (e as unknown as { returnValue: string }).returnValue = "";
     };
+
     document.addEventListener("visibilitychange", onVis);
     window.addEventListener("beforeunload", onBeforeUnload);
+
     return () => {
       document.removeEventListener("visibilitychange", onVis);
       window.removeEventListener("beforeunload", onBeforeUnload);
@@ -481,7 +535,6 @@ const NoteView = ({
   }, [editor, contentDirty, saveContent]);
 
   return (
-    // allow children to grow and scroll
     <div className="flex min-h-0 w-full flex-1 flex-col">
       <TitleTextarea
         noteId={note.id}
@@ -490,7 +543,6 @@ const NoteView = ({
         ref={titleRef}
         title={note.title}
       />
-      {/* wrapper provides height; EditorContent fills and page scrolls */}
       <div className="mt-4 min-h-0 flex-1">
         <EditorContent className="tiptap h-full w-full" editor={editor} />
       </div>
@@ -507,17 +559,9 @@ const NotePageDropdown = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={"end"} className="w-56" side={"bottom"}>
-        <DropdownMenuItem>
-          <TbFiles className="text-muted-foreground" />
-          <span>Make a copy</span>
-        </DropdownMenuItem>
         <DropdownMenuItem disabled>
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move note to...</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <TbStar className="text-muted-foreground" />
-          <span>Favorite note</span>
         </DropdownMenuItem>
         <DropdownMenuItem>
           <TbEdit className="text-muted-foreground" />
@@ -533,6 +577,8 @@ const NotePageDropdown = () => {
   );
 };
 
+// Used to show sync state between the server and the local versions of the note.
+// "savedRecently" is used briefly after success to provide visual feedback
 type SyncState =
   | "idle"
   | "dirty"
