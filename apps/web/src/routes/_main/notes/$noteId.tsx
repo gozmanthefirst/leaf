@@ -15,6 +15,7 @@ import {
 } from "react";
 import {
   TbAlertTriangle,
+  TbBook,
   TbCheck,
   TbCircleCheck,
   TbCloudOff,
@@ -38,6 +39,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { cancelToastEl } from "@/components/ui/toaster";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/query";
 import { cn, getMostRecentlyUpdatedNote } from "@/lib/utils";
 import { folderQueryOptions } from "@/server/folder";
@@ -90,6 +96,7 @@ function NotePage() {
 
   const [titleState, setTitleState] = useState<SyncState>("idle");
   const [contentState, setContentState] = useState<SyncState>("idle");
+  const [isEditing, setIsEditing] = useState(true);
 
   const singleNoteQuery = useQuery({
     ...singleNoteQueryOptions(noteId),
@@ -114,15 +121,29 @@ function NotePage() {
     return "idle";
   })();
 
+  const toggleEditing = () => {
+    if (isEditing) {
+      (document.activeElement as HTMLElement | null)?.blur();
+      setIsEditing(false);
+    } else {
+      setIsEditing(true);
+    }
+  };
+
   return (
     <main className="absolute inset-0 flex h-full flex-col">
-      <NotePageHeader state={noteState} />
+      <NotePageHeader
+        isEditing={isEditing}
+        onToggleEditing={toggleEditing}
+        state={noteState}
+      />
       <div className="flex flex-1 overflow-auto pt-4">
         <div className="container flex min-h-0 flex-1">
           <WithState state={singleNoteQuery}>
             {(note) =>
               note ? (
                 <NoteView
+                  isEditing={isEditing}
                   note={note}
                   setContentState={setContentState}
                   setTitleState={setTitleState}
@@ -136,12 +157,36 @@ function NotePage() {
   );
 }
 
-const NotePageHeader = ({ state }: { state: SyncState }) => {
+const NotePageHeader = ({
+  state,
+  isEditing,
+  onToggleEditing,
+}: {
+  state: SyncState;
+  isEditing: boolean;
+  onToggleEditing: () => void;
+}) => {
   return (
     <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center border-muted/80 px-3 lg:px-6">
       <SidebarTrigger className="lg:hidden" />
       <div className="ml-auto flex items-center gap-2">
         <StatusIcon labelPrefix="Note" state={state} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              aria-label={isEditing ? "Reading mode" : "Editing mode"}
+              className="size-7"
+              onClick={onToggleEditing}
+              size="icon"
+              variant="ghost"
+            >
+              {isEditing ? <TbBook /> : <TbEdit />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isEditing ? "Switch to read mode" : "Switch to edit mode"}
+          </TooltipContent>
+        </Tooltip>
         <NotePageDropdown />
       </div>
     </header>
@@ -153,12 +198,14 @@ const TitleTextarea = ({
   title,
   onEnter,
   onStatusChange,
+  isEditing,
   ref,
 }: ComponentProps<"textarea"> & {
   noteId: string;
   title: string;
   onEnter: () => void;
   onStatusChange: (s: SyncState) => void;
+  isEditing: boolean;
 }) => {
   const queryClient = useQueryClient();
   const renameNote = useServerFn($renameNote);
@@ -174,7 +221,7 @@ const TitleTextarea = ({
 
   const debounced = useDebounce(value.trim(), 750);
 
-  // Expose the internal ref to the parent (so editor can focus us on ArrowUp)
+  // useEffect for exposing the internal ref to the parent (so editor can focus us on ArrowUp)
   useEffect(() => {
     if (!ref) return;
     if (typeof ref === "function") ref(innerRef.current);
@@ -182,7 +229,7 @@ const TitleTextarea = ({
       (ref as RefObject<HTMLTextAreaElement | null>).current = innerRef.current;
   }, [ref]);
 
-  // Sync down external title updates unless the user is actively editing here
+  // useEffect for syncing down external title updates unless the user is actively editing here
   useEffect(() => {
     // If currently focused and dirty, don't overwrite the user's in-progress edit
     if (innerRef.current === document.activeElement && dirty) return;
@@ -239,7 +286,7 @@ const TitleTextarea = ({
     saveTitle(debounced);
   }, [debounced, title, dirty, saveTitle]);
 
-  // Stable "flush if changed" used on blur/Enter/ArrowDown/exit events
+  // useEffect for saving the note on blur/Enter/ArrowDown/exit events if there are any changes
   const flushIfChanged = useCallback(() => {
     const t = value.trim();
 
@@ -252,7 +299,7 @@ const TitleTextarea = ({
     }
   }, [dirty, value, title, saveTitle]);
 
-  // Best-effort flush when the tab is hidden or the page is closing
+  // useEffect to try a best-effort save when the tab is hidden or the page is closing
   useEffect(() => {
     // If the tab is hidden or the page is unloading, attempt a final save
     const onVis = () => {
@@ -277,6 +324,18 @@ const TitleTextarea = ({
     };
   }, [dirty, flushIfChanged]);
 
+  // Render static title in read mode
+  if (!isEditing) {
+    return (
+      <h1
+        className="w-full bg-transparent font-semibold text-2xl leading-tight md:text-3xl"
+        data-mode="read"
+      >
+        {value}
+      </h1>
+    );
+  }
+
   return (
     <textarea
       aria-label="Note title"
@@ -288,15 +347,12 @@ const TitleTextarea = ({
         onStatusChange("dirty");
       }}
       onKeyDown={(e) => {
-        // Enter: save immediately and move focus to the editor
         if (e.key === "Enter" || e.key === "Escape") {
           e.preventDefault();
           if (dirty) onStatusChange("saving");
           flushIfChanged();
           onEnter();
-        }
-        // ArrowDown: same as Enter for quick handoff to the editor
-        else if (
+        } else if (
           e.key === "ArrowDown" &&
           !e.shiftKey &&
           !e.altKey &&
@@ -317,23 +373,16 @@ const TitleTextarea = ({
   );
 };
 
-/**
- * NoteView: renders the title + TipTap editor and implements content autosave.
- * Content saving mirrors the title behavior:
- * - Debounced, non-optimistic save ($updateNoteContent via POST).
- * - Sequence guard to avoid out-of-order overwrites.
- * - No active-note refetch; we patch cache on success.
- * - Flush on editor blur and on exit (visibilitychange/beforeunload).
- * - ArrowUp at doc start focuses the title (nice keyboard UX).
- */
 const NoteView = ({
   note,
   setTitleState,
   setContentState,
+  isEditing,
 }: {
   note: DecryptedNote;
   setTitleState: (s: SyncState) => void;
   setContentState: (s: SyncState) => void;
+  isEditing: boolean;
 }) => {
   const { queryClient } = Route.useRouteContext();
   const updateNoteContent = useServerFn($updateNoteContent);
@@ -353,20 +402,26 @@ const NoteView = ({
     extensions: [StarterKit],
     content: note.content,
     onUpdate: ({ editor }) => {
+      // Avoid marking the editor as dirty if read mode is activated or if the content equals the server
+      // content and we haven't started editing yet
+      if (!editor.isEditable) return;
+      const html = editor.getHTML();
+      if (!contentDirty && html === note.content) return;
+
       setContentDirty(true);
       setContentState("dirty");
-      setContentValue(editor.getHTML());
+      setContentValue(html);
     },
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
       handleKeyDown: (view, event) => {
-        // Move focus to the title when the caret is at the very start and the user presses ArrowUp
         if (
           event.key === "ArrowUp" &&
           !event.shiftKey &&
           !event.altKey &&
           !event.metaKey &&
-          !event.ctrlKey
+          !event.ctrlKey &&
+          isEditing
         ) {
           const { from, empty } = view.state.selection;
           if (empty && from === 1) {
@@ -374,7 +429,6 @@ const NoteView = ({
             const el = titleRef.current;
             if (el) {
               el.focus();
-              // Place caret at end of the title
               const end = el.value.length;
               el.setSelectionRange(end, end);
             }
@@ -502,7 +556,20 @@ const NoteView = ({
     saveContent,
   ]);
 
-  // Best-effort flush when the tab is hidden or the page is closing
+  // Toggle editor editability when mode changes
+  useEffect(() => {
+    if (editor) editor.setEditable(isEditing);
+  }, [editor, isEditing]);
+
+  // When switching to read mode, clear dirty states visually if desired
+  useEffect(() => {
+    if (!isEditing) {
+      setContentDirty(false);
+      setContentState("idle");
+    }
+  }, [isEditing, setContentState]);
+
+  // useEffect to try a best-effort save when the tab is hidden or the page is closing
   useEffect(() => {
     if (!editor) return;
 
@@ -537,6 +604,7 @@ const NoteView = ({
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col">
       <TitleTextarea
+        isEditing={isEditing}
         noteId={note.id}
         onEnter={() => editor?.chain().focus().run()}
         onStatusChange={setTitleState}
@@ -544,7 +612,13 @@ const NoteView = ({
         title={note.title}
       />
       <div className="mt-4 min-h-0 flex-1">
-        <EditorContent className="tiptap h-full w-full" editor={editor} />
+        <EditorContent
+          className={cn(
+            "tiptap h-full w-full",
+            !isEditing && "pointer-events-none select-text",
+          )}
+          editor={editor}
+        />
       </div>
     </div>
   );
