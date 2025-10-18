@@ -38,6 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Spinner } from "@/components/ui/spinner";
 import { cancelToastEl } from "@/components/ui/toaster";
 import {
   Tooltip,
@@ -57,6 +58,11 @@ import {
 export const Route = createFileRoute("/_main/notes/$noteId")({
   ssr: "data-only",
   beforeLoad: async ({ context, params }) => {
+    // Skip validation for temp notes
+    if (params.noteId.startsWith("temp-note-")) {
+      return;
+    }
+
     const note = await context.queryClient.ensureQueryData(
       singleNoteQueryOptions(params.noteId),
     );
@@ -81,9 +87,12 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
     }
   },
   loader: async ({ params, context }) => {
-    await context.queryClient.prefetchQuery(
-      singleNoteQueryOptions(params.noteId),
-    );
+    // Skip prefetch for temp notes
+    if (!params.noteId.startsWith("temp-note-")) {
+      await context.queryClient.prefetchQuery(
+        singleNoteQueryOptions(params.noteId),
+      );
+    }
 
     return { noteId: params.noteId };
   },
@@ -98,9 +107,14 @@ function NotePage() {
   const [contentState, setContentState] = useState<SyncState>("idle");
   const [isEditing, setIsEditing] = useState(true);
 
+  // Check if this is a temp note
+  const isTempNote = noteId.startsWith("temp-note-");
+
   const singleNoteQuery = useQuery({
     ...singleNoteQueryOptions(noteId),
     queryFn: () => getSingleNote({ data: noteId }),
+    // Disable query for temp notes
+    enabled: !isTempNote,
   });
 
   // Merge title/content states into a single "Note" state for the header
@@ -139,18 +153,26 @@ function NotePage() {
       />
       <div className="flex flex-1 overflow-auto pt-4">
         <div className="container flex min-h-0 flex-1">
-          <WithState state={singleNoteQuery}>
-            {(note) =>
-              note ? (
-                <NoteView
-                  isEditing={isEditing}
-                  note={note}
-                  setContentState={setContentState}
-                  setTitleState={setTitleState}
-                />
-              ) : null
-            }
-          </WithState>
+          {/* Show loading state for temp notes */}
+          {isTempNote ? (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Spinner className="size-8" />
+              <p className="text-sm">Creating note...</p>
+            </div>
+          ) : (
+            <WithState state={singleNoteQuery}>
+              {(note) =>
+                note ? (
+                  <NoteView
+                    isEditing={isEditing}
+                    note={note}
+                    setContentState={setContentState}
+                    setTitleState={setTitleState}
+                  />
+                ) : null
+              }
+            </WithState>
+          )}
         </div>
       </div>
     </main>

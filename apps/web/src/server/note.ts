@@ -42,6 +42,11 @@ export const $getSingleNote = createServerFn()
   .middleware([sessionMiddleware])
   .inputValidator(z.string().min(1))
   .handler(async ({ context, data: noteId }) => {
+    // ✅ Return null immediately for temp IDs
+    if (noteId.startsWith("temp-note-")) {
+      return null;
+    }
+
     try {
       const response = await axiosClient.get<ApiSuccessResponse<DecryptedNote>>(
         `/notes/${noteId}`,

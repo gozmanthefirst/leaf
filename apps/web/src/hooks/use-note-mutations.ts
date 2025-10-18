@@ -158,6 +158,13 @@ export function useNoteMutations({
       queryClient.setQueryData(folderQueryOptions.queryKey, draft);
       setActiveNoteParentId(null);
 
+      // Navigate to temp note immediately
+      navigate({
+        to: "/notes/$noteId",
+        params: { noteId: tempId },
+      });
+      setOpenMobile(false);
+
       return { previous, tempId };
     },
     onError: (error, _vars, ctx) => {
@@ -207,22 +214,20 @@ export function useNoteMutations({
         folders: node.folders.map(replace),
       });
 
-      // Update the query cache with the folder structure including the real new note
-      // and remove the temp ID from the pending set to re-enable interactions
       queryClient.setQueryData(folderQueryOptions.queryKey, replace(current));
       unmarkPending(ctx.tempId);
 
-      // Navigate to the new note's page
-      navigate({
-        to: "/notes/$noteId",
-        params: { noteId: serverNote.id },
-      });
-
-      // Close the sidebar on mobile to show the new note
-      setOpenMobile(false);
+      // Update URL to real ID if still on temp note page
+      const currentPath = location.pathname;
+      if (currentPath.includes(ctx.tempId)) {
+        navigate({
+          to: "/notes/$noteId",
+          params: { noteId: serverNote.id },
+          replace: true,
+        });
+      }
     },
     onSettled: (data) => {
-      // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -309,7 +314,6 @@ export function useNoteMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: () => {
-      // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -367,7 +371,6 @@ export function useNoteMutations({
       toast.error(apiError.details, cancelToastEl);
     },
     onSettled: (data) => {
-      // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
       });
@@ -501,7 +504,6 @@ export function useNoteMutations({
       setOpenMobile(false);
     },
     onSettled: (data) => {
-      // Invalidate queries to ensure fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: folderQueryOptions.queryKey,
       });

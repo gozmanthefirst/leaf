@@ -1022,7 +1022,6 @@ const NoteItem = ({
                 })
               }
               size={SIDEBAR_BTN_SIZE}
-              // no nested button, render as a single anchor
             >
               <Link
                 onClick={(e) => {
