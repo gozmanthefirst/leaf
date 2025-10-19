@@ -132,6 +132,7 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
       "ms",
     );
     console.log("[note loader] Note data:", note ? "exists" : "null");
+    console.log("[note loader] Returning from loader");
 
     return { noteId: params.noteId, note };
   },
@@ -139,7 +140,12 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
 });
 
 function NotePage() {
+  console.log("[NotePage] Component function called");
+  const componentStart = Date.now();
+
   const { noteId, note } = Route.useLoaderData();
+  console.log("[NotePage] useLoaderData completed, noteId:", noteId);
+
   const getSingleNote = useServerFn($getSingleNote);
 
   const [titleState, setTitleState] = useState<SyncState>("idle");
@@ -151,6 +157,7 @@ function NotePage() {
   // Check if this is a temp note
   const isTempNote = noteId.startsWith("temp-note-");
 
+  console.log("[NotePage] Creating useQuery");
   const singleNoteQuery = useQuery({
     ...singleNoteQueryOptions(noteId),
     queryFn: () => getSingleNote({ data: noteId }),
@@ -158,6 +165,12 @@ function NotePage() {
     enabled: !isTempNote,
     initialData: note,
   });
+  console.log(
+    "[NotePage] useQuery created, status:",
+    singleNoteQuery.status,
+    "hasData:",
+    !!singleNoteQuery.data,
+  );
 
   // Merge title/content states into a single "Note" state for the header
   // Precedence: error > offline > saving > dirty > savedRecently > idle
@@ -185,6 +198,12 @@ function NotePage() {
       setIsEditing(true);
     }
   };
+
+  console.log(
+    "[NotePage] Rendering JSX, component time:",
+    Date.now() - componentStart,
+    "ms",
+  );
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
