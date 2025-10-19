@@ -26,7 +26,6 @@
     "@tanstack/react-store": "^0.8.0",
     "@tanstack/zod-adapter": "^1.133.13",
     "@tiptap/core": "^3.7.2",
-    "@tiptap/markdown": "^3.7.2",
     "@tiptap/pm": "^3.7.2",
     "@tiptap/react": "^3.7.2",
     "@tiptap/starter-kit": "^3.7.2",
