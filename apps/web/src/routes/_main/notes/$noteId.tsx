@@ -2,6 +2,7 @@ import type { DecryptedNote } from "@repo/db/validators/note-validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -421,18 +422,19 @@ const NoteView = ({
   const debouncedContent = useDebounce(contentValue, 750);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [StarterKit, Markdown],
     content: note.content,
+    contentType: "markdown",
     onUpdate: ({ editor }) => {
       // Avoid marking the editor as dirty if read mode is activated or if the content equals the server
       // content and we haven't started editing yet
       if (!editor.isEditable) return;
-      const html = editor.getHTML();
-      if (!contentDirty && html === note.content) return;
+      const md = editor.getMarkdown();
+      if (!contentDirty && md === note.content) return;
 
       setContentDirty(true);
       setContentState("dirty");
-      setContentValue(html);
+      setContentValue(md);
     },
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
@@ -472,8 +474,11 @@ const NoteView = ({
     setContentState("idle");
 
     if (editor) {
-      if (note.content !== editor.getHTML()) {
-        editor.commands.setContent(note.content, { emitUpdate: false });
+      if (note.content !== editor.getMarkdown()) {
+        editor.commands.setContent(note.content, {
+          emitUpdate: false,
+          contentType: "markdown",
+        });
       }
     }
   }, [note.id, note.content, editor]);
@@ -489,16 +494,16 @@ const NoteView = ({
 
   const { mutate: saveContent } = useMutation({
     mutationKey: ["update-note-content", note.id],
-    mutationFn: async (html: string) =>
+    mutationFn: async (md: string) =>
       updateNoteContent({
-        data: { noteId: note.id, title: getCurrentTitle(), content: html },
+        data: { noteId: note.id, title: getCurrentTitle(), content: md },
       }),
     onMutate: () => {
       const seq = ++contentSeqRef.current;
       setContentState("saving");
       return { seq };
     },
-    onSuccess: (_res, html, ctx) => {
+    onSuccess: (_res, md, ctx) => {
       // Drop stale responses (race condition guard)
       if (ctx?.seq !== contentSeqRef.current) return;
       setContentState("savedRecently");
@@ -512,7 +517,7 @@ const NoteView = ({
             ? {
                 ...prev,
                 title: getCurrentTitle(),
-                content: html,
+                content: md,
                 updatedAt: new Date(),
               }
             : prev,
@@ -532,20 +537,20 @@ const NoteView = ({
     },
   });
 
-  // Saves immediately if the current HTML differs from the last saved value
+  // Saves immediately if the current Markdown differs from the last saved value
   useEffect(() => {
     if (!editor) return;
 
     const handler = () => {
       if (!contentDirty) return;
 
-      const html = editor.getHTML();
+      const md = editor.getMarkdown();
       const cached = queryClient.getQueryData<DecryptedNote>(
         queryKeys.note(note.id),
       );
 
-      if (html !== (cached?.content ?? note.content)) {
-        saveContent(html);
+      if (md !== (cached?.content ?? note.content)) {
+        saveContent(md);
       } else {
         setContentDirty(false);
       }
@@ -597,8 +602,8 @@ const NoteView = ({
 
     const flush = () => {
       if (!editor || !contentDirty) return;
-      const html = editor.getHTML();
-      saveContent(html);
+      const md = editor.getMarkdown();
+      saveContent(md);
     };
 
     // If the tab is hidden or the page is unloading, attempt a final save
