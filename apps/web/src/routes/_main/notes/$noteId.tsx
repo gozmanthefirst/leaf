@@ -30,7 +30,6 @@ import {
 } from "react-icons/tb";
 import { toast } from "sonner";
 
-import { WithState } from "@/components/fallback/with-state";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -116,16 +115,31 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
     }
 
     console.log("[note beforeLoad] Total time:", Date.now() - start, "ms");
+
+    return { note };
   },
-  loader: async ({ params }) => {
+  loader: async ({ params, context }) => {
     console.log("[note loader] Starting for noteId:", params.noteId);
-    return { noteId: params.noteId };
+    const loaderStart = Date.now();
+
+    const note = await context.queryClient.ensureQueryData(
+      singleNoteQueryOptions(params.noteId),
+    );
+
+    console.log(
+      "[note loader] Note ensureQueryData completed in:",
+      Date.now() - loaderStart,
+      "ms",
+    );
+    console.log("[note loader] Note data:", note ? "exists" : "null");
+
+    return { noteId: params.noteId, note };
   },
   component: NotePage,
 });
 
 function NotePage() {
-  const { noteId } = Route.useLoaderData();
+  const { noteId, note } = Route.useLoaderData();
   const getSingleNote = useServerFn($getSingleNote);
 
   const [titleState, setTitleState] = useState<SyncState>("idle");
@@ -142,6 +156,7 @@ function NotePage() {
     queryFn: () => getSingleNote({ data: noteId }),
     // Disable query for temp notes
     enabled: !isTempNote,
+    placeholderData: note,
   });
 
   // Merge title/content states into a single "Note" state for the header
@@ -187,21 +202,15 @@ function NotePage() {
               <Spinner className="size-8" />
               <p className="text-sm">Creating note...</p>
             </div>
-          ) : (
-            <WithState state={singleNoteQuery}>
-              {(note) =>
-                note ? (
-                  <NoteView
-                    isEditing={isEditing}
-                    note={note}
-                    setContentState={setContentState}
-                    setTitleState={setTitleState}
-                    titleRef={titleRef}
-                  />
-                ) : null
-              }
-            </WithState>
-          )}
+          ) : singleNoteQuery.data ? (
+            <NoteView
+              isEditing={isEditing}
+              note={singleNoteQuery.data}
+              setContentState={setContentState}
+              setTitleState={setTitleState}
+              titleRef={titleRef}
+            />
+          ) : null}
         </div>
       </div>
     </main>

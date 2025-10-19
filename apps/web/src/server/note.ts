@@ -98,7 +98,8 @@ export const $getSingleNote = createServerFn()
       );
 
       return note;
-    } catch {
+    } catch (error) {
+      console.error("[getSingleNote] Error:", error);
       return null;
     }
   });
