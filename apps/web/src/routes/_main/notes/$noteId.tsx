@@ -59,80 +59,42 @@ import {
 } from "@/server/note";
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
-  // ssr: "data-only",
   beforeLoad: async ({ context, params }) => {
-    console.log("[note beforeLoad] Starting for noteId:", params.noteId);
-    const start = Date.now();
-
     // Skip validation for temp notes
     if (params.noteId.startsWith("temp-note-")) {
-      console.log("[note beforeLoad] Skipping temp note");
       return;
     }
 
-    console.log("[note beforeLoad] Fetching note");
-    const noteStart = Date.now();
     const note = await context.queryClient.ensureQueryData(
       singleNoteQueryOptions(params.noteId),
     );
-    console.log(
-      "[note beforeLoad] Note fetched in:",
-      Date.now() - noteStart,
-      "ms",
-    );
 
-    console.log("[note beforeLoad] Fetching root folder");
-    const folderStart = Date.now();
     const rootFolder =
       await context.queryClient.ensureQueryData(folderQueryOptions);
-    console.log(
-      "[note beforeLoad] Root folder fetched in:",
-      Date.now() - folderStart,
-      "ms",
-    );
 
     if (!note) {
       if (rootFolder) {
         const mostRecentNote = getMostRecentlyUpdatedNote(rootFolder);
 
         if (mostRecentNote) {
-          console.log(
-            "[note beforeLoad] Redirecting to most recent note:",
-            mostRecentNote.id,
-          );
           throw redirect({
             to: "/notes/$noteId",
             params: { noteId: mostRecentNote.id },
           });
         } else {
-          console.log("[note beforeLoad] No notes found, redirecting to home");
           throw redirect({ to: "/" });
         }
       } else {
-        console.log("[note beforeLoad] No root folder, redirecting to home");
         throw redirect({ to: "/" });
       }
     }
 
-    console.log("[note beforeLoad] Total time:", Date.now() - start, "ms");
-
     return { note };
   },
   loader: async ({ params, context }) => {
-    console.log("[note loader] Starting for noteId:", params.noteId);
-    const loaderStart = Date.now();
-
     const note = await context.queryClient.ensureQueryData(
       singleNoteQueryOptions(params.noteId),
     );
-
-    console.log(
-      "[note loader] Note ensureQueryData completed in:",
-      Date.now() - loaderStart,
-      "ms",
-    );
-    console.log("[note loader] Note data:", note ? "exists" : "null");
-    console.log("[note loader] Returning from loader");
 
     return { noteId: params.noteId, note };
   },
@@ -140,11 +102,7 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
 });
 
 function NotePage() {
-  console.log("[NotePage] Component function called");
-  const componentStart = Date.now();
-
   const { noteId, note } = Route.useLoaderData();
-  console.log("[NotePage] useLoaderData completed, noteId:", noteId);
 
   const getSingleNote = useServerFn($getSingleNote);
 
@@ -157,7 +115,6 @@ function NotePage() {
   // Check if this is a temp note
   const isTempNote = noteId.startsWith("temp-note-");
 
-  console.log("[NotePage] Creating useQuery");
   const singleNoteQuery = useQuery({
     ...singleNoteQueryOptions(noteId),
     queryFn: () => getSingleNote({ data: noteId }),
@@ -165,12 +122,6 @@ function NotePage() {
     enabled: !isTempNote,
     initialData: note,
   });
-  console.log(
-    "[NotePage] useQuery created, status:",
-    singleNoteQuery.status,
-    "hasData:",
-    !!singleNoteQuery.data,
-  );
 
   // Merge title/content states into a single "Note" state for the header
   // Precedence: error > offline > saving > dirty > savedRecently > idle
@@ -198,12 +149,6 @@ function NotePage() {
       setIsEditing(true);
     }
   };
-
-  console.log(
-    "[NotePage] Rendering JSX, component time:",
-    Date.now() - componentStart,
-    "ms",
-  );
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
@@ -490,6 +435,7 @@ const NoteView = ({
     ],
     content: note.content,
     contentType: "markdown",
+    immediatelyRender: false,
     onUpdate: ({ editor }) => {
       // Avoid marking the editor as dirty if read mode is activated or if the content equals the server
       // content and we haven't started editing yet

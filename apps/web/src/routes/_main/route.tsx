@@ -8,16 +8,7 @@ import { userQueryOptions } from "@/server/user";
 
 export const Route = createFileRoute("/_main")({
   beforeLoad: async ({ context }) => {
-    console.log("[_main beforeLoad] Starting user check");
-    const start = Date.now();
-
     const user = await context.queryClient.ensureQueryData(userQueryOptions);
-
-    console.log(
-      "[_main beforeLoad] User check completed in:",
-      Date.now() - start,
-      "ms",
-    );
 
     if (!user) {
       await $delSessionToken();
@@ -27,9 +18,6 @@ export const Route = createFileRoute("/_main")({
     return { user };
   },
   loader: async ({ context }) => {
-    console.log("[_main loader] Starting");
-    const loaderStart = Date.now();
-
     const user = await context.queryClient.fetchQuery(userQueryOptions);
 
     if (!user) {
@@ -37,20 +25,8 @@ export const Route = createFileRoute("/_main")({
       throw redirect({ to: "/auth/sign-in" });
     }
 
-    console.log("[_main loader] Prefetching folder tree");
-    const folderStart = Date.now();
     await context.queryClient.prefetchQuery(folderQueryOptions);
-    console.log(
-      "[_main loader] Folder tree prefetched in:",
-      Date.now() - folderStart,
-      "ms",
-    );
 
-    console.log(
-      "[_main loader] Total loader time:",
-      Date.now() - loaderStart,
-      "ms",
-    );
     return { user };
   },
   component: MainLayout,

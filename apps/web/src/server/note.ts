@@ -71,9 +71,6 @@ export const $getSingleNote = createServerFn()
     }
 
     try {
-      console.log("[getSingleNote] Starting fetch for:", noteId);
-      const start = Date.now();
-
       const response = await axiosClient.get<ApiSuccessResponse<DecryptedNote>>(
         `/notes/${noteId}`,
         {
@@ -84,22 +81,10 @@ export const $getSingleNote = createServerFn()
         },
       );
 
-      console.log(
-        "[getSingleNote] API responded in:",
-        Date.now() - start,
-        "ms",
-      );
-
       const note = response.data.data;
-      console.log(
-        "[getSingleNote] Note size:",
-        JSON.stringify(note).length,
-        "bytes",
-      );
 
       return note;
-    } catch (error) {
-      console.error("[getSingleNote] Error:", error);
+    } catch {
       return null;
     }
   });
