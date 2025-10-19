@@ -62,42 +62,63 @@ import {
 export const Route = createFileRoute("/_main/notes/$noteId")({
   ssr: "data-only",
   beforeLoad: async ({ context, params }) => {
+    console.log("[note beforeLoad] Starting for noteId:", params.noteId);
+    const start = Date.now();
+
     // Skip validation for temp notes
     if (params.noteId.startsWith("temp-note-")) {
+      console.log("[note beforeLoad] Skipping temp note");
       return;
     }
 
+    console.log("[note beforeLoad] Fetching note");
+    const noteStart = Date.now();
     const note = await context.queryClient.ensureQueryData(
       singleNoteQueryOptions(params.noteId),
     );
+    console.log(
+      "[note beforeLoad] Note fetched in:",
+      Date.now() - noteStart,
+      "ms",
+    );
+
+    console.log("[note beforeLoad] Fetching root folder");
+    const folderStart = Date.now();
     const rootFolder =
       await context.queryClient.ensureQueryData(folderQueryOptions);
+    console.log(
+      "[note beforeLoad] Root folder fetched in:",
+      Date.now() - folderStart,
+      "ms",
+    );
 
     if (!note) {
       if (rootFolder) {
         const mostRecentNote = getMostRecentlyUpdatedNote(rootFolder);
 
         if (mostRecentNote) {
+          console.log(
+            "[note beforeLoad] Redirecting to most recent note:",
+            mostRecentNote.id,
+          );
           throw redirect({
             to: "/notes/$noteId",
             params: { noteId: mostRecentNote.id },
           });
         } else {
+          console.log("[note beforeLoad] No notes found, redirecting to home");
           throw redirect({ to: "/" });
         }
       } else {
+        console.log("[note beforeLoad] No root folder, redirecting to home");
         throw redirect({ to: "/" });
       }
     }
+
+    console.log("[note beforeLoad] Total time:", Date.now() - start, "ms");
   },
   loader: async ({ params }) => {
-    // Skip prefetch for temp notes
-    // if (!params.noteId.startsWith("temp-note-")) {
-    //   await context.queryClient.prefetchQuery(
-    //     singleNoteQueryOptions(params.noteId),
-    //   );
-    // }
-
+    console.log("[note loader] Starting for noteId:", params.noteId);
     return { noteId: params.noteId };
   },
   component: NotePage,
