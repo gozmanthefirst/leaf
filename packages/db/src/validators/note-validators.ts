@@ -29,6 +29,7 @@ export const NoteUpdateSchema = NoteInsertSchema.extend({
   title: z.string().min(1),
   tags: z.array(z.string().min(1)),
   isFavorite: z.boolean(),
+  _compressed: z.boolean(),
 }).partial();
 
 export type DecryptedNote = z.infer<typeof NoteSelectSchema>;

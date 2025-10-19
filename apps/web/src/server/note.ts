@@ -2,6 +2,7 @@ import type { Note } from "@repo/db";
 import type { DecryptedNote } from "@repo/db/validators/note-validators";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
+import pako from "pako";
 import z from "zod";
 
 import { axiosClient } from "@/lib/axios";
@@ -9,6 +10,29 @@ import { queryKeys } from "@/lib/query";
 import type { ApiSuccessResponse } from "@/lib/types";
 import { sessionMiddleware } from "@/middleware/auth-middleware";
 import { $getFolder } from "@/server/folder";
+
+// Helper to get byte size of a string
+const getByteSize = (str: string): number => {
+  return new TextEncoder().encode(str).length;
+};
+
+// Helper to convert Uint8Array to base64 without stack overflow
+const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
+  // Use Buffer in Node.js environment (server-side)
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(bytes).toString("base64");
+  }
+
+  // Fallback for browser (shouldn't happen in server fn, but just in case)
+  // Process in chunks to avoid stack overflow
+  const CHUNK_SIZE = 0x8000; // 32KB chunks
+  let result = "";
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, i + CHUNK_SIZE);
+    result += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  return btoa(result);
+};
 
 //* GET NOTES
 // get notes server fn
@@ -42,7 +66,7 @@ export const $getSingleNote = createServerFn()
   .middleware([sessionMiddleware])
   .inputValidator(z.string().min(1))
   .handler(async ({ context, data: noteId }) => {
-    // ✅ Return null immediately for temp IDs
+    // Return null immediately for temp IDs
     if (noteId.startsWith("temp-note-")) {
       return null;
     }
@@ -166,10 +190,37 @@ export const $updateNoteContent = createServerFn({
     }),
   )
   .handler(async ({ context, data }) => {
-    const payload = {
+    const payload: {
+      title: string;
+      content?: string;
+      _compressed?: boolean;
+    } = {
       title: data.title,
-      content: data.content,
     };
+
+    // Compress content if it's large (> 10KB in bytes)
+    const contentSize = getByteSize(data.content);
+    if (data.content && contentSize > 10240) {
+      try {
+        // Compress using gzip
+        const compressed = pako.gzip(data.content);
+
+        // Convert to base64 safely
+        const base64 = uint8ArrayToBase64(compressed);
+
+        payload.content = base64;
+        payload._compressed = true;
+
+        console.log(
+          `Compressed ${contentSize} bytes -> ${base64.length} base64 chars (${Math.round((1 - (base64.length * 0.75) / contentSize) * 100)}% reduction)`,
+        );
+      } catch (error) {
+        console.error("Compression failed, sending uncompressed:", error);
+        payload.content = data.content;
+      }
+    } else {
+      payload.content = data.content;
+    }
 
     const response = await axiosClient.put<ApiSuccessResponse<Note>>(
       `/notes/${data.noteId}`,

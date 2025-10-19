@@ -1,4 +1,5 @@
 import { db, type Note } from "@repo/db";
+import pako from "pako";
 
 import { decryptContent, encryptContent } from "@/lib/encryption";
 import type { AppRouteHandler, EncryptedNote } from "@/lib/types";
@@ -21,8 +22,30 @@ import type { CreateNoteRoute, GetAllNotesRoute } from "./note.routes";
 
 const normalizeTags = (tags: string[] | undefined): string[] => {
   if (!tags) return [];
-  // Remove empty strings and duplicates
   return Array.from(new Set(tags.filter((tag) => tag.trim().length > 0)));
+};
+
+// Helper for decompressing note content
+// biome-ignore lint/suspicious/noExplicitAny: needed
+const decompressContent = (data: any): string | undefined => {
+  if (!data.content) return data.content;
+
+  // Check if content was compressed
+  if (data._compressed === true) {
+    try {
+      // Decode base64 using Buffer
+      const buffer = Buffer.from(data.content, "base64");
+
+      // Decompress
+      const decompressed = pako.ungzip(buffer, { to: "string" });
+      return decompressed;
+    } catch (error) {
+      console.error("Failed to decompress content:", error);
+      throw new Error("Invalid compressed content");
+    }
+  }
+
+  return data.content;
 };
 
 export const getAllNotes: AppRouteHandler<GetAllNotesRoute> = async (c) => {
@@ -333,19 +356,19 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       }
     }
 
+    // Decompress content if needed
+    const content = decompressContent(noteData);
+
     // Only build encrypted fields if new raw content is provided.
     let encryptedData: Partial<EncryptedNote> = {};
     if (Object.hasOwn(noteData, "content")) {
-      if (noteData.content && noteData.content.length > 0) {
-        const { encrypted, iv, tag } = encryptContent(noteData.content);
+      if (content && content.length > 0) {
+        const { encrypted, iv, tag } = encryptContent(content);
         encryptedData = {
           contentEncrypted: encrypted,
           contentIv: iv,
           contentTag: tag,
         };
-      } else {
-        // If content explicitly passed as empty string, keep previous encrypted content
-        // (no overwrite) so user doesn't lose data by sending blank title-only update.
       }
     }
 
@@ -383,8 +406,8 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     };
 
     // Only return provided content (if any) – otherwise leave as empty string (editor can lazy load)
-    if (noteData.content && encryptedData.contentEncrypted) {
-      decryptedUpdatedNote.content = noteData.content;
+    if (content && encryptedData.contentEncrypted) {
+      decryptedUpdatedNote.content = content;
     }
 
     return c.json(

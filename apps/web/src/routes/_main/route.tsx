@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_main")({
       throw redirect({ to: "/auth/sign-in" });
     }
 
+    console.log("WTF");
     await context.queryClient.prefetchQuery(folderQueryOptions);
 
     return { user };
