@@ -156,7 +156,7 @@ function NotePage() {
     queryFn: () => getSingleNote({ data: noteId }),
     // Disable query for temp notes
     enabled: !isTempNote,
-    placeholderData: note,
+    initialData: note,
   });
 
   // Merge title/content states into a single "Note" state for the header
