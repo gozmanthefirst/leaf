@@ -1,6 +1,7 @@
+import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import type { DecryptedNote } from "@repo/db/validators/note-validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Markdown } from "@tiptap/markdown";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -46,10 +47,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
 import { cn, getMostRecentlyUpdatedNote } from "@/lib/utils";
 import { folderQueryOptions } from "@/server/folder";
 import {
+  $deleteNote,
   $getSingleNote,
   $renameNote,
   $updateNoteContent,
@@ -87,13 +90,13 @@ export const Route = createFileRoute("/_main/notes/$noteId")({
       }
     }
   },
-  loader: async ({ params, context }) => {
+  loader: async ({ params }) => {
     // Skip prefetch for temp notes
-    if (!params.noteId.startsWith("temp-note-")) {
-      await context.queryClient.prefetchQuery(
-        singleNoteQueryOptions(params.noteId),
-      );
-    }
+    // if (!params.noteId.startsWith("temp-note-")) {
+    //   await context.queryClient.prefetchQuery(
+    //     singleNoteQueryOptions(params.noteId),
+    //   );
+    // }
 
     return { noteId: params.noteId };
   },
@@ -107,6 +110,8 @@ function NotePage() {
   const [titleState, setTitleState] = useState<SyncState>("idle");
   const [contentState, setContentState] = useState<SyncState>("idle");
   const [isEditing, setIsEditing] = useState(true);
+
+  const titleRef = useRef<HTMLTextAreaElement>(null);
 
   // Check if this is a temp note
   const isTempNote = noteId.startsWith("temp-note-");
@@ -151,6 +156,7 @@ function NotePage() {
         isEditing={isEditing}
         onToggleEditing={toggleEditing}
         state={noteState}
+        titleRef={titleRef}
       />
       <div className="flex flex-1 overflow-auto pt-4">
         <div className="container flex min-h-0 flex-1">
@@ -169,6 +175,7 @@ function NotePage() {
                     note={note}
                     setContentState={setContentState}
                     setTitleState={setTitleState}
+                    titleRef={titleRef}
                   />
                 ) : null
               }
@@ -184,10 +191,12 @@ const NotePageHeader = ({
   state,
   isEditing,
   onToggleEditing,
+  titleRef,
 }: {
   state: SyncState;
   isEditing: boolean;
   onToggleEditing: () => void;
+  titleRef: RefObject<HTMLTextAreaElement | null>;
 }) => {
   return (
     <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center border-muted/80 px-3 lg:px-6">
@@ -210,7 +219,7 @@ const NotePageHeader = ({
             {isEditing ? "Switch to read mode" : "Switch to edit mode"}
           </TooltipContent>
         </Tooltip>
-        <NotePageDropdown />
+        <NotePageDropdown titleRef={titleRef} />
       </div>
     </header>
   );
@@ -401,17 +410,19 @@ const NoteView = ({
   setTitleState,
   setContentState,
   isEditing,
+  titleRef,
 }: {
   note: DecryptedNote;
   setTitleState: (s: SyncState) => void;
   setContentState: (s: SyncState) => void;
   isEditing: boolean;
+  titleRef: RefObject<HTMLTextAreaElement | null>;
 }) => {
   const { queryClient } = Route.useRouteContext();
   const updateNoteContent = useServerFn($updateNoteContent);
 
   // Ref to focus the title from the editor (ArrowUp at doc start)
-  const titleRef = useRef<HTMLTextAreaElement>(null);
+  // const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const [contentValue, setContentValue] = useState(note.content);
   const [contentDirty, setContentDirty] = useState(false);
@@ -422,7 +433,12 @@ const NoteView = ({
   const debouncedContent = useDebounce(contentValue, 750);
 
   const editor = useEditor({
-    extensions: [StarterKit, Markdown],
+    extensions: [
+      StarterKit,
+      Markdown.configure({
+        markedOptions: { gfm: true },
+      }),
+    ],
     content: note.content,
     contentType: "markdown",
     onUpdate: ({ editor }) => {
@@ -651,7 +667,90 @@ const NoteView = ({
   );
 };
 
-const NotePageDropdown = () => {
+const NotePageDropdown = ({
+  titleRef,
+}: {
+  titleRef: RefObject<HTMLTextAreaElement | null>;
+}) => {
+  const { noteId } = Route.useLoaderData();
+  const navigate = useNavigate();
+  const { queryClient } = Route.useRouteContext();
+  const deleteNoteFn = useServerFn($deleteNote);
+
+  // Get the title textarea ref from parent scope (we'll pass it down)
+  // const titleInputRef = useRef<HTMLTextAreaElement>(null);
+
+  const { mutate: deleteNote } = useMutation({
+    mutationKey: ["delete-note-from-page", noteId],
+    mutationFn: async () => deleteNoteFn({ data: { noteId } }),
+    onMutate: async () => {
+      // Cancel outgoing queries
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previousFolder = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previousFolder) return { previous: null };
+
+      // Clone and remove note
+      const clone = (node: FolderWithItems): FolderWithItems => ({
+        ...node,
+        folders: node.folders.map(clone),
+        notes: [...node.notes],
+      });
+
+      const draft = clone(previousFolder);
+      let removed = false;
+
+      const removeNote = (node: FolderWithItems): boolean => {
+        const idx = node.notes.findIndex((n) => n.id === noteId);
+        if (idx !== -1) {
+          node.notes = [
+            ...node.notes.slice(0, idx),
+            ...node.notes.slice(idx + 1),
+          ];
+          removed = true;
+          return true;
+        }
+        for (const f of node.folders) if (removeNote(f)) return true;
+        return false;
+      };
+      removeNote(draft);
+
+      if (!removed) return { previous: previousFolder };
+
+      // Update cache
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+
+      // Navigate away to most recent note or home
+      const mostRecent = getMostRecentlyUpdatedNote(draft);
+      if (mostRecent) {
+        navigate({ to: "/notes/$noteId", params: { noteId: mostRecent.id } });
+      } else {
+        navigate({ to: "/" });
+      }
+
+      return { previous: previousFolder };
+    },
+    onError: (error, _vars, ctx) => {
+      // Rollback on error
+      if (ctx?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to delete note.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+    },
+  });
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -664,12 +763,19 @@ const NotePageDropdown = () => {
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move note to...</span>
         </DropdownMenuItem>
-        <DropdownMenuItem>
+        <DropdownMenuItem
+          onSelect={() => {
+            setTimeout(() => {
+              titleRef.current?.focus();
+              titleRef.current?.select();
+            }, 250);
+          }}
+        >
           <TbEdit className="text-muted-foreground" />
           <span>Rename note</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem variant="destructive">
+        <DropdownMenuItem onSelect={() => deleteNote()} variant="destructive">
           <TbTrash className="text-muted-foreground" />
           <span>Delete note</span>
         </DropdownMenuItem>
