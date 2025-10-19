@@ -59,7 +59,7 @@ import {
 } from "@/server/note";
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
-  ssr: "data-only",
+  // ssr: "data-only",
   beforeLoad: async ({ context, params }) => {
     console.log("[note beforeLoad] Starting for noteId:", params.noteId);
     const start = Date.now();
