@@ -66,23 +66,40 @@ export const $getSingleNote = createServerFn()
   .middleware([sessionMiddleware])
   .inputValidator(z.string().min(1))
   .handler(async ({ context, data: noteId }) => {
-    // Return null immediately for temp IDs
     if (noteId.startsWith("temp-note-")) {
       return null;
     }
 
     try {
+      console.log("[getSingleNote] Starting fetch for:", noteId);
+      const start = Date.now();
+
       const response = await axiosClient.get<ApiSuccessResponse<DecryptedNote>>(
         `/notes/${noteId}`,
         {
           headers: {
             Authorization: `Bearer ${context.session.token}`,
           },
+          timeout: 10000,
         },
       );
 
-      return response.data.data;
-    } catch (_error) {
+      console.log(
+        "[getSingleNote] API responded in:",
+        Date.now() - start,
+        "ms",
+      );
+
+      const note = response.data.data;
+      console.log(
+        "[getSingleNote] Note size:",
+        JSON.stringify(note).length,
+        "bytes",
+      );
+
+      return note;
+    } catch (error) {
+      console.error("[getSingleNote] Error:", error);
       return null;
     }
   });
