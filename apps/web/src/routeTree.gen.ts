@@ -13,11 +13,7 @@ import { Route as AuthRouteRouteImport } from './routes/auth/route'
 import { Route as MainRouteRouteImport } from './routes/_main/route'
 import { Route as AuthIndexRouteImport } from './routes/auth/index'
 import { Route as MainIndexRouteImport } from './routes/_main/index'
-import { Route as AuthVerifyEmailRouteImport } from './routes/auth/verify-email'
-import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
-import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as MainNotesNoteIdRouteImport } from './routes/_main/notes/$noteId'
 
@@ -40,29 +36,9 @@ const MainIndexRoute = MainIndexRouteImport.update({
   path: '/',
   getParentRoute: () => MainRouteRoute,
 } as any)
-const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthSignUpRoute = AuthSignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
 const AuthSignInRoute = AuthSignInRouteImport.update({
   id: '/sign-in',
   path: '/sign-in',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => AuthRouteRoute,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -78,22 +54,14 @@ const MainNotesNoteIdRoute = MainNotesNoteIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteRouteWithChildren
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
-  '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/': typeof MainIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/notes/$noteId': typeof MainNotesNoteIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
-  '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/': typeof MainIndexRoute
   '/auth': typeof AuthIndexRoute
   '/notes/$noteId': typeof MainNotesNoteIdRoute
@@ -103,11 +71,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_main': typeof MainRouteRouteWithChildren
   '/auth': typeof AuthRouteRouteWithChildren
-  '/auth/forgot-password': typeof AuthForgotPasswordRoute
-  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
-  '/auth/sign-up': typeof AuthSignUpRoute
-  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/_main/': typeof MainIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_main/notes/$noteId': typeof MainNotesNoteIdRoute
@@ -117,35 +81,18 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/auth'
-    | '/auth/forgot-password'
-    | '/auth/reset-password'
     | '/auth/sign-in'
-    | '/auth/sign-up'
-    | '/auth/verify-email'
     | '/'
     | '/auth/'
     | '/notes/$noteId'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/auth/forgot-password'
-    | '/auth/reset-password'
-    | '/auth/sign-in'
-    | '/auth/sign-up'
-    | '/auth/verify-email'
-    | '/'
-    | '/auth'
-    | '/notes/$noteId'
-    | '/api/auth/$'
+  to: '/auth/sign-in' | '/' | '/auth' | '/notes/$noteId' | '/api/auth/$'
   id:
     | '__root__'
     | '/_main'
     | '/auth'
-    | '/auth/forgot-password'
-    | '/auth/reset-password'
     | '/auth/sign-in'
-    | '/auth/sign-up'
-    | '/auth/verify-email'
     | '/_main/'
     | '/auth/'
     | '/_main/notes/$noteId'
@@ -188,39 +135,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainIndexRouteImport
       parentRoute: typeof MainRouteRoute
     }
-    '/auth/verify-email': {
-      id: '/auth/verify-email'
-      path: '/verify-email'
-      fullPath: '/auth/verify-email'
-      preLoaderRoute: typeof AuthVerifyEmailRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/auth/sign-up': {
-      id: '/auth/sign-up'
-      path: '/sign-up'
-      fullPath: '/auth/sign-up'
-      preLoaderRoute: typeof AuthSignUpRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
     '/auth/sign-in': {
       id: '/auth/sign-in'
       path: '/sign-in'
       fullPath: '/auth/sign-in'
       preLoaderRoute: typeof AuthSignInRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRouteRoute
-    }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/api/auth/$': {
@@ -255,20 +174,12 @@ const MainRouteRouteWithChildren = MainRouteRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
-  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
-  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignInRoute: typeof AuthSignInRoute
-  AuthSignUpRoute: typeof AuthSignUpRoute
-  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
-  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
-  AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignInRoute: AuthSignInRoute,
-  AuthSignUpRoute: AuthSignUpRoute,
-  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   AuthIndexRoute: AuthIndexRoute,
 }
 

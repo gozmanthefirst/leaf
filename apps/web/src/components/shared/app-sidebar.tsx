@@ -34,7 +34,6 @@ import {
   TbMoon,
   TbPaint,
   TbSettings,
-  TbStar,
   TbSun,
   TbTrash,
 } from "react-icons/tb";
@@ -1113,10 +1112,6 @@ const NoteItemDropdown = ({
         <DropdownMenuItem disabled={pending || true}>
           <TbFileArrowRight className="text-muted-foreground" />
           <span>Move note to...</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={pending || true}>
-          <TbStar className="text-muted-foreground" />
-          <span>Favorite note</span>
         </DropdownMenuItem>
         <DropdownMenuItem disabled={pending} onSelect={startNoteRename}>
           <TbEdit className="text-muted-foreground" />

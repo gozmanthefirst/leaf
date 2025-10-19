@@ -1,6 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 
@@ -15,11 +15,11 @@ import { apiErrorHandler } from "@/lib/handle-api-error";
 import { EmailSchema } from "@/schemas/auth-schema";
 import { $forgotPwd } from "@/server/auth";
 
-export const Route = createFileRoute("/auth/forgot-password")({
-  component: ForgotPwdPage,
-});
+// export const Route = createFileRoute("/auth/forgot-password")({
+//   component: ForgotPwdPage,
+// });
 
-function ForgotPwdPage() {
+function _ForgotPwdPage() {
   const forgotPwd = useServerFn($forgotPwd);
   const navigate = useNavigate({ from: Route.fullPath });
 

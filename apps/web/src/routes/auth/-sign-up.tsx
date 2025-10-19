@@ -1,70 +1,50 @@
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { zodValidator } from "@tanstack/zod-adapter";
 import { useState } from "react";
 import { TbEye, TbEyeClosed } from "react-icons/tb";
 import { toast } from "sonner";
-import z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input, InputAddon, InputError } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BrandLink } from "@/components/ui/styled-texts";
 import { cancelToastEl } from "@/components/ui/toaster";
-import { resetPwdErrMaps } from "@/error-mappings/auth-error-mappings";
+import { signUpErrMaps } from "@/error-mappings/auth-error-mappings";
 import { useInputRefs } from "@/hooks/use-input-refs";
 import { apiErrorHandler } from "@/lib/handle-api-error";
-import { ResetPwdSchema } from "@/schemas/auth-schema";
-import { $resetPwd } from "@/server/auth";
+import { SignUpSchema } from "@/schemas/auth-schema";
+import { $signUp } from "@/server/auth";
 
-const SearchParamsSchema = z.object({
-  token: z.string().prefault(""),
-});
+// export const Route = createFileRoute("/auth/sign-up")({
+//   component: SignUpPage,
+// });
 
-export const Route = createFileRoute("/auth/reset-password")({
-  validateSearch: zodValidator(SearchParamsSchema),
-  beforeLoad: ({ search }) => {
-    if (!search.token) {
-      throw redirect({
-        to: "/auth/sign-in",
-        replace: true,
-      });
-    }
-  },
-  component: ResetPwdPage,
-});
-
-function ResetPwdPage() {
-  const resetPwd = useServerFn($resetPwd);
-  const { token } = Route.useSearch();
+function _SignUpPage() {
+  const signUp = useServerFn($signUp);
   const navigate = useNavigate({ from: Route.fullPath });
 
-  const [isNewPwdVisible, setIsNewPwdVisible] = useState(false);
+  const [isPwdVisible, setIsPwdVisible] = useState(false);
   const [isConfirmPwdVisible, setIsConfirmPwdVisible] = useState(false);
 
   // Refs for focusing on input fields after validation errors
-  const [newPwdInputRef, confirmPwdInputRef] = useInputRefs(2);
+  const [nameInputRef, emailInputRef, pwdInputRef, confirmPwdInputRef] =
+    useInputRefs(4);
 
-  const resetPwdMutation = useMutation({
-    mutationFn: resetPwd,
+  const signUpMutation = useMutation({
+    mutationFn: signUp,
     onSuccess: () => {
-      toast.success(
-        "Your password has been successfully reset!",
-        cancelToastEl,
-      );
+      toast.success("Your account has been created!", cancelToastEl);
       form.reset();
       navigate({
         to: "/auth/sign-in",
-        replace: true,
       });
     },
     onError: (error) => {
       const apiError = apiErrorHandler(error, {
-        defaultMessage:
-          "An error occurred while resetting your password. Please try again.",
-        errorMapping: resetPwdErrMaps,
+        defaultMessage: "An error occurred while signing up. Please try again.",
+        errorMapping: signUpErrMaps,
       });
       toast.error(apiError.details, cancelToastEl);
     },
@@ -72,21 +52,26 @@ function ResetPwdPage() {
 
   const form = useForm({
     defaultValues: {
-      token,
-      newPassword: "",
+      name: "",
+      email: "",
+      password: "",
       confirmPassword: "",
     },
     validators: {
-      onChange: ResetPwdSchema,
+      onChange: SignUpSchema,
     },
     onSubmit: async ({ value }) => {
-      resetPwdMutation.mutate({ data: value });
+      signUpMutation.mutate({ data: value });
     },
     canSubmitWhenInvalid: true,
     onSubmitInvalid: ({ formApi }) => {
       const fieldStates = formApi.state.fieldMeta;
-      if (fieldStates.newPassword?.errorMap?.onChange) {
-        newPwdInputRef?.current?.focus();
+      if (fieldStates.name?.errorMap?.onChange) {
+        nameInputRef?.current?.focus();
+      } else if (fieldStates.email?.errorMap?.onChange) {
+        emailInputRef?.current?.focus();
+      } else if (fieldStates.password?.errorMap?.onChange) {
+        pwdInputRef?.current?.focus();
       } else if (fieldStates.confirmPassword?.errorMap?.onChange) {
         confirmPwdInputRef?.current?.focus();
       }
@@ -96,11 +81,7 @@ function ResetPwdPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <h1 className="font-bold font-roboto text-3xl">Reset Password</h1>
-        <p>
-          {`Enter your new password below. Make sure to choose a strong password
-          that you haven't used before.`}
-        </p>
+        <h1 className="font-bold font-roboto text-3xl">Sign Up</h1>
       </div>
 
       <form
@@ -111,30 +92,90 @@ function ResetPwdPage() {
           form.handleSubmit();
         }}
       >
-        <form.Field name="newPassword">
+        <form.Field name="name">
           {(field) => (
             <div>
               <Label className="mb-1.5" htmlFor={field.name}>
-                New Password
+                Name
+              </Label>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0}
+                disabled={signUpMutation.isPending}
+                id={field.name}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="John Doe"
+                ref={nameInputRef}
+                type="text"
+                value={field.state.value}
+              />
+              {field.state.meta.errorMap.onChange ? (
+                <InputError
+                  error={
+                    field.state.meta.errorMap.onChange[0]?.message ||
+                    "Something went wrong"
+                  }
+                />
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="email">
+          {(field) => (
+            <div>
+              <Label className="mb-1.5" htmlFor={field.name}>
+                Email
+              </Label>
+              <Input
+                aria-invalid={field.state.meta.errors.length > 0}
+                disabled={signUpMutation.isPending}
+                id={field.name}
+                name={field.name}
+                onBlur={field.handleBlur}
+                onChange={(e) => field.handleChange(e.target.value)}
+                placeholder="johndoe@example.com"
+                ref={emailInputRef}
+                type="email"
+                value={field.state.value}
+              />
+              {field.state.meta.errorMap.onChange ? (
+                <InputError
+                  error={
+                    field.state.meta.errorMap.onChange[0]?.message ||
+                    "Something went wrong"
+                  }
+                />
+              ) : null}
+            </div>
+          )}
+        </form.Field>
+
+        <form.Field name="password">
+          {(field) => (
+            <div>
+              <Label className="mb-1.5" htmlFor={field.name}>
+                Password
               </Label>
               <div className="relative">
                 <Input
                   aria-invalid={field.state.meta.errors.length > 0}
-                  disabled={resetPwdMutation.isPending}
+                  disabled={signUpMutation.isPending}
                   id={field.name}
                   name={field.name}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  ref={newPwdInputRef}
-                  type={isNewPwdVisible ? "text" : "password"}
+                  ref={pwdInputRef}
+                  type={isPwdVisible ? "text" : "password"}
                   value={field.state.value}
                 />
                 <InputAddon
                   aria-invalid={field.state.meta.errors.length > 0}
-                  isVisible={isNewPwdVisible}
-                  onClick={() => setIsNewPwdVisible((prev) => !prev)}
+                  isVisible={isPwdVisible}
+                  onClick={() => setIsPwdVisible((prev) => !prev)}
                 >
-                  {isNewPwdVisible ? (
+                  {isPwdVisible ? (
                     <TbEyeClosed className="size-4" />
                   ) : (
                     <TbEye className="size-4" />
@@ -162,7 +203,7 @@ function ResetPwdPage() {
               <div className="relative">
                 <Input
                   aria-invalid={field.state.meta.errors.length > 0}
-                  disabled={resetPwdMutation.isPending}
+                  disabled={signUpMutation.isPending}
                   id={field.name}
                   name={field.name}
                   onBlur={field.handleBlur}
@@ -199,23 +240,23 @@ function ResetPwdPage() {
           {([isFormValid]) => (
             <Button
               className="mt-2"
-              disabled={!isFormValid || resetPwdMutation.isPending}
+              disabled={!isFormValid || signUpMutation.isPending}
               type="submit"
               variant={
-                !isFormValid || resetPwdMutation.isPending
+                !isFormValid || signUpMutation.isPending
                   ? "secondary"
                   : "default"
               }
             >
-              {resetPwdMutation.isPending
-                ? "Resetting password..."
-                : "Reset Password"}
+              {signUpMutation.isPending
+                ? "Creating account..."
+                : "Create Account"}
             </Button>
           )}
         </form.Subscribe>
 
         <div className="self-center text-center text-neutral-600 text-sm dark:text-neutral-400">
-          Remembered your password?{" "}
+          Already have an account?{" "}
           <BrandLink to="/auth/sign-in">Sign In</BrandLink>
         </div>
       </form>
