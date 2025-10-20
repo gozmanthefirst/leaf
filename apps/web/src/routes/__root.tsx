@@ -8,7 +8,6 @@ import {
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 
-import { ScreenSize } from "@/components/ui/screen-size";
 import { Toaster } from "@/components/ui/toaster";
 import { fontsHref } from "@/lib/utils";
 import appCss from "@/styles/app.css?url";
@@ -70,7 +69,6 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
           </div>
 
           <Toaster />
-          <ScreenSize />
         </ThemeProvider>
 
         <Scripts />
