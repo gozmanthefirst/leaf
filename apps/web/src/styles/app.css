@@ -1,5 +1,14 @@
 @import "tailwindcss" source("../");
 
+/* @import "highlight.js/styles/tokyo-night-dark.css"; */
+/* Light mode syntax theme */
+@import "highlight.js/styles/atom-one-light.css";
+
+/* Dark mode syntax theme */
+.dark {
+  @import "highlight.js/styles/atom-one-dark.css";
+}
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -263,12 +272,41 @@ input[type="number"] {
     @apply list-decimal pl-6 my-3;
   }
   .tiptap li > p {
-    @apply my-1; /* tighter spacing inside list items */
+    @apply my-1;
+  }
+
+  /* Task Lists */
+  .tiptap ul[data-type="taskList"] {
+    @apply list-none p-0 m-0;
+  }
+  .tiptap ul[data-type="taskList"] li {
+    @apply flex items-start;
+  }
+  .tiptap ul[data-type="taskList"] li > label {
+    @apply flex-none mr-2 select-none;
+  }
+  .tiptap ul[data-type="taskList"] li > div {
+    @apply flex-1 mb-0.5 pb-px;
+  }
+  .tiptap ul[data-type="taskList"] li input[type="checkbox"] {
+    @apply relative appearance-none mt-0.5 cursor-pointer size-4 rounded border border-primary/20 bg-input/10 dark:border-primary/10 dark:bg-input/30  focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px];
+  }
+  .tiptap ul[data-type="taskList"] li input[type="checkbox"]:checked {
+    @apply bg-lime-500 border border-lime-500;
+  }
+  .tiptap ul[data-type="taskList"] li input[type="checkbox"]:checked::after {
+    @apply content-[''] absolute top-[45%] left-1/2 w-[5px] h-[9px] border-solid border-black border-[0_2px_2px_0] -translate-x-1/2 -translate-y-1/2 rotate-45 transform;
+  }
+  .tiptap ul[data-type="taskList"] li[data-checked="true"] > div > p {
+    @apply text-muted-foreground line-through;
+  }
+  .tiptap ul[data-type="taskList"] ul[type="taskList"] {
+    @apply m-0;
   }
   
   /* Blockquotes */
   .tiptap blockquote {
-    @apply border-l-2 pl-4 italic text-muted-foreground my-4;
+    @apply border-l-[3px] border-lime-500 pl-4 text-secondary-foreground my-5;
   }
   
   /* Horizontal rule */
@@ -278,10 +316,10 @@ input[type="number"] {
   
   /* Inline code and code blocks */
   .tiptap code {
-    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
+    @apply rounded bg-muted/50 px-1.5 py-0.5 font-mono text-sm;
   }
   .tiptap pre {
-    @apply my-4 overflow-x-auto rounded-md bg-muted p-3;
+    @apply my-4 overflow-x-auto rounded-md bg-muted/50 shadow-xs p-3 border border-border;
   }
   .tiptap pre code {
     @apply bg-transparent p-0 text-sm;

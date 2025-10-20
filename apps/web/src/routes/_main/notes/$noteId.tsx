@@ -3,9 +3,12 @@ import type { DecryptedNote } from "@repo/db/validators/note-validators";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDebounce } from "@uidotdev/usehooks";
+import { all, createLowlight } from "lowlight";
 import {
   type ComponentProps,
   type RefObject,
@@ -56,6 +59,8 @@ import {
   $updateNoteContent,
   singleNoteQueryOptions,
 } from "@/server/note";
+
+const lowlight = createLowlight(all);
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
   beforeLoad: async ({ context, params }) => {
@@ -192,7 +197,7 @@ const NotePageHeader = ({
   titleRef: RefObject<HTMLTextAreaElement | null>;
 }) => {
   return (
-    <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center border-muted/80 px-3 lg:px-6">
+    <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center px-3 lg:px-6">
       <SidebarTrigger className="lg:hidden" />
       <div className="ml-auto flex items-center gap-2">
         <StatusIcon labelPrefix="Note" state={state} />
@@ -426,9 +431,20 @@ const NoteView = ({
   const debouncedContent = useDebounce(contentValue, 750);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      CodeBlockLowlight.configure({
+        lowlight,
+        enableTabIndentation: true,
+      }),
+    ],
     content: note.content,
     immediatelyRender: false,
+    autofocus: "end",
     onUpdate: ({ editor }) => {
       // Avoid marking the editor as dirty if read mode is activated or if the content equals the server
       // content and we haven't started editing yet
