@@ -300,8 +300,8 @@ input[type="number"] {
   .tiptap ul[data-type="taskList"] li[data-checked="true"] > div > p {
     @apply text-muted-foreground line-through;
   }
-  .tiptap ul[data-type="taskList"] ul[type="taskList"] {
-    @apply m-0;
+  .tiptap ul[data-type="taskList"] ul[data-type="taskList"] {
+    @apply m-0 mt-1;
   }
   
   /* Blockquotes */

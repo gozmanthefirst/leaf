@@ -5,6 +5,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { Underline } from "@tiptap/extension-underline";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDebounce } from "@uidotdev/usehooks";
@@ -19,16 +20,29 @@ import {
 } from "react";
 import {
   TbAlertTriangle,
+  TbBlockquote,
+  TbBold,
   TbBook,
   TbCheck,
+  TbChevronDown,
   TbCircleCheck,
   TbCloudOff,
+  TbCode,
   TbDotsVertical,
   TbEdit,
   TbFileArrowRight,
+  TbHeading,
+  TbItalic,
+  TbLink,
+  TbList,
   TbLoader2,
   TbPencil,
+  TbSourceCode,
+  TbStrikethrough,
+  TbSubscript,
+  TbSuperscript,
   TbTrash,
+  TbUnderline,
 } from "react-icons/tb";
 import { toast } from "sonner";
 
@@ -40,9 +54,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { cancelToastEl } from "@/components/ui/toaster";
+import { Toggle } from "@/components/ui/toggle";
 import {
   Tooltip,
   TooltipContent,
@@ -156,271 +172,46 @@ function NotePage() {
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
-      <NotePageHeader
-        isEditing={isEditing}
-        onToggleEditing={toggleEditing}
-        state={noteState}
-        titleRef={titleRef}
-      />
-      <div className="flex flex-1 overflow-auto pt-4">
-        <div className="container flex min-h-0 flex-1">
-          {/* Show loading state for temp notes */}
-          {isTempNote ? (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground">
-              <Spinner className="size-8" />
-              <p className="text-sm">Creating note...</p>
-            </div>
-          ) : singleNoteQuery.data ? (
-            <NoteView
-              isEditing={isEditing}
-              note={singleNoteQuery.data}
-              setContentState={setContentState}
-              setTitleState={setTitleState}
-              titleRef={titleRef}
-            />
-          ) : null}
+      {/* Show loading state for temp notes */}
+      {isTempNote ? (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-muted-foreground">
+          <Spinner className="size-8" />
+          <p className="text-sm">Creating note...</p>
         </div>
-      </div>
+      ) : singleNoteQuery.data ? (
+        <NoteView
+          isEditing={isEditing}
+          note={singleNoteQuery.data}
+          noteState={noteState}
+          onToggleEditing={toggleEditing}
+          setContentState={setContentState}
+          setTitleState={setTitleState}
+          titleRef={titleRef}
+        />
+      ) : null}
     </main>
   );
 }
-
-const NotePageHeader = ({
-  state,
-  isEditing,
-  onToggleEditing,
-  titleRef,
-}: {
-  state: SyncState;
-  isEditing: boolean;
-  onToggleEditing: () => void;
-  titleRef: RefObject<HTMLTextAreaElement | null>;
-}) => {
-  return (
-    <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center px-3 lg:px-6">
-      <SidebarTrigger className="lg:hidden" />
-      <div className="ml-auto flex items-center gap-2">
-        <StatusIcon labelPrefix="Note" state={state} />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              aria-label={isEditing ? "Reading mode" : "Editing mode"}
-              className="size-7"
-              onClick={onToggleEditing}
-              size="icon"
-              variant="ghost"
-            >
-              {isEditing ? <TbBook /> : <TbEdit />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {isEditing ? "Switch to read mode" : "Switch to edit mode"}
-          </TooltipContent>
-        </Tooltip>
-        <NotePageDropdown titleRef={titleRef} />
-      </div>
-    </header>
-  );
-};
-
-const TitleTextarea = ({
-  noteId,
-  title,
-  onEnter,
-  onStatusChange,
-  isEditing,
-  ref,
-}: ComponentProps<"textarea"> & {
-  noteId: string;
-  title: string;
-  onEnter: () => void;
-  onStatusChange: (s: SyncState) => void;
-  isEditing: boolean;
-}) => {
-  const queryClient = useQueryClient();
-  const renameNote = useServerFn($renameNote);
-
-  const [value, setValue] = useState(title);
-  const [dirty, setDirty] = useState(false);
-
-  // DOM ref for focus checks and caret placement; expose to parent via "ref" prop
-  const innerRef = useRef<HTMLTextAreaElement>(null);
-
-  // Increasing number used to ignore older (stale) responses
-  const titleSeqRef = useRef(0);
-
-  const debounced = useDebounce(value.trim(), 750);
-
-  // useEffect for exposing the internal ref to the parent (so editor can focus us on ArrowUp)
-  useEffect(() => {
-    if (!ref) return;
-    if (typeof ref === "function") ref(innerRef.current);
-    else
-      (ref as RefObject<HTMLTextAreaElement | null>).current = innerRef.current;
-  }, [ref]);
-
-  // useEffect for syncing down external title updates unless the user is actively editing here
-  useEffect(() => {
-    // If currently focused and dirty, don't overwrite the user's in-progress edit
-    if (innerRef.current === document.activeElement && dirty) return;
-    setValue(title);
-    setDirty(false);
-    onStatusChange("idle");
-  }, [title, onStatusChange, dirty]);
-
-  // Non-optimistic rename mutation (server is source of truth)
-  // We still patch the local note cache on success to keep the UI consistent without refetch
-  const { mutate: saveTitle } = useMutation({
-    mutationKey: ["rename-note-inline", noteId],
-    mutationFn: async (newTitle: string) =>
-      renameNote({ data: { noteId, title: newTitle } }),
-    onMutate: () => {
-      // Bump sequence; any earlier response becomes stale
-      const seq = ++titleSeqRef.current;
-      onStatusChange("saving");
-
-      return { seq };
-    },
-    onSuccess: (_res, newTitle, ctx) => {
-      // Drop stale responses (race condition guard)
-      if (ctx?.seq !== titleSeqRef.current) return;
-
-      onStatusChange("savedRecently");
-      setTimeout(() => onStatusChange("idle"), 1000);
-
-      // Patch active note in cache (no refetch) so the page stays consistent
-      queryClient.setQueryData<DecryptedNote>(queryKeys.note(noteId), (prev) =>
-        prev ? { ...prev, title: newTitle, updatedAt: new Date() } : prev,
-      );
-
-      // Sidebar needs updatedAt to re-sort items
-      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
-
-      setDirty(false);
-    },
-    onError: () => {
-      onStatusChange("error");
-      toast.error(
-        "Failed to rename note. Check your connection and try again.",
-        cancelToastEl,
-      );
-    },
-  });
-
-  // Debounced save: only fire if the user actually typed (dirty) and title changed
-  useEffect(() => {
-    if (!dirty) return;
-    if (!debounced) return;
-    if (debounced === title.trim()) return;
-
-    saveTitle(debounced);
-  }, [debounced, title, dirty, saveTitle]);
-
-  // useEffect for saving the note on blur/Enter/ArrowDown/exit events if there are any changes
-  const flushIfChanged = useCallback(() => {
-    const t = value.trim();
-
-    if (!dirty) return;
-
-    if (t && t !== title.trim()) {
-      saveTitle(t);
-    } else {
-      setDirty(false);
-    }
-  }, [dirty, value, title, saveTitle]);
-
-  // useEffect to try a best-effort save when the tab is hidden or the page is closing
-  useEffect(() => {
-    // If the tab is hidden or the page is unloading, attempt a final save
-    const onVis = () => {
-      if (document.hidden) flushIfChanged();
-    };
-
-    // If the page is being unloaded, show a confirmation dialog to let the user save
-    // unsaved changes
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (!dirty) return;
-      flushIfChanged();
-      e.preventDefault();
-      (e as unknown as { returnValue: string }).returnValue = "";
-    };
-
-    document.addEventListener("visibilitychange", onVis);
-    window.addEventListener("beforeunload", onBeforeUnload);
-
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      window.removeEventListener("beforeunload", onBeforeUnload);
-    };
-  }, [dirty, flushIfChanged]);
-
-  // Render static title in read mode
-  if (!isEditing) {
-    return (
-      <h1
-        className="w-full bg-transparent font-semibold text-2xl leading-tight md:text-3xl"
-        data-mode="read"
-      >
-        {value}
-      </h1>
-    );
-  }
-
-  return (
-    <textarea
-      aria-label="Note title"
-      className="field-sizing-content w-full resize-none bg-transparent font-semibold text-2xl leading-tight outline-none focus:outline-none focus:ring-0 md:text-3xl"
-      onBlur={flushIfChanged}
-      onChange={(e) => {
-        setValue(e.target.value);
-        setDirty(true);
-        onStatusChange("dirty");
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === "Escape") {
-          e.preventDefault();
-          if (dirty) onStatusChange("saving");
-          flushIfChanged();
-          onEnter();
-        } else if (
-          e.key === "ArrowDown" &&
-          !e.shiftKey &&
-          !e.altKey &&
-          !e.metaKey &&
-          !e.ctrlKey
-        ) {
-          e.preventDefault();
-          if (dirty) onStatusChange("saving");
-          flushIfChanged();
-          onEnter();
-        }
-      }}
-      ref={innerRef}
-      rows={1}
-      spellCheck={false}
-      value={value}
-    />
-  );
-};
 
 const NoteView = ({
   note,
   setTitleState,
   setContentState,
   isEditing,
+  noteState,
+  onToggleEditing,
   titleRef,
 }: {
   note: DecryptedNote;
   setTitleState: (s: SyncState) => void;
   setContentState: (s: SyncState) => void;
   isEditing: boolean;
+  noteState: SyncState;
+  onToggleEditing: () => void;
   titleRef: RefObject<HTMLTextAreaElement | null>;
 }) => {
   const { queryClient } = Route.useRouteContext();
   const updateNoteContent = useServerFn($updateNoteContent);
-
-  // Ref to focus the title from the editor (ArrowUp at doc start)
-  // const titleRef = useRef<HTMLTextAreaElement>(null);
 
   const [contentValue, setContentValue] = useState(note.content);
   const [contentDirty, setContentDirty] = useState(false);
@@ -433,6 +224,7 @@ const NoteView = ({
   const editor = useEditor({
     extensions: [
       StarterKit,
+      Underline,
       TaskList,
       TaskItem.configure({
         nested: true,
@@ -648,25 +440,399 @@ const NoteView = ({
   }, [editor, contentDirty, saveContent]);
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col">
-      <TitleTextarea
+    <>
+      <NotePageHeader
         isEditing={isEditing}
-        noteId={note.id}
-        onEnter={() => editor?.chain().focus().run()}
-        onStatusChange={setTitleState}
-        ref={titleRef}
-        title={note.title}
+        onToggleEditing={onToggleEditing}
+        state={noteState}
+        titleRef={titleRef}
       />
-      <div className="mt-4 min-h-0 flex-1">
-        <EditorContent
-          className={cn(
-            "tiptap h-full w-full",
-            !isEditing && "pointer-events-none select-text",
-          )}
-          editor={editor}
-        />
+      <div className="flex flex-1 overflow-auto pt-4">
+        <div className="container flex min-h-0 flex-1">
+          <div className="flex min-h-0 w-full flex-1 flex-col">
+            <TitleTextarea
+              isEditing={isEditing}
+              noteId={note.id}
+              onEnter={() => editor?.chain().focus().run()}
+              onStatusChange={setTitleState}
+              ref={titleRef}
+              title={note.title}
+            />
+            <div className="mt-4 min-h-0 flex-1">
+              <EditorContent
+                className={cn(
+                  "tiptap h-full w-full",
+                  !isEditing && "pointer-events-none select-text",
+                )}
+                editor={editor}
+              />
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+      <NotePageFooter editor={editor} isEditing={isEditing} />
+    </>
+  );
+};
+
+const NotePageHeader = ({
+  state,
+  isEditing,
+  onToggleEditing,
+  titleRef,
+}: {
+  state: SyncState;
+  isEditing: boolean;
+  onToggleEditing: () => void;
+  titleRef: RefObject<HTMLTextAreaElement | null>;
+}) => {
+  return (
+    <header className="sticky top-0 isolate z-10 flex h-10 w-full items-center px-3 lg:px-6">
+      <SidebarTrigger className="lg:hidden" />
+      <div className="ml-auto flex items-center gap-2">
+        <StatusIcon labelPrefix="Note" state={state} />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              aria-label={isEditing ? "Reading mode" : "Editing mode"}
+              className="size-7"
+              onClick={onToggleEditing}
+              size="icon"
+              variant="ghost"
+            >
+              {isEditing ? <TbBook /> : <TbEdit />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isEditing ? "Switch to read mode" : "Switch to edit mode"}
+          </TooltipContent>
+        </Tooltip>
+        <NotePageDropdown titleRef={titleRef} />
+      </div>
+    </header>
+  );
+};
+
+const NotePageFooter = ({
+  isEditing,
+  editor,
+}: {
+  isEditing: boolean;
+  editor: ReturnType<typeof useEditor> | null;
+}) => {
+  if (!editor) return null;
+
+  // When code is active, other inline formatting should be disabled
+  const isCodeActive = editor.isActive("code");
+
+  return (
+    <footer className="hide-scrollbar sticky bottom-0 isolate z-10 flex h-10 w-full items-center gap-2 overflow-x-auto border-muted/80 border-t px-3 md:justify-center lg:px-6">
+      <div className="flex items-center justify-center gap-1">
+        <Toggle size="sm">
+          <TbHeading className="size-4" />
+          <TbChevronDown className="-ml-2 size-3" />
+        </Toggle>
+        <Toggle size="sm">
+          <TbList className="size-4" />
+          <TbChevronDown className="-ml-2 size-3" />
+        </Toggle>
+      </div>
+
+      <Separator
+        className="data-[orientation=vertical]:h-6"
+        orientation="vertical"
+      />
+
+      <div className="flex items-center justify-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Toggle
+              disabled={!isEditing || isCodeActive}
+              onPressedChange={() => editor.chain().focus().toggleBold().run()}
+              pressed={editor.isActive("bold")}
+              size="sm"
+            >
+              <TbBold className="size-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>Bold</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Toggle
+              disabled={!isEditing || isCodeActive}
+              onPressedChange={() =>
+                editor.chain().focus().toggleItalic().run()
+              }
+              pressed={editor.isActive("italic")}
+              size="sm"
+            >
+              <TbItalic className="size-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>Italic</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Toggle
+              disabled={!isEditing || isCodeActive}
+              onPressedChange={() =>
+                editor.chain().focus().toggleUnderline().run()
+              }
+              pressed={editor.isActive("underline")}
+              size="sm"
+            >
+              <TbUnderline className="size-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>Underline</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Toggle
+              disabled={!isEditing || isCodeActive}
+              onPressedChange={() =>
+                editor.chain().focus().toggleStrike().run()
+              }
+              pressed={editor.isActive("strike")}
+              size="sm"
+            >
+              <TbStrikethrough className="size-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>Strikethrough</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Toggle
+              disabled={!isEditing}
+              onPressedChange={() => editor.chain().focus().toggleCode().run()}
+              pressed={editor.isActive("code")}
+              size="sm"
+            >
+              <TbCode className="size-4" />
+            </Toggle>
+          </TooltipTrigger>
+          <TooltipContent>Code</TooltipContent>
+        </Tooltip>
+
+        <Toggle size="sm">
+          <TbLink className="size-4" />
+        </Toggle>
+      </div>
+
+      <Separator
+        className="data-[orientation=vertical]:h-6"
+        orientation="vertical"
+      />
+
+      <div className="flex items-center justify-center gap-1">
+        <Toggle size="sm">
+          <TbBlockquote className="size-4" />
+        </Toggle>
+        <Toggle size="sm">
+          <TbSourceCode className="size-4" />
+        </Toggle>
+      </div>
+
+      <Separator
+        className="data-[orientation=vertical]:h-6"
+        orientation="vertical"
+      />
+
+      <div className="flex items-center justify-center gap-1">
+        <Toggle size="sm">
+          <TbSuperscript className="size-4" />
+        </Toggle>
+        <Toggle size="sm">
+          <TbSubscript className="size-4" />
+        </Toggle>
+      </div>
+    </footer>
+  );
+};
+
+const TitleTextarea = ({
+  noteId,
+  title,
+  onEnter,
+  onStatusChange,
+  isEditing,
+  ref,
+}: ComponentProps<"textarea"> & {
+  noteId: string;
+  title: string;
+  onEnter: () => void;
+  onStatusChange: (s: SyncState) => void;
+  isEditing: boolean;
+}) => {
+  const queryClient = useQueryClient();
+  const renameNote = useServerFn($renameNote);
+
+  const [value, setValue] = useState(title);
+  const [dirty, setDirty] = useState(false);
+
+  // DOM ref for focus checks and caret placement; expose to parent via "ref" prop
+  const innerRef = useRef<HTMLTextAreaElement>(null);
+
+  // Increasing number used to ignore older (stale) responses
+  const titleSeqRef = useRef(0);
+
+  const debounced = useDebounce(value.trim(), 750);
+
+  // useEffect for exposing the internal ref to the parent (so editor can focus us on ArrowUp)
+  useEffect(() => {
+    if (!ref) return;
+    if (typeof ref === "function") ref(innerRef.current);
+    else
+      (ref as RefObject<HTMLTextAreaElement | null>).current = innerRef.current;
+  }, [ref]);
+
+  // useEffect for syncing down external title updates unless the user is actively editing here
+  useEffect(() => {
+    // If currently focused and dirty, don't overwrite the user's in-progress edit
+    if (innerRef.current === document.activeElement && dirty) return;
+    setValue(title);
+    setDirty(false);
+    onStatusChange("idle");
+  }, [title, onStatusChange, dirty]);
+
+  // Non-optimistic rename mutation (server is source of truth)
+  // We still patch the local note cache on success to keep the UI consistent without refetch
+  const { mutate: saveTitle } = useMutation({
+    mutationKey: ["rename-note-inline", noteId],
+    mutationFn: async (newTitle: string) =>
+      renameNote({ data: { noteId, title: newTitle } }),
+    onMutate: () => {
+      // Bump sequence; any earlier response becomes stale
+      const seq = ++titleSeqRef.current;
+      onStatusChange("saving");
+
+      return { seq };
+    },
+    onSuccess: (_res, newTitle, ctx) => {
+      // Drop stale responses (race condition guard)
+      if (ctx?.seq !== titleSeqRef.current) return;
+
+      onStatusChange("savedRecently");
+      setTimeout(() => onStatusChange("idle"), 1000);
+
+      // Patch active note in cache (no refetch) so the page stays consistent
+      queryClient.setQueryData<DecryptedNote>(queryKeys.note(noteId), (prev) =>
+        prev ? { ...prev, title: newTitle, updatedAt: new Date() } : prev,
+      );
+
+      // Sidebar needs updatedAt to re-sort items
+      queryClient.invalidateQueries({ queryKey: folderQueryOptions.queryKey });
+
+      setDirty(false);
+    },
+    onError: () => {
+      onStatusChange("error");
+      toast.error(
+        "Failed to rename note. Check your connection and try again.",
+        cancelToastEl,
+      );
+    },
+  });
+
+  // Debounced save: only fire if the user actually typed (dirty) and title changed
+  useEffect(() => {
+    if (!dirty) return;
+    if (!debounced) return;
+    if (debounced === title.trim()) return;
+
+    saveTitle(debounced);
+  }, [debounced, title, dirty, saveTitle]);
+
+  // useEffect for saving the note on blur/Enter/ArrowDown/exit events if there are any changes
+  const flushIfChanged = useCallback(() => {
+    const t = value.trim();
+
+    if (!dirty) return;
+
+    if (t && t !== title.trim()) {
+      saveTitle(t);
+    } else {
+      setDirty(false);
+    }
+  }, [dirty, value, title, saveTitle]);
+
+  // useEffect to try a best-effort save when the tab is hidden or the page is closing
+  useEffect(() => {
+    // If the tab is hidden or the page is unloading, attempt a final save
+    const onVis = () => {
+      if (document.hidden) flushIfChanged();
+    };
+
+    // If the page is being unloaded, show a confirmation dialog to let the user save
+    // unsaved changes
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (!dirty) return;
+      flushIfChanged();
+      e.preventDefault();
+      (e as unknown as { returnValue: string }).returnValue = "";
+    };
+
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("beforeunload", onBeforeUnload);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [dirty, flushIfChanged]);
+
+  // Render static title in read mode
+  if (!isEditing) {
+    return (
+      <h1
+        className="w-full bg-transparent font-semibold text-2xl leading-tight md:text-3xl"
+        data-mode="read"
+      >
+        {value}
+      </h1>
+    );
+  }
+
+  return (
+    <textarea
+      aria-label="Note title"
+      className="field-sizing-content w-full resize-none bg-transparent font-semibold text-2xl leading-tight outline-none focus:outline-none focus:ring-0 md:text-3xl"
+      onBlur={flushIfChanged}
+      onChange={(e) => {
+        setValue(e.target.value);
+        setDirty(true);
+        onStatusChange("dirty");
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === "Escape") {
+          e.preventDefault();
+          if (dirty) onStatusChange("saving");
+          flushIfChanged();
+          onEnter();
+        } else if (
+          e.key === "ArrowDown" &&
+          !e.shiftKey &&
+          !e.altKey &&
+          !e.metaKey &&
+          !e.ctrlKey
+        ) {
+          e.preventDefault();
+          if (dirty) onStatusChange("saving");
+          flushIfChanged();
+          onEnter();
+        }
+      }}
+      ref={innerRef}
+      rows={1}
+      spellCheck={false}
+      value={value}
+    />
   );
 };
 
