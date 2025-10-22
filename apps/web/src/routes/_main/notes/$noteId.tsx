@@ -36,10 +36,18 @@ import {
   TbDotsVertical,
   TbEdit,
   TbFileArrowRight,
+  TbH1,
+  TbH2,
+  TbH3,
+  TbH4,
+  TbH5,
+  TbH6,
   TbHeading,
   TbItalic,
   TbLink,
   TbList,
+  TbListCheck,
+  TbListNumbers,
   TbLoader2,
   TbPencil,
   TbSourceCode,
@@ -547,6 +555,8 @@ const NotePageFooter = ({
   const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const linkInputRef = useRef<HTMLInputElement>(null);
+  const [listDropdownOpen, setListDropdownOpen] = useState(false);
+  const [headingDropdownOpen, setHeadingDropdownOpen] = useState(false);
 
   // Subscribe to editor events to trigger re-renders WITHOUT unmounting
   useEffect(() => {
@@ -611,6 +621,34 @@ const NotePageFooter = ({
     setLinkUrl("");
   };
 
+  // Determine which list type is active and its icon
+  const getActiveListIcon = () => {
+    if (editor.isActive("bulletList")) return TbList;
+    if (editor.isActive("orderedList")) return TbListNumbers;
+    if (editor.isActive("taskList")) return TbListCheck;
+    return TbList;
+  };
+
+  // Determine which heading level is active and its icon
+  const getActiveHeadingIcon = () => {
+    if (editor.isActive("heading", { level: 1 })) return TbH1;
+    if (editor.isActive("heading", { level: 2 })) return TbH2;
+    if (editor.isActive("heading", { level: 3 })) return TbH3;
+    if (editor.isActive("heading", { level: 4 })) return TbH4;
+    if (editor.isActive("heading", { level: 5 })) return TbH5;
+    if (editor.isActive("heading", { level: 6 })) return TbH6;
+    return TbHeading;
+  };
+
+  const ActiveListIcon = getActiveListIcon();
+  const isAnyListActive =
+    editor.isActive("bulletList") ||
+    editor.isActive("orderedList") ||
+    editor.isActive("taskList");
+
+  const ActiveHeadingIcon = getActiveHeadingIcon();
+  const isAnyHeadingActive = editor.isActive("heading");
+
   return (
     <footer
       className="hide-scrollbar sticky bottom-0 isolate z-10 flex h-10 w-full items-center gap-2 overflow-x-auto border-muted/80 border-t px-3 md:justify-center lg:px-6"
@@ -653,10 +691,118 @@ const NotePageFooter = ({
       />
 
       <div className="flex items-center justify-center gap-1">
-        <Button className="w-auto min-w-8 px-1.5" size="iconSm" variant="ghost">
-          <TbHeading className="size-4" />
-          <TbChevronDown className="-ml-2 size-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenu
+              onOpenChange={setHeadingDropdownOpen}
+              open={headingDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="w-auto min-w-8 px-1.5"
+                  disabled={!isEditing}
+                  size="iconSm"
+                  variant={isAnyHeadingActive ? "muted" : "ghost"}
+                >
+                  <ActiveHeadingIcon className="size-4" />
+                  <TbChevronDown
+                    className={cn(
+                      "-ml-2 size-3 transition-transform duration-200",
+                      headingDropdownOpen && "rotate-180",
+                    )}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" side="top" sideOffset={8}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 1 }).run();
+                  }}
+                >
+                  <TbH1 className="text-muted-foreground" />
+                  <span>Heading 1</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 1 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 2 }).run();
+                  }}
+                >
+                  <TbH2 className="text-muted-foreground" />
+                  <span>Heading 2</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 2 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 3 }).run();
+                  }}
+                >
+                  <TbH3 className="text-muted-foreground" />
+                  <span>Heading 3</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 3 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 4 }).run();
+                  }}
+                >
+                  <TbH4 className="text-muted-foreground" />
+                  <span>Heading 4</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 4 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 5 }).run();
+                  }}
+                >
+                  <TbH5 className="text-muted-foreground" />
+                  <span>Heading 5</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 5 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleHeading({ level: 6 }).run();
+                  }}
+                >
+                  <TbH6 className="text-muted-foreground" />
+                  <span>Heading 6</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("heading", { level: 6 }) && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TooltipTrigger>
+          <TooltipContent>Headings</TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -803,10 +949,76 @@ const NotePageFooter = ({
       />
 
       <div className="flex items-center justify-center gap-1">
-        <Button className="w-auto min-w-8 px-1.5" size="iconSm" variant="ghost">
-          <TbList className="size-4" />
-          <TbChevronDown className="-ml-2 size-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenu
+              onOpenChange={setListDropdownOpen}
+              open={listDropdownOpen}
+            >
+              <DropdownMenuTrigger asChild>
+                <Button
+                  className="w-auto min-w-8 px-1.5"
+                  disabled={!isEditing}
+                  size="iconSm"
+                  variant={isAnyListActive ? "muted" : "ghost"}
+                >
+                  <ActiveListIcon className="size-4" />
+                  <TbChevronDown
+                    className={cn(
+                      "-ml-2 size-3 transition-transform duration-200",
+                      listDropdownOpen && "rotate-180",
+                    )}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" side="top" sideOffset={8}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleBulletList().run();
+                  }}
+                >
+                  <TbList className="text-muted-foreground" />
+                  <span>Bullet List</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("bulletList") && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleOrderedList().run();
+                  }}
+                >
+                  <TbListNumbers className="text-muted-foreground" />
+                  <span>Ordered List</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("orderedList") && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    editor.chain().focus().toggleTaskList().run();
+                  }}
+                >
+                  <TbListCheck className="text-muted-foreground" />
+                  <span>Task List</span>
+                  <TbCheck
+                    className={cn(
+                      "ml-auto size-4",
+                      !editor.isActive("taskList") && "invisible",
+                    )}
+                  />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </TooltipTrigger>
+          <TooltipContent>Lists</TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
