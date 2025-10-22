@@ -452,7 +452,11 @@ const NoteView = ({
         state={noteState}
         titleRef={titleRef}
       />
-      <div className="flex flex-1 overflow-auto pt-4">
+      <div
+        className="flex flex-1 overflow-auto pt-4"
+        // Add space so caret/content aren’t hidden behind the keyboard on iOS
+        style={{ paddingBottom: "var(--kb, 0px)" }}
+      >
         <div className="container flex min-h-0 flex-1">
           <div className="flex min-h-0 w-full flex-1 flex-col">
             <TitleTextarea
@@ -550,7 +554,11 @@ const NotePageFooter = ({
   const disableFormatting = isCodeActive || isCodeBlockActive;
 
   return (
-    <footer className="hide-scrollbar sticky bottom-0 isolate z-10 flex h-10 w-full items-center gap-2 overflow-x-auto border-muted/80 border-t px-3 md:justify-center lg:px-6">
+    <footer
+      className="hide-scrollbar sticky bottom-0 isolate z-10 flex h-10 w-full items-center gap-2 overflow-x-auto border-muted/80 border-t px-3 md:justify-center lg:px-6"
+      // Lift above the on-screen keyboard on iOS
+      style={{ transform: "translateY(calc(-1 * var(--kb, 0px)))" }}
+    >
       <div className="flex items-center justify-center gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
