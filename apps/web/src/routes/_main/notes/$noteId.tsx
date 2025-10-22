@@ -218,7 +218,6 @@ const NoteView = ({
 
   const [contentValue, setContentValue] = useState(note.content);
   const [contentDirty, setContentDirty] = useState(false);
-  const [editorUpdateKey, setEditorUpdateKey] = useState(0);
 
   // Increasing number used to ignore older (stale) responses
   const contentSeqRef = useRef(0);
@@ -253,10 +252,6 @@ const NoteView = ({
       setContentDirty(true);
       setContentState("dirty");
       setContentValue(html);
-      setEditorUpdateKey((k) => k + 1);
-    },
-    onSelectionUpdate: () => {
-      setEditorUpdateKey((k) => k + 1);
     },
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
@@ -480,11 +475,7 @@ const NoteView = ({
           </div>
         </div>
       </div>
-      <NotePageFooter
-        editor={editor}
-        isEditing={isEditing}
-        key={editorUpdateKey}
-      />
+      <NotePageFooter editor={editor} isEditing={isEditing} />
     </>
   );
 };
@@ -534,6 +525,23 @@ const NotePageFooter = ({
   isEditing: boolean;
   editor: Editor | null;
 }) => {
+  const [, forceUpdate] = useState({});
+
+  // Subscribe to editor events to trigger re-renders WITHOUT unmounting
+  useEffect(() => {
+    if (!editor) return;
+
+    const handleUpdate = () => forceUpdate({});
+
+    editor.on("selectionUpdate", handleUpdate);
+    editor.on("transaction", handleUpdate);
+
+    return () => {
+      editor.off("selectionUpdate", handleUpdate);
+      editor.off("transaction", handleUpdate);
+    };
+  }, [editor]);
+
   if (!editor) return null;
 
   // When code or codeBlock is active, other inline formatting should be disabled
@@ -592,10 +600,7 @@ const NotePageFooter = ({
               size="iconSm"
               variant={editor.isActive("bold") ? "muted" : "ghost"}
             >
-              <TbBold
-                className="size-4"
-                strokeWidth={editor.isActive("bold") ? 2.5 : undefined}
-              />
+              <TbBold className="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Bold</TooltipContent>
@@ -609,10 +614,7 @@ const NotePageFooter = ({
               size="iconSm"
               variant={editor.isActive("italic") ? "muted" : "ghost"}
             >
-              <TbItalic
-                className="size-4"
-                strokeWidth={editor.isActive("italic") ? 2.5 : undefined}
-              />
+              <TbItalic className="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Italic</TooltipContent>
@@ -626,10 +628,7 @@ const NotePageFooter = ({
               size="iconSm"
               variant={editor.isActive("underline") ? "muted" : "ghost"}
             >
-              <TbUnderline
-                className="size-4"
-                strokeWidth={editor.isActive("underline") ? 2.5 : undefined}
-              />
+              <TbUnderline className="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Underline</TooltipContent>
@@ -643,10 +642,7 @@ const NotePageFooter = ({
               size="iconSm"
               variant={editor.isActive("strike") ? "muted" : "ghost"}
             >
-              <TbStrikethrough
-                className="size-4"
-                strokeWidth={editor.isActive("strike") ? 2.5 : undefined}
-              />
+              <TbStrikethrough className="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Strikethrough</TooltipContent>
@@ -671,7 +667,7 @@ const NotePageFooter = ({
             <Button
               disabled={!isEditing || disableFormatting}
               size="iconSm"
-              variant="ghost"
+              variant={editor.isActive("link") ? "muted" : "ghost"}
             >
               <TbLink className="size-4" />
             </Button>
