@@ -306,7 +306,7 @@ input[type="number"] {
   
   /* Blockquotes */
   .tiptap blockquote {
-    @apply border-l-[3px] border-lime-500 pl-4 text-secondary-foreground my-5;
+    @apply border-l-[3px] border-lime-500 pl-4 py-1 text-secondary-foreground my-5;
   }
   
   /* Horizontal rule */

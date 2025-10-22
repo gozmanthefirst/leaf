@@ -5,8 +5,10 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
+import Subscript from "@tiptap/extension-subscript";
+import Superscript from "@tiptap/extension-superscript";
 import { Underline } from "@tiptap/extension-underline";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDebounce } from "@uidotdev/usehooks";
 import { all, createLowlight } from "lowlight";
@@ -20,6 +22,8 @@ import {
 } from "react";
 import {
   TbAlertTriangle,
+  TbArrowBackUp,
+  TbArrowForwardUp,
   TbBlockquote,
   TbBold,
   TbBook,
@@ -58,7 +62,6 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { cancelToastEl } from "@/components/ui/toaster";
-import { Toggle } from "@/components/ui/toggle";
 import {
   Tooltip,
   TooltipContent,
@@ -215,6 +218,7 @@ const NoteView = ({
 
   const [contentValue, setContentValue] = useState(note.content);
   const [contentDirty, setContentDirty] = useState(false);
+  const [editorUpdateKey, setEditorUpdateKey] = useState(0);
 
   // Increasing number used to ignore older (stale) responses
   const contentSeqRef = useRef(0);
@@ -226,6 +230,8 @@ const NoteView = ({
       StarterKit,
       Underline,
       TaskList,
+      Superscript,
+      Subscript,
       TaskItem.configure({
         nested: true,
       }),
@@ -247,6 +253,10 @@ const NoteView = ({
       setContentDirty(true);
       setContentState("dirty");
       setContentValue(html);
+      setEditorUpdateKey((k) => k + 1);
+    },
+    onSelectionUpdate: () => {
+      setEditorUpdateKey((k) => k + 1);
     },
     editorProps: {
       attributes: { class: "outline-none w-full h-full" },
@@ -470,7 +480,11 @@ const NoteView = ({
           </div>
         </div>
       </div>
-      <NotePageFooter editor={editor} isEditing={isEditing} />
+      <NotePageFooter
+        editor={editor}
+        isEditing={isEditing}
+        key={editorUpdateKey}
+      />
     </>
   );
 };
@@ -518,24 +532,45 @@ const NotePageFooter = ({
   editor,
 }: {
   isEditing: boolean;
-  editor: ReturnType<typeof useEditor> | null;
+  editor: Editor | null;
 }) => {
   if (!editor) return null;
 
-  // When code is active, other inline formatting should be disabled
+  // When code or codeBlock is active, other inline formatting should be disabled
   const isCodeActive = editor.isActive("code");
+  const isCodeBlockActive = editor.isActive("codeBlock");
+  const disableFormatting = isCodeActive || isCodeBlockActive;
 
   return (
     <footer className="hide-scrollbar sticky bottom-0 isolate z-10 flex h-10 w-full items-center gap-2 overflow-x-auto border-muted/80 border-t px-3 md:justify-center lg:px-6">
       <div className="flex items-center justify-center gap-1">
-        <Toggle size="sm">
-          <TbHeading className="size-4" />
-          <TbChevronDown className="-ml-2 size-3" />
-        </Toggle>
-        <Toggle size="sm">
-          <TbList className="size-4" />
-          <TbChevronDown className="-ml-2 size-3" />
-        </Toggle>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing || !editor.can().undo()}
+              onClick={() => editor.chain().focus().undo().run()}
+              size="iconSm"
+              variant="ghost"
+            >
+              <TbArrowBackUp className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Undo</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing || !editor.can().redo()}
+              onClick={() => editor.chain().focus().redo().run()}
+              size="iconSm"
+              variant="ghost"
+            >
+              <TbArrowForwardUp className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Redo</TooltipContent>
+        </Tooltip>
       </div>
 
       <Separator
@@ -544,85 +579,105 @@ const NotePageFooter = ({
       />
 
       <div className="flex items-center justify-center gap-1">
+        <Button className="w-auto min-w-8 px-1.5" size="iconSm" variant="ghost">
+          <TbHeading className="size-4" />
+          <TbChevronDown className="-ml-2 size-3" />
+        </Button>
+
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              disabled={!isEditing || isCodeActive}
-              onPressedChange={() => editor.chain().focus().toggleBold().run()}
-              pressed={editor.isActive("bold")}
-              size="sm"
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              size="iconSm"
+              variant={editor.isActive("bold") ? "muted" : "ghost"}
             >
-              <TbBold className="size-4" />
-            </Toggle>
+              <TbBold
+                className="size-4"
+                strokeWidth={editor.isActive("bold") ? 2.5 : undefined}
+              />
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Bold</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              disabled={!isEditing || isCodeActive}
-              onPressedChange={() =>
-                editor.chain().focus().toggleItalic().run()
-              }
-              pressed={editor.isActive("italic")}
-              size="sm"
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              size="iconSm"
+              variant={editor.isActive("italic") ? "muted" : "ghost"}
             >
-              <TbItalic className="size-4" />
-            </Toggle>
+              <TbItalic
+                className="size-4"
+                strokeWidth={editor.isActive("italic") ? 2.5 : undefined}
+              />
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Italic</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              disabled={!isEditing || isCodeActive}
-              onPressedChange={() =>
-                editor.chain().focus().toggleUnderline().run()
-              }
-              pressed={editor.isActive("underline")}
-              size="sm"
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              size="iconSm"
+              variant={editor.isActive("underline") ? "muted" : "ghost"}
             >
-              <TbUnderline className="size-4" />
-            </Toggle>
+              <TbUnderline
+                className="size-4"
+                strokeWidth={editor.isActive("underline") ? 2.5 : undefined}
+              />
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Underline</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              disabled={!isEditing || isCodeActive}
-              onPressedChange={() =>
-                editor.chain().focus().toggleStrike().run()
-              }
-              pressed={editor.isActive("strike")}
-              size="sm"
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              size="iconSm"
+              variant={editor.isActive("strike") ? "muted" : "ghost"}
             >
-              <TbStrikethrough className="size-4" />
-            </Toggle>
+              <TbStrikethrough
+                className="size-4"
+                strokeWidth={editor.isActive("strike") ? 2.5 : undefined}
+              />
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Strikethrough</TooltipContent>
         </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Toggle
-              disabled={!isEditing}
-              onPressedChange={() => editor.chain().focus().toggleCode().run()}
-              pressed={editor.isActive("code")}
-              size="sm"
+            <Button
+              disabled={!isEditing || isCodeBlockActive}
+              onClick={() => editor.chain().focus().toggleCode().run()}
+              size="iconSm"
+              variant={editor.isActive("code") ? "muted" : "ghost"}
             >
               <TbCode className="size-4" />
-            </Toggle>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>Code</TooltipContent>
         </Tooltip>
 
-        <Toggle size="sm">
-          <TbLink className="size-4" />
-        </Toggle>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing || disableFormatting}
+              size="iconSm"
+              variant="ghost"
+            >
+              <TbLink className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Link</TooltipContent>
+        </Tooltip>
       </div>
 
       <Separator
@@ -631,12 +686,50 @@ const NotePageFooter = ({
       />
 
       <div className="flex items-center justify-center gap-1">
-        <Toggle size="sm">
-          <TbBlockquote className="size-4" />
-        </Toggle>
-        <Toggle size="sm">
-          <TbSourceCode className="size-4" />
-        </Toggle>
+        <Button className="w-auto min-w-8 px-1.5" size="iconSm" variant="ghost">
+          <TbList className="size-4" />
+          <TbChevronDown className="-ml-2 size-3" />
+        </Button>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing}
+              onClick={() => {
+                // If code block is active, deactivate it first
+                if (isCodeBlockActive) {
+                  editor.chain().focus().toggleCodeBlock().run();
+                }
+                editor.chain().focus().toggleBlockquote().run();
+              }}
+              size="iconSm"
+              variant={editor.isActive("blockquote") ? "muted" : "ghost"}
+            >
+              <TbBlockquote className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Blockquote</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing}
+              onClick={() => {
+                // If blockquote is active, deactivate it first
+                if (editor.isActive("blockquote")) {
+                  editor.chain().focus().toggleBlockquote().run();
+                }
+                editor.chain().focus().toggleCodeBlock().run();
+              }}
+              size="iconSm"
+              variant={editor.isActive("codeBlock") ? "muted" : "ghost"}
+            >
+              <TbSourceCode className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Code Block</TooltipContent>
+        </Tooltip>
       </div>
 
       <Separator
@@ -645,12 +738,45 @@ const NotePageFooter = ({
       />
 
       <div className="flex items-center justify-center gap-1">
-        <Toggle size="sm">
-          <TbSuperscript className="size-4" />
-        </Toggle>
-        <Toggle size="sm">
-          <TbSubscript className="size-4" />
-        </Toggle>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => {
+                // If subscript is active, deactivate it first
+                if (editor.isActive("subscript")) {
+                  editor.chain().focus().toggleSubscript().run();
+                }
+                editor.chain().focus().toggleSuperscript().run();
+              }}
+              size="iconSm"
+              variant={editor.isActive("superscript") ? "muted" : "ghost"}
+            >
+              <TbSuperscript className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Superscript</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              disabled={!isEditing || disableFormatting}
+              onClick={() => {
+                // If superscript is active, deactivate it first
+                if (editor.isActive("superscript")) {
+                  editor.chain().focus().toggleSuperscript().run();
+                }
+                editor.chain().focus().toggleSubscript().run();
+              }}
+              size="iconSm"
+              variant={editor.isActive("subscript") ? "muted" : "ghost"}
+            >
+              <TbSubscript className="size-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Subscript</TooltipContent>
+        </Tooltip>
       </div>
     </footer>
   );

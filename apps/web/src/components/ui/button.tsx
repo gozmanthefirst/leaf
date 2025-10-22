@@ -13,6 +13,8 @@ const buttonVariants = cva(
           "bg-lime-500 text-neutral-950 shadow focus-visible:outline-lime-500 lg:hover:bg-lime-500/90",
         secondary:
           "bg-secondary text-secondary-foreground shadow focus-visible:outline-secondary lg:hover:bg-secondary/80",
+        muted:
+          "bg-muted text-secondary-foreground shadow focus-visible:outline-muted",
         destructive:
           "bg-destructive text-white focus-visible:outline-destructive dark:focus-visible:outline-destructive",
         outline:
@@ -27,6 +29,7 @@ const buttonVariants = cva(
         xs: "h-7 gap-1.5 rounded-md px-4 text-xs has-[>svg]:px-2.5",
         lg: "h-10 px-8 has-[>svg]:px-4",
         icon: "size-9",
+        iconSm: "size-8 rounded-lg",
       },
     },
     defaultVariants: {
