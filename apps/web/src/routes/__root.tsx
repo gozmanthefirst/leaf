@@ -21,7 +21,11 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1, interactive-widget=resizes-content",
+      },
       {
         title: "Leaf",
         description: "WYSIWYG web app for writing and organizing notes",
