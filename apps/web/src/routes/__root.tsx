@@ -25,7 +25,6 @@ export const Route = createRootRouteWithContext<AppRouterContext>()({
       {
         name: "viewport",
         content:
-          // Add viewport-fit=cover; unsupported tokens are ignored elsewhere
           "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content",
       },
       {

@@ -24,6 +24,7 @@ import {
   TbAlertTriangle,
   TbArrowBackUp,
   TbArrowForwardUp,
+  TbArrowNarrowRight,
   TbBlockquote,
   TbBold,
   TbBook,
@@ -49,6 +50,7 @@ import {
   TbUnderline,
 } from "react-icons/tb";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -58,6 +60,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
@@ -80,6 +93,7 @@ import {
 } from "@/server/note";
 
 const lowlight = createLowlight(all);
+const urlSchema = z.url();
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
   beforeLoad: async ({ context, params }) => {
@@ -530,6 +544,9 @@ const NotePageFooter = ({
   editor: Editor | null;
 }) => {
   const [, forceUpdate] = useState({});
+  const [linkPopoverOpen, setLinkPopoverOpen] = useState(false);
+  const [linkUrl, setLinkUrl] = useState("");
+  const linkInputRef = useRef<HTMLInputElement>(null);
 
   // Subscribe to editor events to trigger re-renders WITHOUT unmounting
   useEffect(() => {
@@ -546,12 +563,53 @@ const NotePageFooter = ({
     };
   }, [editor]);
 
+  // Focus input when popover opens
+  useEffect(() => {
+    if (linkPopoverOpen && linkInputRef.current) {
+      linkInputRef.current.focus();
+    }
+  }, [linkPopoverOpen]);
+
+  // Get existing link URL when selection changes
+  useEffect(() => {
+    if (!editor || !linkPopoverOpen) return;
+
+    const { href } = editor.getAttributes("link");
+    if (href) {
+      setLinkUrl(href);
+    }
+  }, [editor, linkPopoverOpen]);
+
   if (!editor) return null;
 
   // When code or codeBlock is active, other inline formatting should be disabled
   const isCodeActive = editor.isActive("code");
   const isCodeBlockActive = editor.isActive("codeBlock");
   const disableFormatting = isCodeActive || isCodeBlockActive;
+
+  // Validate URL using Zod
+  const isValidUrl = urlSchema.safeParse(linkUrl.trim()).success;
+
+  const handleSetLink = () => {
+    if (!isValidUrl) return;
+
+    // Set link with the URL
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange("link")
+      .setLink({ href: linkUrl.trim() })
+      .run();
+
+    setLinkPopoverOpen(false);
+    setLinkUrl("");
+  };
+
+  const handleRemoveLink = () => {
+    editor.chain().focus().unsetLink().run();
+    setLinkPopoverOpen(false);
+    setLinkUrl("");
+  };
 
   return (
     <footer
@@ -672,13 +730,68 @@ const NotePageFooter = ({
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button
-              disabled={!isEditing || disableFormatting}
-              size="iconSm"
-              variant={editor.isActive("link") ? "muted" : "ghost"}
-            >
-              <TbLink className="size-4" />
-            </Button>
+            <Popover onOpenChange={setLinkPopoverOpen} open={linkPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  disabled={!isEditing || disableFormatting}
+                  size="iconSm"
+                  variant={editor.isActive("link") ? "muted" : "ghost"}
+                >
+                  <TbLink className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="center"
+                className="w-80 rounded-2xl p-3 lg:w-88"
+                side="top"
+                sideOffset={8}
+              >
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <InputGroup className="h-8">
+                      <InputGroupInput
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (isValidUrl) {
+                              handleSetLink();
+                            }
+                          } else if (e.key === "Escape") {
+                            setLinkPopoverOpen(false);
+                            setLinkUrl("");
+                          }
+                        }}
+                        placeholder="https://example.com"
+                        ref={linkInputRef}
+                        type="url"
+                        value={linkUrl}
+                      />
+                      <InputGroupAddon align="inline-end">
+                        <InputGroupButton
+                          className="h-5"
+                          disabled={!isValidUrl}
+                          onClick={handleSetLink}
+                          variant="secondary"
+                        >
+                          <TbArrowNarrowRight />
+                        </InputGroupButton>
+                      </InputGroupAddon>
+                    </InputGroup>
+                  </div>
+                  {editor.isActive("link") && (
+                    <Button
+                      className="w-full"
+                      onClick={handleRemoveLink}
+                      size="xs"
+                      variant="outline"
+                    >
+                      Remove Link
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </TooltipTrigger>
           <TooltipContent>Link</TooltipContent>
         </Tooltip>
