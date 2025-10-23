@@ -713,7 +713,12 @@ const NotePageFooter = ({
                   />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" side="top" sideOffset={8}>
+              <DropdownMenuContent
+                align="center"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+                side="top"
+                sideOffset={8}
+              >
                 <DropdownMenuItem
                   onSelect={() => {
                     editor.chain().focus().toggleHeading({ level: 1 }).run();
@@ -971,7 +976,12 @@ const NotePageFooter = ({
                   />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" side="top" sideOffset={8}>
+              <DropdownMenuContent
+                align="center"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+                side="top"
+                sideOffset={8}
+              >
                 <DropdownMenuItem
                   onSelect={() => {
                     editor.chain().focus().toggleBulletList().run();
