@@ -22,7 +22,7 @@ export const $createSessionToken = createServerFn({
       secure: env.NODE_ENV === "production",
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 30,
     });
   });
 

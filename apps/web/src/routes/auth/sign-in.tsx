@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
+import { Image } from "@unpic/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import z from "zod";
@@ -120,18 +121,32 @@ function SignInPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-bold font-roboto text-3xl">Sign in to Leaf</h1>
+      <div className="size-10">
+        <Image
+          alt="App Logo"
+          background="auto"
+          layout="fullWidth"
+          priority
+          src={"/logos/app-logo.png"}
+        />
       </div>
 
       <div className="flex flex-col gap-4">
-        <Button
-          disabled={buttonState === "loading" || signInMutation.isPending}
-          onClick={handleGoogleSignIn}
-          type="button"
-        >
-          {buttonState === "loading" ? "Signing in..." : "Sign in with Google"}
-        </Button>
+        <div className="flex flex-col gap-2">
+          <h1 className="font-bold font-roboto text-3xl">Sign In</h1>
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <Button
+            disabled={buttonState === "loading" || signInMutation.isPending}
+            onClick={handleGoogleSignIn}
+            type="button"
+          >
+            {buttonState === "loading"
+              ? "Signing in..."
+              : "Sign in with Google"}
+          </Button>
+        </div>
       </div>
     </div>
   );

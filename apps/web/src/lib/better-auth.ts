@@ -23,6 +23,10 @@ export const auth = betterAuth({
     },
   },
 
+  session: {
+    expiresIn: 60 * 60 * 24 * 30,
+  },
+
   advanced: {
     cookies: {
       session_token: {
@@ -32,6 +36,7 @@ export const auth = betterAuth({
           httpOnly: true,
           secure: env.NODE_ENV === "production",
           sameSite: "lax",
+          expires: new Date(Date.now() + 60 * 60 * 24 * 30 * 1000),
         },
       },
     },
