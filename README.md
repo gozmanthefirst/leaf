@@ -2,9 +2,6 @@
 
 This is a monorepo containing the different parts of an app for writing and organizing notes called Leaf.
 
-> [!NOTE]
-> Even though the backend is mostly complete, the frontend hasn't been built yet. It's coming though, so please have some patience.
-
 ## Why?
 
 I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. However, I am poor and therefore can't pay for sync at the moment, and I'd really like to be able to edit a note on my PC and still access it on my mobile devices. I also wanted a solution that gave me more control over my data and allowed me to customize the features to my specific needs. Since I'm not such a bad software developer myself, I decided to build something similar, even if its just the basic features.
@@ -13,8 +10,6 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 
 - Create, update, organize, and retrieve your notes.
 - Organize notes into folders.
-- Favorite notes for quick access.
-- Tag notes for easy searching and filtering.
 - Access your notes from any device with an internet connection.
 
 ## Tech Stack
@@ -85,6 +80,18 @@ Other tools used include Prisma as the ORM layer for the database, Biome for lin
         - `RESEND_DOMAIN`: Your Resend domain.
         - `RESEND_API_KEY`: Your Resend API key.
         - `RESEND_DOMAIN`: Your Resend domain.
+
+5. **Set up the frontend app:**
+
+    - Copy `.env.example` to `.env` in the `apps/web` directory.
+    - Update the values to set up the environment variables. The required variables include:
+        - `API_URL`: The URL of the backend application (e.g., `http://localhost:8000/api`).
+        - `DATABASE_URL`: The same DB URL as the one set in the database package.
+        - `AUTH_COOKIE`: The name of the auth session cookie.
+        - `BETTER_AUTH_SECRET`: A secret key for Better Auth. Generate a new secret using the command: `openssl rand -hex 32`.
+        - `BETTER_AUTH_URL`: The URL for Better Auth, typically the frontend URL.
+        - `GOOGLE_CLIENT_ID`: Your Google Client ID for Google Auth.
+        - `GOOGLE_CLIENT_SECRET`: Your Google Client Secret for Google Auth.
 
 ## Running Locally
 
