@@ -11,7 +11,7 @@ import { Underline } from "@tiptap/extension-underline";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { useDebounce } from "@uidotdev/usehooks";
-import { all, createLowlight } from "lowlight";
+import { common, createLowlight } from "lowlight";
 import {
   type ComponentProps,
   type RefObject,
@@ -100,7 +100,7 @@ import {
   singleNoteQueryOptions,
 } from "@/server/note";
 
-const lowlight = createLowlight(all);
+const lowlight = createLowlight(common);
 const urlSchema = z.url();
 
 export const Route = createFileRoute("/_main/notes/$noteId")({
@@ -262,7 +262,7 @@ const NoteView = ({
       }),
     ],
     content: note.content,
-    immediatelyRender: false,
+    // immediatelyRender: false,
     autofocus: "end",
     onUpdate: ({ editor }) => {
       // Avoid marking the editor as dirty if read mode is activated or if the content equals the server
