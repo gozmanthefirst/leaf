@@ -1,3 +1,6 @@
+/** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: required */
+/** biome-ignore-all lint/a11y/noStaticElementInteractions: required */
+
 import type { Note, User } from "@repo/db";
 import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
@@ -44,6 +47,7 @@ import { useFolderMutations } from "@/hooks/use-folder-mutations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNoteMutations } from "@/hooks/use-note-mutations";
 import { usePersistentFocus } from "@/hooks/use-persistent-focus";
+import { type DraggedItem, useTreeDnD } from "@/hooks/use-tree-dnd";
 import { apiErrorHandler } from "@/lib/handle-api-error";
 import { queryKeys } from "@/lib/query";
 import type { Theme } from "@/lib/types";
@@ -118,8 +122,18 @@ type FolderCreationCtx = {
   deleteNoteOptimistic: (noteId: string) => void;
   renameNoteOptimistic: (noteId: string, title: string) => void;
   copyNoteOptimistic: (noteId: string) => void;
+  moveNoteOptimistic: (noteId: string, folderId: string) => void;
+  moveFolderOptimistic: (folderId: string, parentFolderId: string) => void;
   createNotePending: boolean;
   isNotePending: (noteId: string) => boolean;
+
+  // DnD state
+  draggedItem: DraggedItem | null;
+  dropTarget: string | null;
+  startDrag: (item: DraggedItem) => void;
+  endDrag: () => void;
+  setDragOver: (targetId: string | null) => void;
+  isDragging: boolean;
 };
 
 const FolderCreationContext = createContext<FolderCreationCtx | null>(null);
@@ -215,6 +229,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
     deleteFolderOptimistic,
     renameFolderOptimistic,
     creatingFolderPending,
+    moveFolderOptimistic,
   } = useFolderMutations({
     queryClient,
     rootFolder,
@@ -230,6 +245,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
     copyNoteOptimistic,
     createNotePending,
     isNotePending,
+    moveNoteOptimistic,
   } = useNoteMutations({
     queryClient,
     rootFolder,
@@ -291,6 +307,55 @@ export const AppSidebar = ({ user }: { user: User }) => {
     },
   ];
 
+  const dnd = useTreeDnD();
+
+  // Handle drop
+  const handleDrop = (targetFolderId: string) => {
+    if (!dnd.draggedItem) return;
+
+    const { id, type } = dnd.draggedItem;
+
+    if (type === "note") {
+      moveNoteOptimistic(id, targetFolderId);
+    } else if (type === "folder") {
+      // Prevent dropping folder into itself or its descendants
+      if (id === targetFolderId) return;
+
+      // Check if target is a descendant (simple check, you might want more robust)
+      const isDescendant = (
+        node: FolderWithItems,
+        targetId: string,
+      ): boolean => {
+        if (node.id === targetId) return true;
+        return node.folders.some((f) => isDescendant(f, targetId));
+      };
+
+      if (rootFolder) {
+        const findFolder = (
+          node: FolderWithItems,
+          fId: string,
+        ): FolderWithItems | null => {
+          if (node.id === fId) return node;
+          for (const f of node.folders) {
+            const found = findFolder(f, fId);
+            if (found) return found;
+          }
+          return null;
+        };
+
+        const draggedFolder = findFolder(rootFolder, id);
+        if (draggedFolder && isDescendant(draggedFolder, targetFolderId)) {
+          toast.error("Cannot move a folder into itself or its descendants");
+          return;
+        }
+      }
+
+      moveFolderOptimistic(id, targetFolderId);
+    }
+
+    dnd.endDrag();
+  };
+
   return (
     <FolderCreationContext.Provider
       value={{
@@ -311,8 +376,16 @@ export const AppSidebar = ({ user }: { user: User }) => {
         deleteNoteOptimistic,
         renameNoteOptimistic,
         copyNoteOptimistic,
+        moveNoteOptimistic,
+        moveFolderOptimistic,
         createNotePending,
         isNotePending,
+        draggedItem: dnd.draggedItem,
+        dropTarget: dnd.dropTarget,
+        startDrag: dnd.startDrag,
+        endDrag: dnd.endDrag,
+        setDragOver: dnd.setDragOver,
+        isDragging: dnd.isDragging,
       }}
     >
       <Sidebar variant="inset">
@@ -377,6 +450,7 @@ export const AppSidebar = ({ user }: { user: User }) => {
                     creating={creatingFolderPending}
                     isCreating={activeParentId === rootFolder.id}
                     onCancel={cancelFolderCreation}
+                    onDrop={handleDrop}
                     onSubmit={submitCreation}
                     rootFolder={rootFolder}
                   />
@@ -495,12 +569,14 @@ const RootFolderSection = ({
   creating,
   onSubmit,
   onCancel,
+  onDrop,
 }: {
   rootFolder: FolderWithItems;
   isCreating: boolean;
   creating: boolean;
   onSubmit: (name: string, parentId: string) => void;
   onCancel: () => void;
+  onDrop: (targetFolderId: string) => void;
 }) => {
   const { folders, notes } = sortFolderItems(rootFolder);
   const {
@@ -509,8 +585,49 @@ const RootFolderSection = ({
     cancelNoteCreation,
     createNoteOptimistic,
     createNotePending,
+    draggedItem,
+    dropTarget,
+    setDragOver,
+    isDragging,
   } = useFolderCreation();
   const creatingNoteHere = activeNoteParentId === rootFolder.id;
+
+  // Drag and drop handlers for root folder
+  const isDropTarget = dropTarget === rootFolder.id;
+  // Don't show visual indication if item is already in root folder
+  const showDropIndicator =
+    isDropTarget &&
+    draggedItem &&
+    (draggedItem.type === "note"
+      ? !notes.some((n) => n.id === draggedItem.id)
+      : !folders.some((f) => f.id === draggedItem.id));
+
+  const canAcceptDrop =
+    isDragging && draggedItem && draggedItem.id !== rootFolder.id;
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!canAcceptDrop) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(rootFolder.id);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if actually leaving the container
+    const relatedTarget = e.relatedTarget as Node | null;
+    const currentTarget = e.currentTarget as Node;
+    if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+      setDragOver(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (canAcceptDrop) {
+      onDrop(rootFolder.id);
+    }
+  };
 
   return (
     <>
@@ -526,43 +643,56 @@ const RootFolderSection = ({
         </div>
       )}
 
-      {folders.map((f) => (
-        <FolderNode
-          folder={f}
-          key={f.id}
-          siblingNames={folders.filter((x) => x.id !== f.id).map((x) => x.name)}
-        />
-      ))}
+      {/* Wrap all root folder content in a droppable container */}
+      <div
+        className={`${showDropIndicator ? "rounded-md bg-accent/50" : ""}`}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {folders.map((f) => (
+          <FolderNode
+            folder={f}
+            key={f.id}
+            onDrop={onDrop}
+            siblingNames={folders
+              .filter((x) => x.id !== f.id)
+              .map((x) => x.name)}
+          />
+        ))}
 
-      {isCreating && (
-        <FolderInputInline
-          loading={creating}
-          onCancel={onCancel}
-          onCreate={onSubmit}
-          parentId={rootFolder.id}
-          parentOpen={true}
-          siblingNames={folders.map((f) => f.name)}
-        />
-      )}
+        {isCreating && (
+          <FolderInputInline
+            loading={creating}
+            onCancel={onCancel}
+            onCreate={onSubmit}
+            parentId={rootFolder.id}
+            parentOpen={true}
+            siblingNames={folders.map((f) => f.name)}
+          />
+        )}
 
-      {notes.map((n) => (
-        <NoteItem
-          key={n.id}
-          note={n}
-          siblingTitles={notes.filter((x) => x.id !== n.id).map((x) => x.title)}
-        />
-      ))}
+        {notes.map((n) => (
+          <NoteItem
+            key={n.id}
+            note={n}
+            siblingTitles={notes
+              .filter((x) => x.id !== n.id)
+              .map((x) => x.title)}
+          />
+        ))}
 
-      {creatingNoteHere && (
-        <NoteInputInline
-          loading={createNotePending}
-          onCancel={cancelNoteCreation}
-          onCreate={(title) => createNoteOptimistic(title, rootFolder.id)}
-          parentId={rootFolder.id}
-          parentOpen={true}
-          siblingTitles={notes.map((n) => n.title)}
-        />
-      )}
+        {creatingNoteHere && (
+          <NoteInputInline
+            loading={createNotePending}
+            onCancel={cancelNoteCreation}
+            onCreate={(title) => createNoteOptimistic(title, rootFolder.id)}
+            parentId={rootFolder.id}
+            parentOpen={true}
+            siblingTitles={notes.map((n) => n.title)}
+          />
+        )}
+      </div>
     </>
   );
 };
@@ -571,9 +701,11 @@ const RootFolderSection = ({
 const FolderNode = ({
   folder,
   siblingNames = [],
+  onDrop,
 }: {
   folder: FolderWithItems;
   siblingNames?: string[];
+  onDrop: (targetFolderId: string) => void;
 }) => {
   const {
     activeParentId,
@@ -589,12 +721,20 @@ const FolderNode = ({
     createNoteOptimistic,
     renameFolderOptimistic,
     createNotePending,
+    draggedItem,
+    dropTarget,
+    startDrag,
+    endDrag,
+    setDragOver,
+    isDragging,
   } = useFolderCreation();
 
   const [renaming, setRenaming] = useState(false);
   const [folderName, setFolderName] = useState(folder.name);
   const inputRef = useRef<HTMLInputElement>(null);
   const itemRef = useClickAway<HTMLLIElement>(() => setRenaming(false));
+  const hoverTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useHotkeys("esc", () => setRenaming(false), { enableOnFormTags: true });
 
   useEffect(() => {
@@ -603,6 +743,15 @@ const FolderNode = ({
       inputRef.current.select();
     }
   }, [renaming]);
+
+  // Clear hover timer on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   const { folders, notes } = sortFolderItems(folder);
   const open = isOpen(folder.id);
@@ -618,13 +767,92 @@ const FolderNode = ({
 
   const startFolderRename = () => setRenaming(true);
 
+  // Drag and drop handlers
+  const isBeingDragged = draggedItem?.id === folder.id;
+  const isDropTarget = dropTarget === folder.id;
+
+  // Check if dragged item is already in this folder
+  const isAlreadyInFolder =
+    draggedItem &&
+    ((draggedItem.type === "note" &&
+      notes.some((n) => n.id === draggedItem.id)) ||
+      (draggedItem.type === "folder" &&
+        folders.some((f) => f.id === draggedItem.id)));
+
+  // Don't show visual indication if item is already in this folder
+  const showDropIndicator = isDropTarget && !isAlreadyInFolder;
+
+  const canAcceptDrop =
+    isDragging && draggedItem && draggedItem.id !== folder.id;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (renaming) return;
+    e.stopPropagation();
+    startDrag({
+      id: folder.id,
+      type: "folder",
+      name: folder.name,
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (!canAcceptDrop) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(folder.id);
+
+    // Start timer to auto-open folder if closed
+    if (!open && !hoverTimerRef.current) {
+      hoverTimerRef.current = setTimeout(() => {
+        openFolder(folder.id);
+        hoverTimerRef.current = null;
+      }, 800); // 800ms delay
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Clear auto-open timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+
+    // Only clear drop target if actually leaving the folder area
+    const relatedTarget = e.relatedTarget as Node | null;
+    const currentTarget = e.currentTarget as Node;
+    if (!relatedTarget || !currentTarget.contains(relatedTarget)) {
+      setDragOver(null);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Clear auto-open timer
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+
+    if (canAcceptDrop) {
+      onDrop(folder.id);
+    }
+  };
+
   return (
     <Collapsible
       className="collapsible-node"
       onOpenChange={(o) => (o ? openFolder(folder.id) : closeFolder(folder.id))}
       open={open}
     >
-      <SidebarMenuItem ref={itemRef}>
+      <SidebarMenuItem
+        className={`${showDropIndicator ? "rounded-md bg-accent/50" : ""} ${isBeingDragged ? "opacity-50" : ""}`}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        ref={itemRef}
+      >
         <Popover open={isDuplicateRename}>
           <PopoverTrigger asChild>
             <CollapsibleTrigger
@@ -634,7 +862,10 @@ const FolderNode = ({
               }}
             >
               <SidebarMenuButton
+                draggable={!renaming}
                 onClick={(e) => (renaming ? e.stopPropagation() : undefined)}
+                onDragEnd={endDrag}
+                onDragStart={handleDragStart}
                 size={SIDEBAR_BTN_SIZE}
                 variant={renaming ? "input" : "default"}
               >
@@ -699,49 +930,58 @@ const FolderNode = ({
       </SidebarMenuItem>
 
       <CollapsibleContent className="ml-4 border-muted border-l pl-2">
-        <SidebarMenu>
-          {folders.map((f) => (
-            <FolderNode
-              folder={f}
-              key={f.id}
-              siblingNames={folders
-                .filter((x) => x.id !== f.id)
-                .map((x) => x.name)}
-            />
-          ))}
+        {/* Wrap content in droppable div that highlights parent folder */}
+        <div
+          className={`${showDropIndicator ? "bg-accent/20" : ""}`}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <SidebarMenu>
+            {folders.map((f) => (
+              <FolderNode
+                folder={f}
+                key={f.id}
+                onDrop={onDrop}
+                siblingNames={folders
+                  .filter((x) => x.id !== f.id)
+                  .map((x) => x.name)}
+              />
+            ))}
 
-          {isCreatingChildFolder && (
-            <FolderInputInline
-              loading={false}
-              onCancel={cancelFolderCreation}
-              onCreate={(name) => createFolderOptimistic(name, folder.id)}
-              parentId={folder.id}
-              parentOpen={open}
-              siblingNames={folders.map((f) => f.name)}
-            />
-          )}
+            {isCreatingChildFolder && (
+              <FolderInputInline
+                loading={false}
+                onCancel={cancelFolderCreation}
+                onCreate={(name) => createFolderOptimistic(name, folder.id)}
+                parentId={folder.id}
+                parentOpen={open}
+                siblingNames={folders.map((f) => f.name)}
+              />
+            )}
 
-          {isCreatingChildNote && (
-            <NoteInputInline
-              loading={createNotePending}
-              onCancel={cancelNoteCreation}
-              onCreate={(title) => createNoteOptimistic(title, folder.id)}
-              parentId={folder.id}
-              parentOpen={open}
-              siblingTitles={notes.map((n) => n.title)}
-            />
-          )}
+            {isCreatingChildNote && (
+              <NoteInputInline
+                loading={createNotePending}
+                onCancel={cancelNoteCreation}
+                onCreate={(title) => createNoteOptimistic(title, folder.id)}
+                parentId={folder.id}
+                parentOpen={open}
+                siblingTitles={notes.map((n) => n.title)}
+              />
+            )}
 
-          {notes.map((n) => (
-            <NoteItem
-              key={n.id}
-              note={n}
-              siblingTitles={notes
-                .filter((x) => x.id !== n.id)
-                .map((x) => x.title)}
-            />
-          ))}
-        </SidebarMenu>
+            {notes.map((n) => (
+              <NoteItem
+                key={n.id}
+                note={n}
+                siblingTitles={notes
+                  .filter((x) => x.id !== n.id)
+                  .map((x) => x.title)}
+              />
+            ))}
+          </SidebarMenu>
+        </div>
       </CollapsibleContent>
     </Collapsible>
   );
@@ -796,7 +1036,7 @@ const FolderInputInline = ({
             size={SIDEBAR_BTN_SIZE}
             variant="input"
           >
-            <TbChevronRight
+            <TbFile
               aria-hidden="true"
               className="pointer-events-none shrink-0 text-muted-foreground/60"
             />
@@ -806,8 +1046,8 @@ const FolderInputInline = ({
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  e.stopPropagation(); // Prevent collapsing parent
                   e.preventDefault();
+                  e.stopPropagation();
                   if (isDuplicate) return;
                   onCreate(trimmed, parentId);
                 } else if (e.key === "Escape") {
@@ -827,9 +1067,9 @@ const FolderInputInline = ({
           sideOffset={6}
         >
           <div className="space-y-2">
-            <p className="font-medium text-sm">Name already exists</p>
+            <p className="font-medium text-sm">Title already exists</p>
             <p className="text-muted-foreground text-xs">
-              Another folder here already has this name. Enter a different one.
+              Another folder here already has this title. Enter a different one.
             </p>
           </div>
         </PopoverContent>
@@ -918,7 +1158,13 @@ const NoteItem = ({
 
   const { setOpenMobile } = useSidebar();
 
-  const { renameNoteOptimistic, isNotePending } = useFolderCreation();
+  const {
+    renameNoteOptimistic,
+    isNotePending,
+    draggedItem,
+    startDrag,
+    endDrag,
+  } = useFolderCreation();
   const pending = isNotePending(note.id);
 
   const [renaming, setRenaming] = useState(false);
@@ -973,8 +1219,24 @@ const NoteItem = ({
     setRenaming(true);
   };
 
+  const isBeingDragged = draggedItem?.id === note.id;
+
+  const handleDragStart = (e: React.DragEvent) => {
+    if (renaming || pending) {
+      e.preventDefault();
+      return;
+    }
+    e.stopPropagation();
+    startDrag({
+      id: note.id,
+      type: "note",
+      name: note.title,
+    });
+  };
+
   return (
     <SidebarMenuItem
+      className={`${isBeingDragged ? "opacity-50" : ""}`}
       onClick={() => {
         setOpenMobile(false);
       }}
@@ -1014,12 +1276,15 @@ const NoteItem = ({
             <SidebarMenuButton
               asChild
               className={`${pending ? "cursor-not-allowed opacity-50" : ""}`}
+              draggable={!pending}
               isActive={
                 !!matchRoute({
                   to: `/notes/$noteId`,
                   params: { noteId: note.id },
                 })
               }
+              onDragEnd={endDrag}
+              onDragStart={handleDragStart}
               size={SIDEBAR_BTN_SIZE}
             >
               <Link

@@ -38,6 +38,7 @@
       "name": "web",
       "version": "0.0.1",
       "dependencies": {
+        "@headless-tree/react": "^1.5.1",
         "@radix-ui/react-avatar": "^1.1.10",
         "@radix-ui/react-collapsible": "^1.1.12",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -300,6 +301,10 @@
     "@floating-ui/react-dom": ["@floating-ui/react-dom@2.1.6", "", { "dependencies": { "@floating-ui/dom": "^1.7.4" }, "peerDependencies": { "react": ">=16.8.0", "react-dom": ">=16.8.0" } }, "sha512-4JX6rEatQEvlmgU80wZyq9RT96HZJa88q8hp0pBd+LrczeDI4o6uA2M+uvxngVHo4Ihr8uibXxH6+70zhAFrVw=="],
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
+
+    "@headless-tree/core": ["@headless-tree/core@1.5.1", "", {}, "sha512-uPoFcjPYdnXwuEDJd2oCMY8a4nnsMKyx6P0G1+is6dIGFpUsoV0qjtJN6ykJtOgTHVhBRR11zRmletER6Qgj/Q=="],
+
+    "@headless-tree/react": ["@headless-tree/react@1.5.1", "", { "peerDependencies": { "@headless-tree/core": "*", "react": "*", "react-dom": "*" } }, "sha512-8r34ug5g25peTDgyGoCZf5Ohy4O0FMhdhUNyiaXzGn/1nwUDpmmwsrqh64DVNPereSA9uhY0s39uRibfvdmTqw=="],
 
     "@hexagon/base64": ["@hexagon/base64@1.1.28", "", {}, "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="],
 

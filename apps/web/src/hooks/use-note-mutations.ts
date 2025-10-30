@@ -21,6 +21,7 @@ import {
   $createNote,
   $deleteNote,
   $makeNoteCopy,
+  $moveNote,
   $renameNote,
 } from "@/server/note";
 
@@ -44,6 +45,7 @@ export function useNoteMutations({
   const deleteNoteFn = useServerFn($deleteNote);
   const renameNoteFn = useServerFn($renameNote);
   const copyNoteFn = useServerFn($makeNoteCopy);
+  const moveNoteFn = useServerFn($moveNote);
 
   const [pendingNoteIds, setPendingNoteIds] = useState<Set<string>>(new Set());
 
@@ -513,6 +515,69 @@ export function useNoteMutations({
     },
   });
 
+  /* MOVE NOTE */
+  const moveNoteMutation = useMutation({
+    mutationKey: ["move-note"],
+    mutationFn: async (vars: { noteId: string; folderId: string }) =>
+      moveNoteFn({ data: vars }),
+    onMutate: async ({ noteId, folderId }) => {
+      if (!rootFolder) return { previous: null as FolderWithItems | null };
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      const draft = clone(previous);
+
+      // Find and remove note from old location
+      const found = findNoteAndParent(draft, noteId);
+      if (!found) return { previous };
+
+      const { parent: oldParent, note } = found;
+      oldParent.notes = oldParent.notes.filter((n) => n.id !== noteId);
+
+      // Find new parent and add note
+      const findFolder = (node: FolderWithItems): FolderWithItems | null => {
+        if (node.id === folderId) return node;
+        for (const f of node.folders) {
+          const found = findFolder(f);
+          if (found) return found;
+        }
+        return null;
+      };
+
+      const newParent = findFolder(draft);
+      if (newParent) {
+        newParent.notes = [
+          ...newParent.notes,
+          { ...note, folderId, updatedAt: new Date() },
+        ];
+      }
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+      return { previous };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to move note.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+    },
+  });
+
   return {
     createNoteOptimistic: (title: string, parentId: string) => {
       const trimmed = title.trim();
@@ -531,6 +596,9 @@ export function useNoteMutations({
     copyNoteOptimistic: (noteId: string) => {
       if (!noteId) return;
       copyNoteMutation.mutate({ noteId });
+    },
+    moveNoteOptimistic: (noteId: string, folderId: string) => {
+      moveNoteMutation.mutate({ noteId, folderId });
     },
     createNotePending: createNoteMutation.isPending,
     isNotePending,

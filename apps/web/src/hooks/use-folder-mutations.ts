@@ -12,6 +12,7 @@ import { getMostRecentlyUpdatedNote, parseNoteIdFromPath } from "@/lib/utils";
 import {
   $createFolder,
   $deleteFolder,
+  $moveFolder,
   $renameFolder,
   folderQueryOptions,
 } from "@/server/folder";
@@ -37,6 +38,7 @@ export function useFolderMutations({
   const createFolderFn = useServerFn($createFolder);
   const deleteFolderFn = useServerFn($deleteFolder);
   const renameFolderFn = useServerFn($renameFolder);
+  const moveFolderFn = useServerFn($moveFolder);
 
   // A shared deep clone helper needed to avoid mutating the existing state
   // directly when performing optimistic updates. This is a recursive function
@@ -323,6 +325,96 @@ export function useFolderMutations({
     },
   });
 
+  /* MOVE FOLDER */
+  const moveFolderMutation = useMutation({
+    mutationKey: ["move-folder"],
+    mutationFn: async (vars: { folderId: string; parentFolderId: string }) =>
+      moveFolderFn({ data: vars }),
+    onMutate: async ({ folderId, parentFolderId }) => {
+      if (!rootFolder || folderId === rootFolder.id) {
+        return { previous: null as FolderWithItems | null };
+      }
+
+      await queryClient.cancelQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+
+      const previous = queryClient.getQueryData<FolderWithItems | null>(
+        folderQueryOptions.queryKey,
+      );
+      if (!previous) return { previous: null as FolderWithItems | null };
+
+      // Prevent circular moves
+      const isDescendant = (
+        node: FolderWithItems,
+        targetId: string,
+      ): boolean => {
+        if (node.id === targetId) return true;
+        return node.folders.some((f) => isDescendant(f, targetId));
+      };
+
+      const findFolder = (
+        node: FolderWithItems,
+        id: string,
+      ): FolderWithItems | null => {
+        if (node.id === id) return node;
+        for (const f of node.folders) {
+          const found = findFolder(f, id);
+          if (found) return found;
+        }
+        return null;
+      };
+
+      const folderToMove = findFolder(previous, folderId);
+      if (!folderToMove || isDescendant(folderToMove, parentFolderId)) {
+        return { previous };
+      }
+
+      const draft = clone(previous);
+
+      // Remove from old location
+      const removeFrom = (node: FolderWithItems): boolean => {
+        const idx = node.folders.findIndex((f) => f.id === folderId);
+        if (idx !== -1) {
+          node.folders = [
+            ...node.folders.slice(0, idx),
+            ...node.folders.slice(idx + 1),
+          ];
+          return true;
+        }
+        for (const f of node.folders) if (removeFrom(f)) return true;
+        return false;
+      };
+      removeFrom(draft);
+
+      // Add to new location
+      const newParent = findFolder(draft, parentFolderId);
+      if (newParent) {
+        newParent.folders = [
+          ...newParent.folders,
+          { ...folderToMove, parentFolderId, updatedAt: new Date() },
+        ];
+      }
+
+      queryClient.setQueryData(folderQueryOptions.queryKey, draft);
+      return { previous };
+    },
+    onError: (error, _vars, ctx) => {
+      if (ctx?.previous) {
+        queryClient.setQueryData(folderQueryOptions.queryKey, ctx.previous);
+      }
+      const apiError = apiErrorHandler(error, {
+        defaultMessage: "Failed to move folder.",
+      });
+      toast.error(apiError.details, cancelToastEl);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: folderQueryOptions.queryKey,
+      });
+    },
+  });
+
   /* Exposed helpers */
   const createFolderOptimistic = (name: string, parentId: string) => {
     const trimmed = name.trim();
@@ -337,11 +429,15 @@ export function useFolderMutations({
     if (!trimmed) return;
     renameFolderMutation.mutate({ folderId, name: trimmed });
   };
+  const moveFolderOptimistic = (folderId: string, parentFolderId: string) => {
+    moveFolderMutation.mutate({ folderId, parentFolderId });
+  };
 
   return {
     createFolderOptimistic,
     deleteFolderOptimistic,
     renameFolderOptimistic,
+    moveFolderOptimistic,
     creatingFolderPending: createFolderMutation.isPending,
   };
 }
