@@ -95,6 +95,36 @@ export const $renameFolder = createServerFn()
     return response.data;
   });
 
+//* MOVE FOLDER
+// move folder server fn
+export const $moveFolder = createServerFn({
+  method: "POST",
+})
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      folderId: z.string().min(1),
+      parentFolderId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      parentFolderId: data.parentFolderId,
+    };
+
+    const response = await axiosClient.patch<ApiSuccessResponse<Folder>>(
+      `/folders/${data.folderId}/move`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data;
+  });
+
 //* DELETE FOLDER
 // delete folder server fn
 export const $deleteFolder = createServerFn()

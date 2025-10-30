@@ -237,6 +237,36 @@ export const $updateNoteContent = createServerFn({
     return response.data;
   });
 
+//* MOVE NOTE
+// move note server fn
+export const $moveNote = createServerFn({
+  method: "POST",
+})
+  .middleware([sessionMiddleware])
+  .inputValidator(
+    z.object({
+      noteId: z.string().min(1),
+      folderId: z.string().min(1),
+    }),
+  )
+  .handler(async ({ context, data }) => {
+    const payload = {
+      folderId: data.folderId,
+    };
+
+    const response = await axiosClient.patch<ApiSuccessResponse<Note>>(
+      `/notes/${data.noteId}/move`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data;
+  });
+
 //* DELETE NOTE
 // delete note server fn
 export const $deleteNote = createServerFn()
