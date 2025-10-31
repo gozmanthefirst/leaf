@@ -6,6 +6,7 @@ import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
 import {
   getRouteApi,
+  Link,
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
@@ -1300,7 +1301,19 @@ const NoteItem = ({
                 // params={{ noteId: note.id }}
                 // to="/notes/$noteId"
               >
-                {pending ? <Spinner /> : <TbFile />}
+                {pending ? (
+                  <Spinner />
+                ) : (
+                  <Link
+                    onClick={(e) => {
+                      if (pending) e.preventDefault();
+                    }}
+                    params={{ noteId: note.id }}
+                    to="/notes/$noteId"
+                  >
+                    <TbFile />
+                  </Link>
+                )}
                 <span>{note.title}</span>
               </div>
             </SidebarMenuButton>
