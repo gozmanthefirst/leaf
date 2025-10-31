@@ -6,7 +6,6 @@ import type { FolderWithItems } from "@repo/db/validators/folder-validators";
 import { useQuery } from "@tanstack/react-query";
 import {
   getRouteApi,
-  Link,
   useMatchRoute,
   useNavigate,
 } from "@tanstack/react-router";
@@ -1154,6 +1153,7 @@ const NoteItem = ({
   note: Note;
   siblingTitles?: string[];
 }) => {
+  const navigate = useNavigate();
   const matchRoute = useMatchRoute();
 
   const { setOpenMobile } = useSidebar();
@@ -1287,16 +1287,27 @@ const NoteItem = ({
               onDragStart={handleDragStart}
               size={SIDEBAR_BTN_SIZE}
             >
-              <Link
+              <div
                 onClick={(e) => {
                   if (pending) e.preventDefault();
+                  navigate({
+                    to: `/notes/$noteId`,
+                    params: { noteId: note.id },
+                  });
                 }}
-                params={{ noteId: note.id }}
-                to="/notes/$noteId"
+                onKeyUp={(e) => {
+                  if (pending) e.preventDefault();
+                  navigate({
+                    to: `/notes/$noteId`,
+                    params: { noteId: note.id },
+                  });
+                }}
+                // params={{ noteId: note.id }}
+                // to="/notes/$noteId"
               >
                 {pending ? <Spinner /> : <TbFile />}
                 <span>{note.title}</span>
-              </Link>
+              </div>
             </SidebarMenuButton>
           )}
         </PopoverTrigger>
