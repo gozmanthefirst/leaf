@@ -35,7 +35,6 @@ import {
   TbCode,
   TbDotsVertical,
   TbEdit,
-  TbFileArrowRight,
   TbH1,
   TbH2,
   TbH3,
@@ -65,7 +64,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1393,10 +1391,6 @@ const NotePageDropdown = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align={"end"} className="w-56" side={"bottom"}>
-        <DropdownMenuItem disabled>
-          <TbFileArrowRight className="text-muted-foreground" />
-          <span>Move note to...</span>
-        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => {
             setTimeout(() => {
@@ -1408,7 +1402,6 @@ const NotePageDropdown = ({
           <TbEdit className="text-muted-foreground" />
           <span>Rename note</span>
         </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => deleteNote()} variant="destructive">
           <TbTrash className="text-muted-foreground" />
           <span>Delete note</span>
