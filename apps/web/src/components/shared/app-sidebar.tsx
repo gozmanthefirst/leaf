@@ -28,7 +28,6 @@ import {
   TbDotsVertical,
   TbEdit,
   TbFile,
-  TbFileArrowRight,
   TbFilePlus,
   TbFiles,
   TbFolderPlus,
@@ -1125,10 +1124,6 @@ const FolderNodeDropdown = ({
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem disabled>
-          <TbFileArrowRight className="text-muted-foreground" />
-          <span>Move folder to...</span>
-        </DropdownMenuItem>
         <DropdownMenuItem onSelect={startFolderRename}>
           <TbEdit className="text-muted-foreground" />
           <span>Rename folder</span>
@@ -1384,10 +1379,6 @@ const NoteItemDropdown = ({
         >
           <TbFiles className="text-muted-foreground" />
           <span>Make a copy</span>
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled={pending || true}>
-          <TbFileArrowRight className="text-muted-foreground" />
-          <span>Move note to...</span>
         </DropdownMenuItem>
         <DropdownMenuItem disabled={pending} onSelect={startNoteRename}>
           <TbEdit className="text-muted-foreground" />
