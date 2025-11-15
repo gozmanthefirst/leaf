@@ -274,6 +274,9 @@ input[type="number"] {
   .tiptap li > p {
     @apply my-1;
   }
+  .tiptap ul ul {
+    @apply mt-1 mb-2;
+  }
 
   /* Task Lists */
   .tiptap ul[data-type="taskList"] {
