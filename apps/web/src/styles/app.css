@@ -228,22 +228,22 @@ input[type="number"] {
   
   /* Headings */
   .tiptap h1 {
-    @apply font-semibold text-2xl md:text-3xl leading-tight;
+    @apply font-semibold text-2xl md:text-3xl xl:text-4xl leading-tight;
   }
   .tiptap h2 {
-    @apply font-semibold text-xl md:text-2xl leading-tight mt-6 mb-2;
+    @apply font-semibold text-xl md:text-2xl xl:text-3xl leading-tight mt-6 mb-2;
   }
   .tiptap h3 {
-    @apply font-semibold text-lg md:text-xl leading-snug mt-5 mb-2;
+    @apply font-semibold text-lg md:text-xl xl:text-2xl leading-snug mt-5 mb-2;
   }
   .tiptap h4 {
-    @apply font-semibold text-base md:text-lg leading-snug mt-4 mb-2;
+    @apply font-semibold text-base md:text-lg xl:text-xl leading-snug mt-4 mb-2;
   }
   .tiptap h5 {
-    @apply font-medium text-base leading-snug mt-3 mb-1.5;
+    @apply font-medium text-base md:text-lg xl:text-xl leading-snug mt-3 mb-1.5;
   }
   .tiptap h6 {
-    @apply font-medium text-sm uppercase tracking-wide text-muted-foreground mt-3 mb-1.5;
+    @apply font-medium text-sm md:text-base xl:text-lg uppercase tracking-wide text-muted-foreground mt-3 mb-1.5;
   }
   
   /* Paragraphs */
@@ -292,7 +292,7 @@ input[type="number"] {
     @apply flex-1 mb-0.5 pb-px;
   }
   .tiptap ul[data-type="taskList"] li input[type="checkbox"] {
-    @apply relative appearance-none mt-0.5 cursor-pointer size-4 rounded border border-primary/20 bg-input/10 dark:border-primary/10 dark:bg-input/30  focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px];
+    @apply relative appearance-none mt-0.5 cursor-pointer size-4 rounded border border-primary/20 bg-input/10 dark:border-primary/10 dark:bg-input/30  focus-visible:border-ring focus-visible:ring-ring/50 outline-none focus-visible:ring-[3px] xl:mt-1;
   }
   .tiptap ul[data-type="taskList"] li input[type="checkbox"]:checked {
     @apply bg-lime-500 border border-lime-500;

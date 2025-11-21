@@ -1265,7 +1265,7 @@ const TitleTextarea = ({
   return (
     <textarea
       aria-label="Note title"
-      className="field-sizing-content w-full resize-none bg-transparent font-semibold text-2xl leading-tight outline-none focus:outline-none focus:ring-0 md:text-3xl"
+      className="field-sizing-content w-full resize-none bg-transparent font-semibold text-2xl leading-tight outline-none focus:outline-none focus:ring-0 md:text-3xl xl:text-4xl"
       onBlur={flushIfChanged}
       onChange={(e) => {
         setValue(e.target.value);
