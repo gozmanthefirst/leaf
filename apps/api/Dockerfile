@@ -17,10 +17,13 @@ FROM base AS installer
 WORKDIR /app
 
 # Copy pruned files from builder
-COPY --from=builder /app/out/full/ .
+COPY --from=builder /app/out/json/ .
 
 # Install dependencies with bun
-RUN bun install --frozen-lockfile
+RUN bun install
+
+# Copy pruned files from builder
+COPY --from=builder /app/out/full/ .
 
 # Install OpenSSL for Prisma
 RUN apt-get update -y && apt-get install -y openssl
