@@ -22,6 +22,9 @@ COPY --from=builder /app/out/full/ .
 # Install dependencies with bun
 RUN bun install --frozen-lockfile
 
+# Install OpenSSL for Prisma
+RUN apt-get update -y && apt-get install -y openssl
+
 # Build the app
 RUN bunx turbo run build
 
