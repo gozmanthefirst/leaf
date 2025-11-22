@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.2.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -9,12 +9,12 @@
   "files": {
     "includes": [
       "**/*.{ts,tsx,js,jsx,json,jsonc,md}",
-      "!**/dist/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
-      "!**/build/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/generated/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
-      "!**/.output/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/*.gen.{ts,tsx,js,jsx,json,jsonc,md}",
-      "!**/worker-configuration.d.ts"
+      "!**/worker-configuration.d.ts",
+      "!!**/dist/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!!**/build/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!!**/.output/**/*.{ts,tsx,js,jsx,json,jsonc,md}"
     ],
     "ignoreUnknown": true
   },
@@ -36,6 +36,9 @@
             "functions": ["cn", "clsx", "twMerge", "cva"]
           }
         }
+      },
+      "suspicious": {
+        "noArrayIndexKey": "warn"
       }
     }
   },
@@ -85,6 +88,9 @@
     "formatter": {
       "enabled": true,
       "indentStyle": "space"
+    },
+    "parser": {
+      "tailwindDirectives": true
     }
   }
 }
