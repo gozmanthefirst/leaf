@@ -20,14 +20,8 @@ WORKDIR /app
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/full/ .
 
-# Remove the lockfile to avoid "failed to parse" errors from turbo prune mismatch
-# RUN rm -f bun.lock
-
 # Install OpenSSL for Prisma
 RUN apt-get update -y && apt-get install -y openssl
-
-# Set dummy DATABASE_URL for prisma generate
-# ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/leaf"
 
 # Install dependencies with bun
 RUN bun install
