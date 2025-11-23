@@ -1,4 +1,7 @@
-import "dotenv/config";
+import { config } from "dotenv";
+import { expand } from "dotenv-expand";
+
+expand(config());
 
 import { defineConfig, env } from "prisma/config";
 
