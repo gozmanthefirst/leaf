@@ -24,6 +24,7 @@ COPY --from=builder /app/out/full/ .
 RUN apt-get update -y && apt-get install -y openssl
 
 # Install dependencies with bun
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/leaf"
 RUN bun install
 
 # Build the app
