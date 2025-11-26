@@ -1,5 +1,5 @@
-import type { Note } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import type { Note } from "@repo/db/schemas/note.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 
 export type TreeNode = {
   id: string;

@@ -1,8 +1,9 @@
 /** biome-ignore-all lint/a11y/noNoninteractiveElementInteractions: required */
 /** biome-ignore-all lint/a11y/noStaticElementInteractions: required */
 
-import type { Note, User } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import type { Note } from "@repo/db/schemas/note.schema";
+import type { User } from "@repo/db/schemas/user.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 import { useQuery } from "@tanstack/react-query";
 import {
   getRouteApi,

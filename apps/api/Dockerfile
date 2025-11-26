@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.0 AS base
+FROM oven/bun:1.3.3 AS base
 
 FROM base AS builder
 WORKDIR /app
@@ -20,12 +20,8 @@ WORKDIR /app
 COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/full/ .
 
-# Install OpenSSL for Prisma
-RUN apt-get update -y && apt-get install -y openssl
-
 # Install dependencies with bun
-ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/leaf"
-RUN bun install
+RUN bun install --frozen-lockfile
 
 # Build the app
 RUN bunx turbo run build

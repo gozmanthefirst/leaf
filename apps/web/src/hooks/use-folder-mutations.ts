@@ -1,5 +1,5 @@
-import type { User } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import type { User } from "@repo/db/schemas/user.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 import type { QueryClient } from "@tanstack/react-query";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "@tanstack/react-router";

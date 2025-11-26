@@ -1,4 +1,4 @@
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 

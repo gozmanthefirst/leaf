@@ -1,4 +1,4 @@
 {
   "extends": "@repo/tsconfig/bun.json",
-  "include": ["src/**/*.ts", "prisma/**/*.ts", "generated/**/*.ts"]
+  "include": ["src/**/*.ts", "drizzle/**/*.ts"]
 }

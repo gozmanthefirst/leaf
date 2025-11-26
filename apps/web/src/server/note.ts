@@ -1,5 +1,5 @@
-import type { Note } from "@repo/db";
-import type { DecryptedNote } from "@repo/db/validators/note-validators";
+import type { Note } from "@repo/db/schemas/note.schema";
+import type { DecryptedNote } from "@repo/db/validators/note.validator";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import pako from "pako";

@@ -4,7 +4,7 @@ import {
   FolderSelectSchema,
   FolderUpdateSchema,
   FolderWithItemsSchema,
-} from "@repo/db/validators/folder-validators";
+} from "@repo/db/validators/folder.validator";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, foldersExamples } from "@/utils/openapi-examples";

@@ -1,7 +1,10 @@
 import { randomUUID } from "node:crypto";
 
-import { db, type Folder, type Note } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import { db } from "@repo/db";
+import type { Folder } from "@repo/db/schemas/folder.schema";
+import { folder } from "@repo/db/schemas/folder.schema";
+import type { Note } from "@repo/db/schemas/note.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 
 import { getUserById } from "./user-queries";
 
@@ -13,8 +16,9 @@ export const createRootFolder = async (userId: string) => {
   const user = await getUserById(userId);
 
   if (user) {
-    const existingRoot = await db.folder.findFirst({
-      where: { userId: user.id, isRoot: true },
+    const existingRoot = await db.query.folder.findFirst({
+      where: (folder, { and, eq }) =>
+        and(eq(folder.userId, user.id), eq(folder.isRoot, true)),
     });
 
     if (existingRoot) {
@@ -24,15 +28,16 @@ export const createRootFolder = async (userId: string) => {
     // Create a new root folder
     const newRootId = randomUUID();
 
-    const newRoot = await db.folder.create({
-      data: {
+    const [newRoot] = await db
+      .insert(folder)
+      .values({
         id: newRootId,
         name: `${user.name}'s Root Folder`,
         parentFolderId: newRootId,
         isRoot: true,
         userId: user.id,
-      },
-    });
+      })
+      .returning();
 
     return newRoot;
   }
@@ -44,9 +49,10 @@ export const createRootFolder = async (userId: string) => {
 export const getFolderForUser = async (
   folderId: string,
   userId: string,
-): Promise<Folder | null> => {
-  const foundFolder = await db.folder.findUnique({
-    where: { id: folderId, userId },
+): Promise<Folder | undefined> => {
+  const foundFolder = await db.query.folder.findFirst({
+    where: (folder, { and, eq }) =>
+      and(eq(folder.id, folderId), eq(folder.userId, userId)),
   });
 
   return foundFolder;
@@ -62,17 +68,16 @@ export const generateUniqueFolderName = async (
 ): Promise<string> => {
   // Get all existing folders with names that start with the intended name
   // BUT only within the same parent folder
-  const existingFolders = await db.folder.findMany({
-    select: {
+  const existingFolders = await db.query.folder.findMany({
+    columns: {
       name: true,
     },
-    where: {
-      userId,
-      parentFolderId,
-      name: {
-        startsWith: intendedName,
-      },
-    },
+    where: (folder, { and, eq, like }) =>
+      and(
+        eq(folder.userId, userId),
+        eq(folder.parentFolderId, parentFolderId),
+        like(folder.name, `${intendedName}%`),
+      ),
   });
 
   const existingNames = new Set(existingFolders.map((folder) => folder.name));
@@ -154,10 +159,8 @@ export const getFolderWithNestedItems = async (
   userId: string,
 ): Promise<FolderWithItems | null> => {
   // Get ALL folders for the user
-  const allFolders = await db.folder.findMany({
-    where: {
-      userId,
-    },
+  const allFolders = await db.query.folder.findMany({
+    where: (folder, { eq }) => eq(folder.userId, userId),
   });
 
   // Check if the requested folder exists
@@ -166,10 +169,8 @@ export const getFolderWithNestedItems = async (
   }
 
   // Get ALL notes for the user
-  const allNotes = await db.note.findMany({
-    where: {
-      userId,
-    },
+  const allNotes = await db.query.note.findMany({
+    where: (note, { eq }) => eq(note.userId, userId),
   });
 
   // Build the hierarchy starting from the requested folder
@@ -183,11 +184,9 @@ export const getRootFolderWithNestedItems = async (
   userId: string,
 ): Promise<FolderWithItems | null> => {
   // Find the root folder for the user
-  const rootFolder = await db.folder.findFirst({
-    where: {
-      userId,
-      isRoot: true,
-    },
+  const rootFolder = await db.query.folder.findFirst({
+    where: (folder, { and, eq }) =>
+      and(eq(folder.userId, userId), eq(folder.isRoot, true)),
   });
 
   if (!rootFolder) {

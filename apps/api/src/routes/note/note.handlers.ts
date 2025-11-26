@@ -1,4 +1,5 @@
-import { db, type Note } from "@repo/db";
+import { db, eq } from "@repo/db";
+import { type Note, note } from "@repo/db/schemas/note.schema";
 import pako from "pako";
 
 import { decryptContent, encryptContent } from "@/lib/encryption";
@@ -50,7 +51,7 @@ const decompressContent = (data: any): string | undefined => {
 
 export const getAllNotes: AppRouteHandler<GetAllNotesRoute> = async (c) => {
   try {
-    const notes = await db.note.findMany();
+    const notes = await db.query.note.findMany();
 
     return c.json(
       successResponse(notes, "All notes retrieved successfully"),
@@ -110,7 +111,7 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
       tags: normalizeTags(noteData.tags),
     };
 
-    const newNote = await db.note.create({ data: payload });
+    const [newNote] = await db.insert(note).values(payload).returning();
 
     return c.json(
       successResponse(newNote, "Note created successfully"),
@@ -219,7 +220,7 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
       tags: normalizeTags(noteToBeCopied.tags),
     };
 
-    const copiedNote = await db.note.create({ data: payload });
+    const [copiedNote] = await db.insert(note).values(payload).returning();
 
     return c.json(
       successResponse(copiedNote, "Note copied successfully"),
@@ -242,19 +243,20 @@ export const toggleNoteFavorite: AppRouteHandler<
   const { favorite } = c.req.valid("json");
 
   try {
-    const note = await getNoteForUser(id, user.id);
+    const foundNote = await getNoteForUser(id, user.id);
 
-    if (!note) {
+    if (!foundNote) {
       return c.json(
         errorResponse("NOT_FOUND", "Note not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    const updatedNote = await db.note.update({
-      data: { isFavorite: favorite },
-      where: { id },
-    });
+    const [updatedNote] = await db
+      .update(note)
+      .set({ isFavorite: favorite })
+      .where(eq(note.id, id))
+      .returning();
 
     return c.json(
       successResponse(updatedNote, "Note favorite state updated successfully"),
@@ -278,18 +280,18 @@ export const moveNote: AppRouteHandler<MoveNoteRoute> = async (c) => {
   const { folderId } = c.req.valid("json");
 
   try {
-    const note = await getNoteForUser(id, user.id);
+    const foundNote = await getNoteForUser(id, user.id);
 
-    if (!note) {
+    if (!foundNote) {
       return c.json(
         errorResponse("NOTE_NOT_FOUND", "Note not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    if (folderId === note.folderId) {
+    if (folderId === foundNote.folderId) {
       return c.json(
-        successResponse(note, "Note moved successfully"),
+        successResponse(foundNote, "Note moved successfully"),
         HttpStatusCodes.OK,
       );
     }
@@ -303,15 +305,16 @@ export const moveNote: AppRouteHandler<MoveNoteRoute> = async (c) => {
     }
 
     const uniqueTitle = await generateUniqueNoteTitle(
-      note.title,
+      foundNote.title,
       user.id,
       folderId,
     );
 
-    const updatedNote = await db.note.update({
-      data: { folderId, title: uniqueTitle },
-      where: { id },
-    });
+    const [updatedNote] = await db
+      .update(note)
+      .set({ folderId, title: uniqueTitle })
+      .where(eq(note.id, id))
+      .returning();
 
     return c.json(
       successResponse(updatedNote, "Note moved successfully"),
@@ -332,21 +335,21 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
   const noteData = c.req.valid("json");
 
   try {
-    const note = await getNoteForUser(id, user.id);
+    const foundNote = await getNoteForUser(id, user.id);
 
-    if (!note) {
+    if (!foundNote) {
       return c.json(
         errorResponse("NOTE_NOT_FOUND", "Note not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    const folderId = noteData.folderId ?? note.folderId;
-    const title = noteData.title ?? note.title;
-    const isFavorite = noteData.isFavorite ?? note.isFavorite;
-    const tags = normalizeTags(noteData.tags ?? note.tags);
+    const folderId = noteData.folderId ?? foundNote.folderId;
+    const title = noteData.title ?? foundNote.title;
+    const isFavorite = noteData.isFavorite ?? foundNote.isFavorite;
+    const tags = normalizeTags(noteData.tags ?? foundNote.tags);
 
-    if (folderId !== note.folderId) {
+    if (folderId !== foundNote.folderId) {
       const folder = await getFolderForUser(folderId, user.id);
       if (!folder) {
         return c.json(
@@ -373,7 +376,7 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     }
 
     let newTitle = title;
-    if (folderId !== note.folderId || title !== note.title) {
+    if (folderId !== foundNote.folderId || title !== foundNote.title) {
       newTitle = await generateUniqueNoteTitle(title, user.id, folderId);
     }
 
@@ -385,10 +388,11 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       ...encryptedData,
     };
 
-    const updatedNote = await db.note.update({
-      data: updatePayload,
-      where: { id },
-    });
+    const [updatedNote] = await db
+      .update(note)
+      .set(updatePayload)
+      .where(eq(note.id, id))
+      .returning();
 
     const decryptedUpdatedNote: Omit<
       Note,
@@ -428,19 +432,19 @@ export const deleteNote: AppRouteHandler<DeleteNoteRoute> = async (c) => {
   const { id } = c.req.valid("param");
 
   try {
-    const note = await getNoteForUser(id, user.id);
+    const foundNote = await getNoteForUser(id, user.id);
 
-    if (!note) {
+    if (!foundNote) {
       return c.json(
         errorResponse("NOTE_NOT_FOUND", "Note not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    await db.note.delete({ where: { id } });
+    await db.delete(note).where(eq(note.id, id));
 
     return c.json(
-      successResponse(note, "Note deleted successfully"),
+      successResponse(foundNote, "Note deleted successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {

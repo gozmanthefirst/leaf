@@ -1,5 +1,5 @@
-import type { Folder } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import type { Folder } from "@repo/db/schemas/folder.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 import { queryOptions } from "@tanstack/react-query";
 import { createServerFn } from "@tanstack/react-start";
 import z from "zod";

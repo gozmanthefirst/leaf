@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.0 AS base
+FROM oven/bun:1.3.3 AS base
 
 FROM base AS builder
 WORKDIR /app
@@ -17,10 +17,11 @@ FROM base AS installer
 WORKDIR /app
 
 # Copy pruned files from builder
+COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/full/ .
 
 # Install dependencies with bun
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Build the app
 RUN bunx turbo run build

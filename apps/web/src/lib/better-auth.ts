@@ -1,13 +1,13 @@
 import { db } from "@repo/db";
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer } from "better-auth/plugins";
 
 import env from "./env";
 
 export const auth = betterAuth({
-  database: prismaAdapter(db, {
-    provider: "postgresql",
+  database: drizzleAdapter(db, {
+    provider: "pg",
   }),
 
   socialProviders: {

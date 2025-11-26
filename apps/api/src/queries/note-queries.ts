@@ -4,11 +4,9 @@ import { db } from "@repo/db";
  * Fetches the note with the given ID belonging to the specified user, or null if not found.
  */
 export const getNoteForUser = async (noteId: string, userId: string) => {
-  const note = await db.note.findUnique({
-    where: {
-      id: noteId,
-      userId,
-    },
+  const note = await db.query.note.findFirst({
+    where: (note, { and, eq }) =>
+      and(eq(note.id, noteId), eq(note.userId, userId)),
   });
 
   return note;
@@ -24,17 +22,16 @@ export const generateUniqueNoteTitle = async (
 ): Promise<string> => {
   // Get all existing notes with titles that start with the intended title
   // BUT only within the same folder
-  const existingNote = await db.note.findMany({
-    select: {
+  const existingNote = await db.query.note.findMany({
+    columns: {
       title: true,
     },
-    where: {
-      userId,
-      folderId,
-      title: {
-        startsWith: intendedTitle,
-      },
-    },
+    where: (note, { and, eq, like }) =>
+      and(
+        eq(note.userId, userId),
+        eq(note.folderId, folderId),
+        like(note.title, `${intendedTitle}%`),
+      ),
   });
 
   const existingTitles = new Set(existingNote.map((note) => note.title));

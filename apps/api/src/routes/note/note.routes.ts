@@ -4,7 +4,7 @@ import {
   NoteInsertSchema,
   NoteSelectSchema,
   NoteUpdateSchema,
-} from "@repo/db/validators/note-validators";
+} from "@repo/db/validators/note.validator";
 
 import HttpStatusCodes from "@/utils/http-status-codes";
 import { authExamples, notesExamples } from "@/utils/openapi-examples";

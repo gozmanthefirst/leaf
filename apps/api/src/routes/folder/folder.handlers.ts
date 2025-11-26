@@ -1,5 +1,6 @@
-import { db } from "@repo/db";
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
+import { db, eq } from "@repo/db";
+import { folder } from "@repo/db/schemas/folder.schema";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 
 import type { AppRouteHandler } from "@/lib/types";
 import {
@@ -85,11 +86,14 @@ export const createFolder: AppRouteHandler<CreateFolderRoute> = async (c) => {
       folderData.parentFolderId,
     );
 
-    const payload = { ...folderData, userId: user.id, name: uniqueTitle };
+    const payload = {
+      ...folderData,
+      userId: user.id,
+      name: uniqueTitle,
+      isRoot: false,
+    };
 
-    const newFolder = await db.folder.create({
-      data: payload,
-    });
+    const [newFolder] = await db.insert(folder).values(payload).returning();
 
     return c.json(
       successResponse(newFolder, "Folder created successfully"),
@@ -110,25 +114,25 @@ export const moveFolder: AppRouteHandler<MoveFolderRoute> = async (c) => {
   const { parentFolderId } = c.req.valid("json");
 
   try {
-    const folder = await getFolderForUser(id, user.id);
+    const foundFolder = await getFolderForUser(id, user.id);
 
-    if (!folder) {
+    if (!foundFolder) {
       return c.json(
         errorResponse("FOLDER_NOT_FOUND", "Folder not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    if (folder.isRoot) {
+    if (foundFolder.isRoot) {
       return c.json(
         errorResponse("ROOT_FOLDER", "Root folder cannot be moved"),
         HttpStatusCodes.UNPROCESSABLE_ENTITY,
       );
     }
 
-    if (parentFolderId === folder.parentFolderId) {
+    if (parentFolderId === foundFolder.parentFolderId) {
       return c.json(
-        successResponse(folder, "Folder moved successfully"),
+        successResponse(foundFolder, "Folder moved successfully"),
         HttpStatusCodes.OK,
       );
     }
@@ -151,20 +155,22 @@ export const moveFolder: AppRouteHandler<MoveFolderRoute> = async (c) => {
       );
     }
 
-    const updatedFolder = await db.$transaction(async (tx) => {
+    const updatedFolder = await db.transaction(async (tx) => {
       const uniqueName = await generateUniqueFolderName(
-        folder.name,
+        foundFolder.name,
         user.id,
         parentFolderId,
       );
 
-      return await tx.folder.update({
-        data: {
+      const [updated] = await tx
+        .update(folder)
+        .set({
           parentFolderId,
           name: uniqueName,
-        },
-        where: { id },
-      });
+        })
+        .where(eq(folder.id, id))
+        .returning();
+      return updated;
     });
 
     return c.json(
@@ -186,24 +192,25 @@ export const updateFolder: AppRouteHandler<UpdateFolderRoute> = async (c) => {
   const folderData = c.req.valid("json");
 
   try {
-    const folder = await getFolderForUser(id, user.id);
+    const foundFolder = await getFolderForUser(id, user.id);
 
-    if (!folder) {
+    if (!foundFolder) {
       return c.json(
         errorResponse("FOLDER_NOT_FOUND", "Folder not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    if (folder.isRoot) {
+    if (foundFolder.isRoot) {
       return c.json(
         errorResponse("ROOT_FOLDER", "Root folder cannot be updated"),
         HttpStatusCodes.UNPROCESSABLE_ENTITY,
       );
     }
 
-    const parentFolderId = folderData.parentFolderId ?? folder.parentFolderId;
-    if (parentFolderId !== folder.parentFolderId) {
+    const parentFolderId =
+      folderData.parentFolderId ?? foundFolder.parentFolderId;
+    if (parentFolderId !== foundFolder.parentFolderId) {
       const parentFolder = await getFolderForUser(parentFolderId, user.id);
       if (!parentFolder) {
         return c.json(
@@ -222,13 +229,14 @@ export const updateFolder: AppRouteHandler<UpdateFolderRoute> = async (c) => {
       }
     }
 
-    if (parentFolderId === folder.parentFolderId) {
-      const name = folderData.name ?? folder.name;
-      if (name !== folder.name) {
-        const updatedFolder = await db.folder.update({
-          data: { name },
-          where: { id },
-        });
+    if (parentFolderId === foundFolder.parentFolderId) {
+      const name = folderData.name ?? foundFolder.name;
+      if (name !== foundFolder.name) {
+        const [updatedFolder] = await db
+          .update(folder)
+          .set({ name })
+          .where(eq(folder.id, id))
+          .returning();
 
         return c.json(
           successResponse(updatedFolder, "Folder updated successfully"),
@@ -237,25 +245,30 @@ export const updateFolder: AppRouteHandler<UpdateFolderRoute> = async (c) => {
       }
 
       return c.json(
-        successResponse(folder, "Folder updated successfully"),
+        successResponse(foundFolder, "Folder updated successfully"),
         HttpStatusCodes.OK,
       );
     }
 
-    const updatedFolder = await db.$transaction(async (tx) => {
-      let name = folderData.name ?? folder.name;
-      if (parentFolderId !== folder.parentFolderId || name !== folder.name) {
+    const updatedFolder = await db.transaction(async (tx) => {
+      let name = folderData.name ?? foundFolder.name;
+      if (
+        parentFolderId !== foundFolder.parentFolderId ||
+        name !== foundFolder.name
+      ) {
         name = await generateUniqueFolderName(name, user.id, parentFolderId);
       }
 
-      return await tx.folder.update({
-        data: {
+      const [updated] = await tx
+        .update(folder)
+        .set({
           ...folderData,
           parentFolderId,
           name,
-        },
-        where: { id },
-      });
+        })
+        .where(eq(folder.id, id))
+        .returning();
+      return updated;
     });
 
     return c.json(
@@ -276,28 +289,26 @@ export const deleteFolder: AppRouteHandler<DeleteFolderRoute> = async (c) => {
   const { id } = c.req.valid("param");
 
   try {
-    const folder = await getFolderForUser(id, user.id);
+    const foundFolder = await getFolderForUser(id, user.id);
 
-    if (!folder) {
+    if (!foundFolder) {
       return c.json(
         errorResponse("NOT_FOUND", "Folder not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
-    if (folder.isRoot) {
+    if (foundFolder.isRoot) {
       return c.json(
         errorResponse("ROOT_FOLDER", "Root folder cannot be deleted"),
         HttpStatusCodes.UNPROCESSABLE_ENTITY,
       );
     }
 
-    await db.folder.deleteMany({
-      where: { id },
-    });
+    await db.delete(folder).where(eq(folder.id, id));
 
     return c.json(
-      successResponse(folder, "Folder deleted successfully"),
+      successResponse(foundFolder, "Folder deleted successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {

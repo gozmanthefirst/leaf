@@ -46,11 +46,11 @@
     "db:generate": {
       "cache": false
     },
-    "db:reset": {
+    "db:migrate": {
       "cache": false,
       "persistent": true
     },
-    "db:migrate": {
+    "db:push": {
       "cache": false,
       "persistent": true
     },

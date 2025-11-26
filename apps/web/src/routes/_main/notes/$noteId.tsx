@@ -1,5 +1,5 @@
-import type { FolderWithItems } from "@repo/db/validators/folder-validators";
-import type { DecryptedNote } from "@repo/db/validators/note-validators";
+import type { FolderWithItems } from "@repo/db/validators/folder.validator";
+import type { DecryptedNote } from "@repo/db/validators/note.validator";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
