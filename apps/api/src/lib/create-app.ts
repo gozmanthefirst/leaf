@@ -2,6 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import { rateLimiter } from "hono-rate-limiter";
 
 import type { AppBindings } from "@/lib/types";
 import emojiFavicon from "@/middleware/emoji-favicon";
@@ -24,8 +25,45 @@ export const createRouter = () => {
 const createApp = () => {
   const app = createRouter();
 
+  // Parse CORS origins from environment variable
+  const corsOrigins = env.CORS_ORIGINS
+    ? env.CORS_ORIGINS.split(",").map((origin) => origin.trim())
+    : ["http://localhost:3000"];
+
   // CORS
-  app.use("/api/*", cors({ origin: "http://localhost:3120" }));
+  app.use(
+    "/api/*",
+    cors({
+      origin: corsOrigins,
+      credentials: true,
+    }),
+  );
+
+  // Rate limiting - stricter for auth endpoints
+  const authRateLimiter = rateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    limit: 100, // 100 requests per minute for auth
+    standardHeaders: "draft-6",
+    keyGenerator: (c) => {
+      // Use IP address for rate limiting
+      const forwarded = c.req.header("x-forwarded-for");
+      return forwarded?.split(",")[0] ?? c.req.header("x-real-ip") ?? "unknown";
+    },
+  });
+
+  // General API rate limiter
+  const apiRateLimiter = rateLimiter({
+    windowMs: 60 * 1000, // 1 minute
+    limit: 1000, // 1000 requests per minute for general API
+    standardHeaders: "draft-6",
+    keyGenerator: (c) => {
+      const forwarded = c.req.header("x-forwarded-for");
+      return forwarded?.split(",")[0] ?? c.req.header("x-real-ip") ?? "unknown";
+    },
+  });
+
+  app.use("/api/better-auth/*", authRateLimiter);
+  app.use("/api/*", apiRateLimiter);
 
   // Security Headers
   app.use(
