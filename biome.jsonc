@@ -7,16 +7,20 @@
     "defaultBranch": "main"
   },
   "files": {
+    "ignoreUnknown": true,
     "includes": [
       "**/*.{ts,tsx,js,jsx,json,jsonc,md}",
+      "!node_modules",
+      "!.next",
+      "!dist",
+      "!build",
       "!**/generated/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/*.gen.{ts,tsx,js,jsx,json,jsonc,md}",
       "!**/worker-configuration.d.ts",
       "!!**/dist/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!!**/build/**/*.{ts,tsx,js,jsx,json,jsonc,md}",
       "!!**/.output/**/*.{ts,tsx,js,jsx,json,jsonc,md}"
-    ],
-    "ignoreUnknown": true
+    ]
   },
   "formatter": {
     "enabled": true,
@@ -38,8 +42,13 @@
         }
       },
       "suspicious": {
-        "noArrayIndexKey": "warn"
+        "noArrayIndexKey": "warn",
+        "noUnknownAtRules": "warn"
       }
+    },
+    "domains": {
+      "next": "recommended",
+      "react": "recommended"
     }
   },
   "assist": {
