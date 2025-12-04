@@ -4,7 +4,9 @@ import type { FolderWithItems } from "@repo/db/validators/folder.validator";
 
 import type { AppRouteHandler } from "@/lib/types";
 import {
+  createRootFolder as createRootFolderQuery,
   generateUniqueFolderName,
+  getFolderChildren as getFolderChildrenQuery,
   getFolderForUser,
   getFolderWithNestedItems,
   getRootFolderWithNestedItems,
@@ -12,7 +14,9 @@ import {
 } from "@/queries/folder-queries";
 import type {
   CreateFolderRoute,
+  CreateRootFolderRoute,
   DeleteFolderRoute,
+  GetFolderChildrenRoute,
   MoveFolderRoute,
   UpdateFolderRoute,
 } from "@/routes/folder/folder.routes";
@@ -315,6 +319,76 @@ export const deleteFolder: AppRouteHandler<DeleteFolderRoute> = async (c) => {
     console.error("Error deleting folder:", error);
     return c.json(
       errorResponse("INTERNAL_SERVER_ERROR", "Failed to delete folder"),
+      HttpStatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+};
+
+export const getFolderChildren: AppRouteHandler<
+  GetFolderChildrenRoute
+> = async (c) => {
+  const user = c.get("user");
+  const { id } = c.req.valid("param");
+
+  try {
+    const children = await getFolderChildrenQuery(id, user.id);
+
+    if (!children) {
+      return c.json(
+        errorResponse("NOT_FOUND", "Folder not found"),
+        HttpStatusCodes.NOT_FOUND,
+      );
+    }
+
+    return c.json(
+      successResponse(children, "Folder children retrieved successfully"),
+      HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    console.error("Error retrieving folder children:", error);
+    return c.json(
+      errorResponse(
+        "INTERNAL_SERVER_ERROR",
+        "Failed to retrieve folder children",
+      ),
+      HttpStatusCodes.INTERNAL_SERVER_ERROR,
+    );
+  }
+};
+
+export const createRootFolder: AppRouteHandler<CreateRootFolderRoute> = async (
+  c,
+) => {
+  const user = c.get("user");
+
+  try {
+    const rootFolder = await createRootFolderQuery(user.id);
+
+    if (!rootFolder) {
+      return c.json(
+        errorResponse("INTERNAL_SERVER_ERROR", "Failed to create root folder"),
+        HttpStatusCodes.INTERNAL_SERVER_ERROR,
+      );
+    }
+
+    // Check if root folder was just created or already existed
+    // If createdAt is within last 5 seconds, it was just created
+    const justCreated =
+      Date.now() - new Date(rootFolder.createdAt).getTime() < 5000;
+
+    return c.json(
+      successResponse(
+        rootFolder,
+        justCreated
+          ? "Root folder created successfully"
+          : "Root folder already exists",
+      ),
+      justCreated ? HttpStatusCodes.CREATED : HttpStatusCodes.OK,
+    );
+  } catch (error) {
+    console.error("Error creating root folder:", error);
+    return c.json(
+      errorResponse("INTERNAL_SERVER_ERROR", "Failed to create root folder"),
       HttpStatusCodes.INTERNAL_SERVER_ERROR,
     );
   }

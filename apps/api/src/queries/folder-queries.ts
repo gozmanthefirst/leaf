@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { db } from "@repo/db";
+import { db, sql } from "@repo/db";
 import type { Folder } from "@repo/db/schemas/folder.schema";
 import { folder } from "@repo/db/schemas/folder.schema";
 import type { Note } from "@repo/db/schemas/note.schema";
@@ -198,7 +198,127 @@ export const getRootFolderWithNestedItems = async (
 };
 
 /**
- * Checks if a folder is a descendant of another folder or itself
+ * Folder child item for lazy loading (folder with hasChildren hint)
+ */
+export type FolderChildItem = Folder & {
+  hasChildren: boolean;
+};
+
+/**
+ * Response type for folder children endpoint (for lazy loading)
+ */
+export type FolderChildrenResponse = {
+  folders: FolderChildItem[];
+  notes: Note[];
+};
+
+/**
+ * Gets direct children of a folder (one level deep) with hasChildren hints.
+ * Used for lazy loading the folder tree.
+ */
+export const getFolderChildren = async (
+  folderId: string,
+  userId: string,
+): Promise<FolderChildrenResponse | null> => {
+  // Verify the folder exists and belongs to the user
+  const parentFolder = await db.query.folder.findFirst({
+    where: (folder, { and, eq, isNull }) =>
+      and(
+        eq(folder.id, folderId),
+        eq(folder.userId, userId),
+        isNull(folder.deletedAt),
+      ),
+  });
+
+  if (!parentFolder) {
+    return null;
+  }
+
+  // Get direct child folders (not soft-deleted)
+  const childFolders = await db.query.folder.findMany({
+    where: (folder, { and, eq, isNull }) =>
+      and(
+        eq(folder.userId, userId),
+        eq(folder.parentFolderId, folderId),
+        isNull(folder.deletedAt),
+      ),
+    orderBy: (folder, { asc }) => [asc(folder.name)],
+  });
+
+  // Get direct notes in this folder (not soft-deleted)
+  const notes = await db.query.note.findMany({
+    where: (note, { and, eq, isNull }) =>
+      and(
+        eq(note.userId, userId),
+        eq(note.folderId, folderId),
+        isNull(note.deletedAt),
+      ),
+    columns: {
+      id: true,
+      title: true,
+      folderId: true,
+      userId: true,
+      isFavorite: true,
+      deletedAt: true,
+      createdAt: true,
+      updatedAt: true,
+      // Exclude content fields for performance - they're loaded separately
+      contentEncrypted: false,
+      contentIv: false,
+      contentTag: false,
+    },
+    orderBy: (note, { asc }) => [asc(note.title)],
+  });
+
+  // Check which folders have children (folders or notes)
+  const foldersWithHints: FolderChildItem[] = await Promise.all(
+    childFolders.map(async (f) => ({
+      ...f,
+      hasChildren: await hasDescendants(f.id, userId),
+    })),
+  );
+
+  return { folders: foldersWithHints, notes: notes as Note[] };
+};
+
+/**
+ * Checks if a folder has any direct children (folders or notes).
+ * Used to determine if the expand arrow should be shown.
+ */
+const hasDescendants = async (
+  folderId: string,
+  userId: string,
+): Promise<boolean> => {
+  // Check for child folders first (more likely)
+  const childFolder = await db.query.folder.findFirst({
+    where: (folder, { and, eq, isNull }) =>
+      and(
+        eq(folder.parentFolderId, folderId),
+        eq(folder.userId, userId),
+        isNull(folder.deletedAt),
+      ),
+    columns: { id: true },
+  });
+
+  if (childFolder) return true;
+
+  // Check for notes
+  const childNote = await db.query.note.findFirst({
+    where: (note, { and, eq, isNull }) =>
+      and(
+        eq(note.folderId, folderId),
+        eq(note.userId, userId),
+        isNull(note.deletedAt),
+      ),
+    columns: { id: true },
+  });
+
+  return !!childNote;
+};
+
+/**
+ * Checks if a folder is a descendant of another folder or itself.
+ * Uses a recursive CTE to avoid N+1 queries.
  */
 export const isDescendant = async (
   folderId: string,
@@ -207,16 +327,27 @@ export const isDescendant = async (
 ): Promise<boolean> => {
   if (folderId === targetParentId) return true;
 
-  let currentId = targetParentId;
-  while (true) {
-    const folder = await getFolderForUser(currentId, userId);
+  // Use a recursive CTE to walk up the tree in a single query
+  const result = await db.execute(sql`
+    WITH RECURSIVE ancestors AS (
+      -- Start with the target folder
+      SELECT id, parent_folder_id, is_root
+      FROM folder
+      WHERE id = ${targetParentId} AND user_id = ${userId}
+      
+      UNION ALL
+      
+      -- Walk up the tree
+      SELECT f.id, f.parent_folder_id, f.is_root
+      FROM folder f
+      INNER JOIN ancestors a ON f.id = a.parent_folder_id
+      WHERE f.id != a.id  -- Prevent infinite loop on root (self-referential)
+        AND a.is_root = false
+    )
+    SELECT EXISTS (
+      SELECT 1 FROM ancestors WHERE parent_folder_id = ${folderId}
+    ) as is_descendant
+  `);
 
-    if (!folder || folder.isRoot) break;
-    if (folder.parentFolderId === folderId) return true;
-    if (folder.parentFolderId === currentId) break;
-
-    currentId = folder.parentFolderId;
-  }
-
-  return false;
+  return (result.rows[0] as { is_descendant: boolean })?.is_descendant ?? false;
 };

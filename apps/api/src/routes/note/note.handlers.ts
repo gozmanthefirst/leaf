@@ -21,9 +21,12 @@ import { errorResponse, successResponse } from "@/utils/api-response";
 import HttpStatusCodes from "@/utils/http-status-codes";
 import type { CreateNoteRoute, GetAllNotesRoute } from "./note.routes";
 
-const normalizeTags = (tags: string[] | undefined): string[] => {
-  if (!tags) return [];
-  return Array.from(new Set(tags.filter((tag) => tag.trim().length > 0)));
+// Content size limits
+const MAX_CONTENT_SIZE_BYTES = 2 * 1024 * 1024; // 2MB uncompressed
+
+// Helper to get byte size of a string
+const getByteSize = (str: string): number => {
+  return new TextEncoder().encode(str).length;
 };
 
 // Helper for decompressing note content
@@ -71,6 +74,20 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
   const noteData = c.req.valid("json");
 
   try {
+    // Decompress content if needed
+    const decompressedContent = decompressContent(noteData);
+
+    // Check content size limit
+    if (
+      decompressedContent &&
+      getByteSize(decompressedContent) > MAX_CONTENT_SIZE_BYTES
+    ) {
+      return c.json(
+        errorResponse("PAYLOAD_TOO_LARGE", "Note content exceeds 2MB limit"),
+        HttpStatusCodes.CONTENT_TOO_LARGE,
+      );
+    }
+
     const folder = await getFolderForUser(noteData.folderId, user.id);
 
     if (!folder) {
@@ -92,8 +109,9 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
       contentTag: "",
     };
 
-    if (noteData.content) {
-      const { encrypted, iv, tag } = encryptContent(noteData.content);
+    const contentToEncrypt = decompressedContent || noteData.content;
+    if (contentToEncrypt) {
+      const { encrypted, iv, tag } = encryptContent(contentToEncrypt);
       encryptedData = {
         contentEncrypted: encrypted,
         contentIv: iv,
@@ -108,7 +126,6 @@ export const createNote: AppRouteHandler<CreateNoteRoute> = async (c) => {
       ...encryptedData,
       userId: user.id,
       title: uniqueTitle,
-      tags: normalizeTags(noteData.tags),
     };
 
     const [newNote] = await db.insert(note).values(payload).returning();
@@ -131,37 +148,53 @@ export const getSingleNote: AppRouteHandler<GetSingleNoteRoute> = async (c) => {
   const { id } = c.req.valid("param");
 
   try {
-    const note = await getNoteForUser(id, user.id);
+    const foundNote = await getNoteForUser(id, user.id);
 
-    if (!note) {
+    if (!foundNote) {
       return c.json(
         errorResponse("NOT_FOUND", "Note not found"),
         HttpStatusCodes.NOT_FOUND,
       );
     }
 
+    // Generate ETag from updatedAt timestamp
+    const etag = `"${foundNote.updatedAt.getTime()}"`;
+
+    // Check If-None-Match header for conditional request
+    const ifNoneMatch = c.req.header("If-None-Match");
+    if (ifNoneMatch === etag) {
+      return c.body(null, HttpStatusCodes.NOT_MODIFIED);
+    }
+
     const decryptedNote: Omit<
       Note,
       "contentEncrypted" | "contentIv" | "contentTag"
     > & { content: string } = {
-      id: note.id,
-      title: note.title,
+      id: foundNote.id,
+      title: foundNote.title,
       content: "",
-      folderId: note.folderId,
-      userId: note.userId,
-      isFavorite: note.isFavorite,
-      tags: note.tags,
-      createdAt: note.createdAt,
-      updatedAt: note.updatedAt,
+      folderId: foundNote.folderId,
+      userId: foundNote.userId,
+      isFavorite: foundNote.isFavorite,
+      deletedAt: foundNote.deletedAt,
+      createdAt: foundNote.createdAt,
+      updatedAt: foundNote.updatedAt,
     };
 
-    if (note.contentEncrypted && note.contentIv && note.contentTag) {
+    if (
+      foundNote.contentEncrypted &&
+      foundNote.contentIv &&
+      foundNote.contentTag
+    ) {
       decryptedNote.content = decryptContent(
-        note.contentEncrypted,
-        note.contentIv,
-        note.contentTag,
+        foundNote.contentEncrypted,
+        foundNote.contentIv,
+        foundNote.contentTag,
       );
     }
+
+    // Set ETag header for caching
+    c.header("ETag", etag);
 
     return c.json(
       successResponse(decryptedNote, "Note retrieved successfully"),
@@ -217,7 +250,6 @@ export const copyNote: AppRouteHandler<CopyNoteRoute> = async (c) => {
       userId: user.id,
       folderId: noteToBeCopied.folderId,
       isFavorite: false,
-      tags: normalizeTags(noteToBeCopied.tags),
     };
 
     const [copiedNote] = await db.insert(note).values(payload).returning();
@@ -344,10 +376,25 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       );
     }
 
+    // Check If-Match header for optimistic locking (prevents conflicts)
+    const ifMatch = c.req.header("If-Match");
+    if (ifMatch) {
+      const currentEtag = `"${foundNote.updatedAt.getTime()}"`;
+      if (ifMatch !== currentEtag) {
+        // Note was modified since client last fetched it
+        return c.json(
+          errorResponse(
+            "PRECONDITION_FAILED",
+            "Note was modified by another request. Please refresh and try again.",
+          ),
+          HttpStatusCodes.PRECONDITION_FAILED,
+        );
+      }
+    }
+
     const folderId = noteData.folderId ?? foundNote.folderId;
     const title = noteData.title ?? foundNote.title;
     const isFavorite = noteData.isFavorite ?? foundNote.isFavorite;
-    const tags = normalizeTags(noteData.tags ?? foundNote.tags);
 
     if (folderId !== foundNote.folderId) {
       const folder = await getFolderForUser(folderId, user.id);
@@ -361,6 +408,14 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
 
     // Decompress content if needed
     const content = decompressContent(noteData);
+
+    // Check content size limit
+    if (content && getByteSize(content) > MAX_CONTENT_SIZE_BYTES) {
+      return c.json(
+        errorResponse("PAYLOAD_TOO_LARGE", "Note content exceeds 2MB limit"),
+        HttpStatusCodes.CONTENT_TOO_LARGE,
+      );
+    }
 
     // Only build encrypted fields if new raw content is provided.
     let encryptedData: Partial<EncryptedNote> = {};
@@ -384,7 +439,6 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       folderId,
       title: newTitle,
       isFavorite,
-      tags,
       ...encryptedData,
     };
 
@@ -404,7 +458,7 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
       folderId: updatedNote.folderId,
       userId: updatedNote.userId,
       isFavorite: updatedNote.isFavorite,
-      tags: updatedNote.tags,
+      deletedAt: updatedNote.deletedAt,
       createdAt: updatedNote.createdAt,
       updatedAt: updatedNote.updatedAt,
     };
@@ -413,6 +467,9 @@ export const updateNote: AppRouteHandler<UpdateNoteRoute> = async (c) => {
     if (content && encryptedData.contentEncrypted) {
       decryptedUpdatedNote.content = content;
     }
+
+    // Set ETag header for caching
+    c.header("ETag", `"${updatedNote.updatedAt.getTime()}"`);
 
     return c.json(
       successResponse(decryptedUpdatedNote, "Note updated successfully"),

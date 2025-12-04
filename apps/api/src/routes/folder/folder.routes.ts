@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import {
+  FolderChildrenResponseSchema,
   FolderInsertSchema,
   FolderSelectSchema,
   FolderUpdateSchema,
@@ -403,8 +404,109 @@ export const deleteFolder = createRoute({
   },
 });
 
+// Route for getting folder children (lazy loading)
+export const getFolderChildren = createRoute({
+  path: "/folders/{id}/children",
+  method: "get",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  description:
+    "Get direct children of a folder (folders and notes) with hasChildren hints for lazy loading",
+  request: {
+    params: createIdUUIDParamsSchema("Folder ID"),
+  },
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Folder children retrieved",
+      schema: FolderChildrenResponseSchema,
+      resObj: {
+        details: "Folder children retrieved successfully",
+        data: {
+          folders: [{ ...foldersExamples.folder, hasChildren: true }],
+          notes: [],
+        },
+      },
+    }),
+    [HttpStatusCodes.BAD_REQUEST]: errorContent({
+      description: "Invalid request data",
+      examples: {
+        validationError: {
+          summary: "Validation error",
+          code: "INVALID_DATA",
+          details: getErrDetailsFromErrFields(authExamples.uuidValErr),
+          fields: authExamples.uuidValErr,
+        },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.NOT_FOUND]: genericErrorContent(
+      "NOT_FOUND",
+      "Folder not found",
+      "Folder not found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
+// Route for creating root folder (called from Better Auth hook)
+export const createRootFolder = createRoute({
+  path: "/folders/root",
+  method: "post",
+  security: [
+    {
+      Bearer: [],
+    },
+  ],
+  tags,
+  description: "Create root folder for authenticated user (used by auth hook)",
+  responses: {
+    [HttpStatusCodes.OK]: successContent({
+      description: "Root folder already exists",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Root folder already exists",
+        data: { ...foldersExamples.folder, isRoot: true },
+      },
+    }),
+    [HttpStatusCodes.CREATED]: successContent({
+      description: "Root folder created successfully",
+      schema: FolderSelectSchema,
+      resObj: {
+        details: "Root folder created successfully",
+        data: { ...foldersExamples.folder, isRoot: true },
+      },
+    }),
+    [HttpStatusCodes.UNAUTHORIZED]: genericErrorContent(
+      "UNAUTHORIZED",
+      "Unauthorized",
+      "No session found",
+    ),
+    [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
+      "TOO_MANY_REQUESTS",
+      "Too many requests",
+      "Too many requests have been made. Please try again later.",
+    ),
+    [HttpStatusCodes.INTERNAL_SERVER_ERROR]: serverErrorContent(),
+  },
+});
+
 export type GetFolderWithItemsRoute = typeof getFolderWithItems;
+export type GetFolderChildrenRoute = typeof getFolderChildren;
 export type CreateFolderRoute = typeof createFolder;
+export type CreateRootFolderRoute = typeof createRootFolder;
 export type MoveFolderRoute = typeof moveFolder;
 export type UpdateFolderRoute = typeof updateFolder;
 export type DeleteFolderRoute = typeof deleteFolder;

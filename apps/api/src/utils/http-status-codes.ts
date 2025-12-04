@@ -270,6 +270,13 @@ export const REQUEST_TIMEOUT = 408;
  */
 export const REQUEST_TOO_LONG = 413;
 /**
+ * Alias for REQUEST_TOO_LONG (413) - The modern name for this status code.
+ * Official Documentation @ https://tools.ietf.org/html/rfc7231#section-6.5.11
+ *
+ * Request entity is larger than limits defined by server.
+ */
+export const CONTENT_TOO_LARGE = 413;
+/**
  * Official Documentation @ https://tools.ietf.org/html/rfc7231#section-6.5.12
  *
  * The URI requested by the client is longer than the server is willing to interpret.
@@ -361,6 +368,7 @@ const HttpStatusCodes = {
   BAD_GATEWAY,
   BAD_REQUEST,
   CONFLICT,
+  CONTENT_TOO_LARGE,
   CONTINUE,
   CREATED,
   EXPECTATION_FAILED,

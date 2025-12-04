@@ -102,6 +102,11 @@ export const createNote = createRoute({
       "Folder not found",
       "Folder not found",
     ),
+    [HttpStatusCodes.CONTENT_TOO_LARGE]: genericErrorContent(
+      "PAYLOAD_TOO_LARGE",
+      "Payload too large",
+      "Note content exceeds 2MB limit",
+    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
@@ -133,6 +138,9 @@ export const getSingleNote = createRoute({
         data: notesExamples.note,
       },
     }),
+    [HttpStatusCodes.NOT_MODIFIED]: {
+      description: "Note not modified",
+    },
     [HttpStatusCodes.BAD_REQUEST]: errorContent({
       description: "Invalid request data",
       examples: {
@@ -438,6 +446,16 @@ export const updateNote = createRoute({
         },
       },
     }),
+    [HttpStatusCodes.PRECONDITION_FAILED]: genericErrorContent(
+      "PRECONDITION_FAILED",
+      "Note was modified",
+      "Note was modified by another request. Please refresh and try again.",
+    ),
+    [HttpStatusCodes.CONTENT_TOO_LARGE]: genericErrorContent(
+      "PAYLOAD_TOO_LARGE",
+      "Payload too large",
+      "Note content exceeds 2MB limit",
+    ),
     [HttpStatusCodes.TOO_MANY_REQUESTS]: genericErrorContent(
       "TOO_MANY_REQUESTS",
       "Too many requests",
