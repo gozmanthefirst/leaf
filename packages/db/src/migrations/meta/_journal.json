@@ -22,6 +22,13 @@
       "when": 1764093627880,
       "tag": "0002_simple_hemingway",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764815864692,
+      "tag": "0003_supreme_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }
