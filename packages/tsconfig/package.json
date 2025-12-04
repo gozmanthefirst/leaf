@@ -1,8 +1,0 @@
-{
-  "name": "@repo/tsconfig",
-  "private": true,
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public"
-  }
-}
