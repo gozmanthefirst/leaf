@@ -54,11 +54,26 @@ export const auth = betterAuth({
     },
   },
 
+  user: {
+    additionalFields: {
+      encryptionSalt: {
+        type: "string",
+        required: false,
+      },
+      encryptionVersion: {
+        type: "number",
+        required: true,
+        defaultValue: 1,
+      },
+    },
+  },
+
   session: {
     expiresIn: 60 * 60 * 24 * 30,
   },
 
   advanced: {
+    database: { generateId: "uuid" },
     cookies: {
       session_token: {
         name: "leaf_auth_session",
@@ -71,6 +86,10 @@ export const auth = betterAuth({
         },
       },
     },
+  },
+
+  experimental: {
+    joins: true,
   },
 
   plugins: [openAPI(), bearer()],

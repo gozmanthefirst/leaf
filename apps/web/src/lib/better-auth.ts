@@ -2,6 +2,7 @@ import { db } from "@repo/db";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer } from "better-auth/plugins";
+import { tanstackStartCookies } from "better-auth/tanstack-start";
 
 import env from "./env";
 
@@ -28,6 +29,7 @@ export const auth = betterAuth({
   },
 
   advanced: {
+    database: { generateId: "uuid" },
     cookies: {
       session_token: {
         name: "leaf_auth_session",
@@ -42,5 +44,9 @@ export const auth = betterAuth({
     },
   },
 
-  plugins: [bearer()],
+  experimental: {
+    joins: true,
+  },
+
+  plugins: [bearer(), tanstackStartCookies()],
 });
