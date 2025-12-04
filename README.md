@@ -20,7 +20,7 @@ I got the inspo for this from Obsidian. I think Obsidian is pretty amazing. Howe
 - **Database:** Postgres
 - **Deployment:** Docker
 
-Other tools used include Prisma as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, Lintstaged for running linters on staged files, and Resend for emails.
+Other tools used include Drizzle as the ORM layer for the database, Biome for linting and formatting, Husky for Git hooks, and Lintstaged for running linters on staged files.
 
 ## Live Demo
 
