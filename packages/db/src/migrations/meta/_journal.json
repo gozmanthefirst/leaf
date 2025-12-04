@@ -5,29 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1764014452427,
-      "tag": "0000_heavy_victor_mancha",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1764093572536,
-      "tag": "0001_nebulous_sinister_six",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1764093627880,
-      "tag": "0002_simple_hemingway",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1764815864692,
-      "tag": "0003_supreme_cassandra_nova",
+      "when": 1764883947463,
+      "tag": "0000_outgoing_norrin_radd",
       "breakpoints": true
     }
   ]

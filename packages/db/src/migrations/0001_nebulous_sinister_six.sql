@@ -1,1 +1,0 @@
-ALTER TABLE "session" DROP CONSTRAINT "session_token_unique";

@@ -13,26 +13,31 @@ export const NoteSelectSchema = EncryptedNoteSelectSchema.omit({
   content: z.string(),
 });
 
+// Note metadata without content (for folder children listing)
+export const NoteMetadataSchema = EncryptedNoteSelectSchema.omit({
+  contentEncrypted: true,
+  contentIv: true,
+  contentTag: true,
+});
+
 export const NoteInsertSchema = createInsertSchema(note)
   .pick({
     title: true,
-    tags: true,
     isFavorite: true,
     folderId: true,
   })
   .extend({
     title: z.string().min(1).default("Untitled"),
     content: z.string().default(""),
-    tags: z.array(z.string().min(1)).default([]),
     isFavorite: z.boolean().default(false),
     folderId: z.uuid(),
   });
 
 export const NoteUpdateSchema = NoteInsertSchema.extend({
   title: z.string().min(1),
-  tags: z.array(z.string().min(1)),
   isFavorite: z.boolean(),
   _compressed: z.boolean(),
 }).partial();
 
 export type DecryptedNote = z.infer<typeof NoteSelectSchema>;
+export type NoteMetadata = z.infer<typeof NoteMetadataSchema>;
