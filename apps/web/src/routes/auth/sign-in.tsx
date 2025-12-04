@@ -1,7 +1,4 @@
-import { useForm } from "@tanstack/react-form";
-import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Image } from "@unpic/react";
 import { useEffect, useState } from "react";
@@ -10,12 +7,7 @@ import z from "zod";
 
 import { Button } from "@/components/ui/button";
 import { cancelToastEl } from "@/components/ui/toaster";
-import { signInErrMaps } from "@/error-mappings/auth-error-mappings";
-import { useInputRefs } from "@/hooks/use-input-refs";
 import { authClient } from "@/lib/better-auth-client";
-import { apiErrorHandler } from "@/lib/handle-api-error";
-import { SignInSchema } from "@/schemas/auth-schema";
-import { $signIn } from "@/server/auth";
 
 const SearchSchema = z.object({
   error: z.string().optional(),
@@ -28,14 +20,10 @@ export const Route = createFileRoute("/auth/sign-in")({
 });
 
 function SignInPage() {
-  const signIn = useServerFn($signIn);
   const { error, success } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
 
   const [buttonState, setButtonState] = useState<"idle" | "loading">("idle");
-
-  // Refs for focusing on input fields after validation errors
-  const [emailInputRef, pwdInputRef] = useInputRefs(2);
 
   useEffect(() => {
     if (error) {
@@ -53,25 +41,6 @@ function SignInPage() {
       search: { error: undefined, success: undefined },
     });
   }, [error, success, navigate]);
-
-  const signInMutation = useMutation({
-    mutationFn: signIn,
-    onSuccess: () => {
-      toast.success("You've successfully signed in!", cancelToastEl);
-      form.reset();
-      navigate({
-        to: "/",
-        reloadDocument: true,
-      });
-    },
-    onError: (error) => {
-      const apiError = apiErrorHandler(error, {
-        defaultMessage: "An error occurred while signing in. Please try again.",
-        errorMapping: signInErrMaps,
-      });
-      toast.error(apiError.details, cancelToastEl);
-    },
-  });
 
   const handleGoogleSignIn = async () => {
     try {
@@ -97,28 +66,6 @@ function SignInPage() {
     }
   };
 
-  const form = useForm({
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-    validators: {
-      onChange: SignInSchema,
-    },
-    onSubmit: async ({ value }) => {
-      signInMutation.mutate({ data: value });
-    },
-    canSubmitWhenInvalid: true,
-    onSubmitInvalid: ({ formApi }) => {
-      const fieldStates = formApi.state.fieldMeta;
-      if (fieldStates.email?.errorMap?.onChange) {
-        emailInputRef?.current?.focus();
-      } else if (fieldStates.password?.errorMap?.onChange) {
-        pwdInputRef?.current?.focus();
-      }
-    },
-  });
-
   return (
     <div className="flex flex-col gap-6">
       <div className="size-10">
@@ -138,7 +85,7 @@ function SignInPage() {
 
         <div className="flex flex-col gap-4">
           <Button
-            disabled={buttonState === "loading" || signInMutation.isPending}
+            disabled={buttonState === "loading"}
             onClick={handleGoogleSignIn}
             type="button"
           >
