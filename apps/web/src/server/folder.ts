@@ -9,6 +9,24 @@ import { queryKeys } from "@/lib/query";
 import type { ApiSuccessResponse } from "@/lib/types";
 import { sessionMiddleware } from "@/middleware/auth-middleware";
 
+//* ENSURE ROOT FOLDER
+// Ensures the user has a root folder, creating one if it doesn't exist
+export const $ensureRootFolder = createServerFn()
+  .middleware([sessionMiddleware])
+  .handler(async ({ context }) => {
+    const response = await axiosClient.post<ApiSuccessResponse<Folder>>(
+      "/folders/root",
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${context.session.token}`,
+        },
+      },
+    );
+
+    return response.data.data;
+  });
+
 //* GET FOLDER
 // get folder server fn
 export const $getFolder = createServerFn()
@@ -34,6 +52,10 @@ export const $getFolder = createServerFn()
 export const folderQueryOptions = queryOptions({
   queryKey: queryKeys.folder("root"),
   queryFn: $getFolder,
+  // Folder structure doesn't change often, use longer stale time
+  staleTime: 2 * 60 * 1000, // 2 minutes
+  // Keep folder tree in cache for quick access
+  gcTime: 30 * 60 * 1000, // 30 minutes
 });
 
 //* CREATE FOLDER

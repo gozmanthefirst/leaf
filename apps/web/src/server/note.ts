@@ -58,6 +58,8 @@ export const $getNotes = createServerFn()
 export const notesQueryOptions = queryOptions({
   queryKey: queryKeys.notes(),
   queryFn: $getNotes,
+  // Notes list should be fresh
+  staleTime: 30 * 1000, // 30 seconds
 });
 
 //* GET SINGLE NOTE
@@ -93,6 +95,10 @@ export const singleNoteQueryOptions = (noteId: string) =>
   queryOptions({
     queryKey: queryKeys.note(noteId),
     queryFn: () => $getSingleNote({ data: noteId }),
+    // Notes change frequently, use shorter stale time
+    staleTime: 60 * 1000, // 1 minute
+    // Keep note data in cache longer for quick navigation
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
 //* CREATE NOTE
