@@ -48,7 +48,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useNoteMutations } from "@/hooks/use-note-mutations";
 import { usePersistentFocus } from "@/hooks/use-persistent-focus";
 import { type DraggedItem, useTreeDnD } from "@/hooks/use-tree-dnd";
-import { apiErrorHandler } from "@/lib/handle-api-error";
+import { authClient } from "@/lib/better-auth-client";
 import { queryKeys } from "@/lib/query";
 import type { Theme } from "@/lib/types";
 import {
@@ -59,7 +59,6 @@ import {
   sortFolderItems,
   suggestUniqueTitle,
 } from "@/lib/utils";
-import { $signOut } from "@/server/auth";
 import { $getFolder, folderQueryOptions } from "@/server/folder";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
@@ -149,7 +148,6 @@ const SIDEBAR_BTN_SIZE: "sm" | "default" | "lg" = "default";
 export const AppSidebar = ({ user }: { user: User }) => {
   const mainRoute = getRouteApi("/_main");
   const { queryClient } = mainRoute.useRouteContext();
-  const signOut = useServerFn($signOut);
   const getFolder = useServerFn($getFolder);
   const navigate = useNavigate();
 
@@ -254,24 +252,20 @@ export const AppSidebar = ({ user }: { user: User }) => {
   });
 
   const signOutUser = async () => {
-    toast.promise(signOut, {
-      loading: "Signing out...",
-      success: (response) => {
+    toast.promise(
+      authClient.signOut().then(() => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.user(),
         });
         navigate({ to: "/auth/sign-in" });
-
-        return response.details;
+      }),
+      {
+        loading: "Signing out...",
+        success: "Signed out successfully",
+        error: "Failed to sign out. Please try again.",
+        ...cancelToastEl,
       },
-      error: (error) => {
-        const apiError = apiErrorHandler(error, {
-          defaultMessage: "Failed to sign out. Please try again.",
-        });
-        return apiError.details;
-      },
-      ...cancelToastEl,
-    });
+    );
   };
 
   const folderStats = rootFolder ? countFolderStats(rootFolder) : null;
