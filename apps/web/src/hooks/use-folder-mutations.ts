@@ -88,6 +88,7 @@ export function useFolderMutations({
               parentFolderId: parentId,
               isRoot: false,
               userId: user.id,
+              deletedAt: null,
               folders: [],
               notes: [],
             },

@@ -27,6 +27,7 @@
     "@tanstack/react-router-ssr-query": "^1.139.1",
     "@tanstack/react-start": "^1.139.2",
     "@tanstack/react-store": "^0.8.0",
+    "@tanstack/react-virtual": "^3.13.12",
     "@tanstack/zod-adapter": "^1.139.1",
     "@tiptap/core": "^3.11.0",
     "@tiptap/extension-code-block-lowlight": "^3.11.0",

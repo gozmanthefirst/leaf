@@ -210,7 +210,7 @@ export function useNoteMutations({
                 contentTag: serverNote.contentTag,
                 folderId: serverNote.folderId,
                 isFavorite: serverNote.isFavorite,
-                tags: serverNote.tags,
+                deletedAt: serverNote.deletedAt,
               }
             : n,
         ),
@@ -486,7 +486,7 @@ export function useNoteMutations({
                 contentTag: serverNote.contentTag,
                 folderId: serverNote.folderId,
                 isFavorite: serverNote.isFavorite,
-                tags: serverNote.tags,
+                deletedAt: serverNote.deletedAt,
               }
             : n,
         ),
