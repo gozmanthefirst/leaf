@@ -2,11 +2,12 @@ import { db } from "@repo/db";
 
 /**
  * Fetches the note with the given ID belonging to the specified user, or null if not found.
+ * Only returns non-deleted notes.
  */
 export const getNoteForUser = async (noteId: string, userId: string) => {
   const note = await db.query.note.findFirst({
-    where: (note, { and, eq }) =>
-      and(eq(note.id, noteId), eq(note.userId, userId)),
+    where: (note, { and, eq, isNull }) =>
+      and(eq(note.id, noteId), eq(note.userId, userId), isNull(note.deletedAt)),
   });
 
   return note;
@@ -14,6 +15,7 @@ export const getNoteForUser = async (noteId: string, userId: string) => {
 
 /**
  * Generates a unique note title using incrementing numbers within the same folder.
+ * Only considers non-deleted notes.
  */
 export const generateUniqueNoteTitle = async (
   intendedTitle: string,
@@ -21,16 +23,17 @@ export const generateUniqueNoteTitle = async (
   folderId: string,
 ): Promise<string> => {
   // Get all existing notes with titles that start with the intended title
-  // BUT only within the same folder
+  // BUT only within the same folder, excluding soft-deleted notes
   const existingNote = await db.query.note.findMany({
     columns: {
       title: true,
     },
-    where: (note, { and, eq, like }) =>
+    where: (note, { and, eq, like, isNull }) =>
       and(
         eq(note.userId, userId),
         eq(note.folderId, folderId),
         like(note.title, `${intendedTitle}%`),
+        isNull(note.deletedAt),
       ),
   });
 

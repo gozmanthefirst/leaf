@@ -498,10 +498,15 @@ export const deleteNote: AppRouteHandler<DeleteNoteRoute> = async (c) => {
       );
     }
 
-    await db.delete(note).where(eq(note.id, id));
+    // Soft delete: set deletedAt timestamp instead of hard delete
+    const [deletedNote] = await db
+      .update(note)
+      .set({ deletedAt: new Date() })
+      .where(eq(note.id, id))
+      .returning();
 
     return c.json(
-      successResponse(foundNote, "Note deleted successfully"),
+      successResponse(deletedNote, "Note deleted successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {

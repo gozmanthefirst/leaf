@@ -45,14 +45,19 @@ export const createRootFolder = async (userId: string) => {
 
 /**
  * Fetches the folder with the given ID belonging to the specified user, or null if not found.
+ * Only returns non-deleted folders.
  */
 export const getFolderForUser = async (
   folderId: string,
   userId: string,
 ): Promise<Folder | undefined> => {
   const foundFolder = await db.query.folder.findFirst({
-    where: (folder, { and, eq }) =>
-      and(eq(folder.id, folderId), eq(folder.userId, userId)),
+    where: (folder, { and, eq, isNull }) =>
+      and(
+        eq(folder.id, folderId),
+        eq(folder.userId, userId),
+        isNull(folder.deletedAt),
+      ),
   });
 
   return foundFolder;
@@ -60,6 +65,7 @@ export const getFolderForUser = async (
 
 /**
  * Generates a unique folder name using incrementing numbers within the same parent folder.
+ * Only considers non-deleted folders.
  */
 export const generateUniqueFolderName = async (
   intendedName: string,
@@ -67,16 +73,17 @@ export const generateUniqueFolderName = async (
   parentFolderId: string,
 ): Promise<string> => {
   // Get all existing folders with names that start with the intended name
-  // BUT only within the same parent folder
+  // BUT only within the same parent folder, excluding soft-deleted folders
   const existingFolders = await db.query.folder.findMany({
     columns: {
       name: true,
     },
-    where: (folder, { and, eq, like }) =>
+    where: (folder, { and, eq, like, isNull }) =>
       and(
         eq(folder.userId, userId),
         eq(folder.parentFolderId, parentFolderId),
         like(folder.name, `${intendedName}%`),
+        isNull(folder.deletedAt),
       ),
   });
 
@@ -153,14 +160,16 @@ const buildFolderHierarchy = (
 /**
  * Gets a folder with all its nested folders and notes in a hierarchical structure
  * Simple approach: gets ALL user folders and notes, then builds hierarchy
+ * Only returns non-deleted folders and notes.
  */
 export const getFolderWithNestedItems = async (
   folderId: string,
   userId: string,
 ): Promise<FolderWithItems | null> => {
-  // Get ALL folders for the user
+  // Get ALL non-deleted folders for the user
   const allFolders = await db.query.folder.findMany({
-    where: (folder, { eq }) => eq(folder.userId, userId),
+    where: (folder, { and, eq, isNull }) =>
+      and(eq(folder.userId, userId), isNull(folder.deletedAt)),
   });
 
   // Check if the requested folder exists
@@ -168,9 +177,10 @@ export const getFolderWithNestedItems = async (
     return null;
   }
 
-  // Get ALL notes for the user
+  // Get ALL non-deleted notes for the user
   const allNotes = await db.query.note.findMany({
-    where: (note, { eq }) => eq(note.userId, userId),
+    where: (note, { and, eq, isNull }) =>
+      and(eq(note.userId, userId), isNull(note.deletedAt)),
   });
 
   // Build the hierarchy starting from the requested folder
@@ -350,4 +360,48 @@ export const isDescendant = async (
   `);
 
   return (result.rows[0] as { is_descendant: boolean })?.is_descendant ?? false;
+};
+
+/**
+ * Soft deletes a folder and all its descendants (child folders and notes).
+ * Uses a recursive CTE to find all descendant folders efficiently.
+ */
+export const softDeleteFolderWithDescendants = async (
+  folderId: string,
+  userId: string,
+): Promise<void> => {
+  const now = new Date();
+
+  // Use a recursive CTE to find all descendant folder IDs and soft delete in one query
+  // This avoids the array parameter issue by doing everything in a single CTE
+  await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      -- Start with the target folder
+      SELECT id
+      FROM folder
+      WHERE id = ${folderId} AND user_id = ${userId}
+      
+      UNION ALL
+      
+      -- Find all child folders recursively
+      SELECT f.id
+      FROM folder f
+      INNER JOIN descendants d ON f.parent_folder_id = d.id
+      WHERE f.id != d.id  -- Prevent self-reference
+        AND f.user_id = ${userId}
+    ),
+    update_notes AS (
+      UPDATE note
+      SET deleted_at = ${now}
+      WHERE folder_id IN (SELECT id FROM descendants)
+        AND user_id = ${userId}
+        AND deleted_at IS NULL
+      RETURNING id
+    )
+    UPDATE folder
+    SET deleted_at = ${now}
+    WHERE id IN (SELECT id FROM descendants)
+      AND user_id = ${userId}
+      AND deleted_at IS NULL
+  `);
 };

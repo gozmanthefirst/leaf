@@ -11,6 +11,7 @@ import {
   getFolderWithNestedItems,
   getRootFolderWithNestedItems,
   isDescendant,
+  softDeleteFolderWithDescendants,
 } from "@/queries/folder-queries";
 import type {
   CreateFolderRoute,
@@ -309,10 +310,14 @@ export const deleteFolder: AppRouteHandler<DeleteFolderRoute> = async (c) => {
       );
     }
 
-    await db.delete(folder).where(eq(folder.id, id));
+    // Soft delete: cascade to all descendant folders and notes
+    await softDeleteFolderWithDescendants(id, user.id);
+
+    // Return the folder with deletedAt set
+    const deletedFolder = { ...foundFolder, deletedAt: new Date() };
 
     return c.json(
-      successResponse(foundFolder, "Folder deleted successfully"),
+      successResponse(deletedFolder, "Folder deleted successfully"),
       HttpStatusCodes.OK,
     );
   } catch (error) {
