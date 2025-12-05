@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, getRouteApi, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { TbFile } from "react-icons/tb";
 
@@ -13,6 +13,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
+import { useNoteMutations } from "@/hooks/use-note-mutations";
 import { countFolderStats, getMostRecentlyUpdatedNote } from "@/lib/utils";
 import { $getFolder, folderQueryOptions } from "@/server/folder";
 
@@ -36,12 +37,29 @@ export const Route = createFileRoute("/_main/")({
 });
 
 function HomePage() {
+  const mainRoute = getRouteApi("/_main");
+  const { queryClient, user } = mainRoute.useRouteContext();
   const getFolder = useServerFn($getFolder);
 
   const folderQuery = useQuery({
     ...folderQueryOptions,
     queryFn: () => getFolder(),
   });
+
+  const rootFolder = folderQuery.data;
+
+  const { createNoteOptimistic, createNotePending } = useNoteMutations({
+    queryClient,
+    rootFolder,
+    user,
+    setActiveNoteParentId: () => {},
+  });
+
+  const handleCreateNote = () => {
+    if (rootFolder) {
+      createNoteOptimistic("Untitled", rootFolder.id);
+    }
+  };
 
   return (
     <main className="absolute inset-0 flex h-full flex-col">
@@ -66,7 +84,13 @@ function HomePage() {
                       </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
-                      <Button size={"default"}>Create your first note</Button>
+                      <Button
+                        disabled={createNotePending}
+                        onClick={handleCreateNote}
+                        size={"default"}
+                      >
+                        Create your first note
+                      </Button>
                     </EmptyContent>
                   </Empty>
                 );
